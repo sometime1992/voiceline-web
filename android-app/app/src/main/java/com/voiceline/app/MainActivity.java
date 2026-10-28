@@ -14,6 +14,11 @@ import android.webkit.WebResourceResponse;
 import android.net.Uri;
 import android.graphics.Color;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowManager;
+import android.graphics.Insets;
+import android.os.Build;
+import android.widget.FrameLayout;
 
 import androidx.webkit.WebViewAssetLoader;
 
@@ -30,10 +35,30 @@ public class MainActivity extends Activity {
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
         web = new WebView(this);
-        web.setBackgroundColor(Color.rgb(16, 14, 30));
-        setContentView(web, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        web.setBackgroundColor(Color.rgb(16, 15, 27));
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.rgb(16, 15, 27));
+        root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Edge-to-edge Android 15/16: apply insets on native root, not twice in WebView.
+        if (Build.VERSION.SDK_INT >= 35) {
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                Insets keyboard = insets.getInsets(WindowInsets.Type.ime());
+                v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, keyboard.bottom));
+                return WindowInsets.CONSUMED;
+            });
+        }
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        getWindow().setStatusBarColor(Color.rgb(16, 15, 27));
+        getWindow().setNavigationBarColor(Color.rgb(16, 15, 27));
+        setContentView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
+        // Native APK keeps one-finger scrolling but does not allow pinch-to-zoom.
+        settings.setSupportZoom(false);
+        settings.setBuiltInZoomControls(false);
+        settings.setDisplayZoomControls(false);
+        web.setHorizontalScrollBarEnabled(false);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setAllowFileAccess(false);
