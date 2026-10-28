@@ -8,8 +8,8 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 12
-        versionName '1.2.0'
+        versionCode 13
+        versionName '1.3.0'
     }
 
     buildTypes {
@@ -30,8 +30,8 @@ dependencies {
 // Always package the current web app code from the repository root when building Android.
 tasks.register('syncWebAssets', Copy) {
     from(rootProject.projectDir.parentFile) {
-        include 'index.html', 'styles.css', 'training-guide.css', 'vibrato-breath.css', 'readability.css'
-        include 'app.js', 'training-plus.js', 'vibrato-breath.js', 'sw.js', 'manifest.webmanifest'
+        include 'index.html', 'styles.css', 'training-guide.css', 'vibrato-breath.css', 'readability.css', 'ui-v13.css'
+        include 'app.js', 'training-plus.js', 'vibrato-breath.js', 'ui-v13.js', 'sw.js', 'manifest.webmanifest'
         include 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'
     }
     into('src/main/assets/www')
