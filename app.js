@@ -7,13 +7,15 @@ const korean = ['도','도♯','레','레♯','미','파','파♯','솔','솔♯
 const modeMeta = {
   free: ['자유롭게 불러보세요', '편안한 음부터 불러보세요. 그래프에 목소리의 움직임과 음정이 기록됩니다.'],
   practice: ['목표 음정을 따라 불러보세요', '화면에 나타나는 목표 음정과 내 목소리의 선을 겹치도록 연습해 보세요.'],
-  range: ['나의 음역대를 찾아보세요', '목에 무리를 주지 않는 선에서 낮은 음과 높은 음을 0.5초 이상 유지해 보세요.']
+  range: ['나의 음역대를 찾아보세요', '목에 무리를 주지 않는 선에서 낮은 음과 높은 음을 0.5초 이상 유지해 보세요.'],
+  vibrato: ['비브라토를 관찰하며 연습하세요', '목소리의 음정 흔들림 속도·폭을 그래프로 보고 연습해 보세요.'],
+  breath: ['내 호흡에 맞춰 연습하세요', '들이쉬기·유지·내쉬기·쉬는 시간을 원하는 길이로 설정하세요.']
 };
 const state = {
   mode: 'free', running: false, audioContext: null, stream: null, analyser: null, audioSource: null,
   audioBuffer: null, raf: 0, lastAnalysis: 0, sessionStart: 0, lastElapsed: 0, lastVoiced: 0,
   current: null, recentPitch: [], stableWindow: [], points: [], lowMidi: null, highMidi: null,
-  exercise: null, currentStep: -1, history: [], savedRange: null, canvasWidth: 0, canvasHeight: 0
+  exercise: null, currentStep: -1, history: [], savedRange: null, canvasWidth: 0, canvasHeight: 0, viewportCenter: null, viewportSpan: null, viewportMode: null
 };
 const chart = $('pitchChart');
 const ctx = chart.getContext('2d');
@@ -23,17 +25,19 @@ function midiToHz(midi) { return 440 * 2 ** ((midi - 69) / 12); }
 function hzToMidi(hz) { return 69 + 12 * Math.log2(hz / 440); }
 function noteLabel(midi) { const n = Math.round(midi); return names[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1); }
 function noteKorean(midi) { const n = Math.round(midi); return korean[((n % 12) + 12) % 12]; }
+function koreanOctave(midi) { return Math.floor(Math.round(midi)/12)-3; }
+function koreanFullNote(midi) { return koreanOctave(midi)+'옥 '+noteKorean(midi); }
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function median(arr) { const a = [...arr].sort((x,y) => x-y); const n=a.length; return n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2; }
 function seconds(ms) { const s=Math.max(0,Math.floor(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
 
-// YIN: 단일 음성의 기초 주파수(65~1100 Hz)를 추정. 무음/불안정한 신호는 제외합니다.
+// YIN: 단일 음성의 기초 주파수(65~2100 Hz)를 추정. 무음/불안정한 신호는 제외합니다.
 function detectPitchYIN(samples, sampleRate) {
   let power=0;
   for (let i=0;i<samples.length;i++) power+=samples[i]*samples[i];
   const rms=Math.sqrt(power/samples.length);
   if (rms < 0.014) return null;
-  const minTau=Math.max(2,Math.floor(sampleRate/1100));
+  const minTau=Math.max(2,Math.floor(sampleRate/2100));
   const maxTau=Math.min(Math.floor(sampleRate/65),Math.floor(samples.length/2)-2);
   if(maxTau <= minTau) return null;
   const windowSize=Math.min(2048,samples.length-maxTau-1);
@@ -65,7 +69,7 @@ function detectPitchYIN(samples, sampleRate) {
   const denom=left-2*center+right;
   const shift=Math.abs(denom)>1e-9?clamp(0.5*(left-right)/denom,-1,1):0;
   const hz=sampleRate/(tau+shift);
-  if(hz<65 || hz>1100 || !Number.isFinite(hz)) return null;
+  if(hz<65 || hz>2100 || !Number.isFinite(hz)) return null;
   return {hz, confidence:1-diffs[tau], rms};
 }
 
@@ -112,23 +116,26 @@ function setNotice(text){$('errorMessage').textContent=text;$('errorMessage').hi
 function setLive(text,on){$('liveState').innerHTML=`<span class="status-led"></span> ${text}`;$('liveState').classList.toggle('active',on);}
 function setMode(mode){
   if(state.running) stopMicrophone();
-  state.mode=mode;resetSession();
+  if(window.VoiceLineExtra)window.VoiceLineExtra.cancelBreath();
+  state.mode=mode;state.viewportCenter=null;state.viewportSpan=null;state.viewportMode=mode;resetSession();
   document.querySelectorAll('[data-mode]').forEach(b=>{const active=b.dataset.mode===mode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false');});
   $('modeTitle').textContent=modeMeta[mode][0];$('modeDescription').textContent=modeMeta[mode][1];
   $('freeControls').hidden=mode!=='free';$('practiceControls').hidden=mode!=='practice';$('rangeControls').hidden=mode!=='range';
+  $('vibratoControls').hidden=mode!=='vibrato';$('breathControls').hidden=mode!=='breath';$('chartWrap').hidden=mode==='breath';$('micActionRow').hidden=mode==='breath';document.querySelector('.readout').hidden=mode==='breath';document.querySelector('.graph-head').hidden=mode==='breath';document.querySelector('.graph-bottom').hidden=mode==='breath';$('chartHint').hidden=mode==='breath';
   $('progressSection').hidden=mode!=='practice';$('targetLegend').hidden=mode!=='practice';
   $('graphTitle').textContent=mode==='practice'?'목표 음정 · 내 목소리':mode==='range'?'나의 음역대 추적':'실시간 음정 그래프';
   $('graphSubtitle').textContent=mode==='practice'?'밝은 선을 목표 음정에 맞춰 따라 부르세요.':mode==='range'?'안정적으로 지속한 음만 결과에 반영됩니다.':'목소리의 높낮이가 시간에 따라 표시됩니다.';
-  $('chartHint').textContent=mode==='practice'?'보라색: 내 목소리 / 민트색: 목표 음정':'음정 감지 범위: 약 65–1,100 Hz';
-  $('scoreLabel').textContent=mode==='practice'?'연습 정확도':'정확한 음정';
-  $('scoreHint').textContent=mode==='practice'?'목표에서 ±35센트 이내':'연습 모드에서 측정';
+  $('chartHint').textContent=mode==='practice'?'보라색: 내 목소리 / 민트색: 목표 음정':'음정 감지 범위: 약 65–2,100 Hz · 고음 자동 따라가기';
+  $('scoreLabel').textContent=mode==='practice'?'연습 정확도':mode==='vibrato'?'비브라토 속도':'정확한 음정';
+  $('scoreHint').textContent=mode==='practice'?'목표에서 ±35센트 이내':mode==='vibrato'?'참고용 추정 Hz':'연습 모드에서 측정';
   $('scoreValue').textContent='--';updateStats();drawChart(0);
+  if(window.VoiceLineExtra)window.VoiceLineExtra.modeChanged(mode);
 }
 function resetSession(){
   state.points=[];state.stableWindow=[];state.recentPitch=[];state.current=null;state.lowMidi=null;state.highMidi=null;state.lastElapsed=0;state.lastVoiced=0;state.exercise=null;state.currentStep=-1;
   $('noteName').textContent='--';$('noteKorean').textContent='마이크 대기';$('freqValue').textContent='-- Hz';$('centValue').innerHTML='-- <small>cent</small>';$('tuningPin').style.left='50%';
   $('chartClock').textContent='00:00';$('progressFill').style.width='0%';$('stepLabel').textContent='음정 따라 부르기';$('stepProgress').textContent='0 / '+getExerciseSteps().length;
-  $('scoreValue').textContent='--';$('saveRangeButton').disabled=true;$('practiceButton').textContent='연습 시작';setPracticeOptionsLocked(false);
+  $('scoreValue').textContent='--';if(window.VoiceLineExtra)window.VoiceLineExtra.resetVibrato();$('saveRangeButton').disabled=true;$('practiceButton').textContent='연습 시작';setPracticeOptionsLocked(false);
   $('chartOverlay').hidden=state.running;
   setNotice('');updateStats();
 }
@@ -155,7 +162,7 @@ async function startMicrophone(){
     state.stream=stream;state.audioContext=audio;state.audioSource=source;state.analyser=analyser;state.audioBuffer=new Float32Array(analyser.fftSize);
     state.running=true;resetSession();state.sessionStart=performance.now();state.lastAnalysis=0;
     $('startText').textContent='마이크 끄기';$('startIcon').textContent='◼';$('practiceButton').disabled=false;
-    $('chartOverlay').hidden=true;setLive('마이크 연결됨',true);state.raf=requestAnimationFrame(loop);
+    $('chartOverlay').hidden=true;setLive('마이크 연결됨',true);if(window.VoiceLineExtra)window.VoiceLineExtra.micStarted();state.raf=requestAnimationFrame(loop);
     // 사용자가 브라우저 UI에서 마이크 권한을 끊으면 즉시 정리
     stream.getAudioTracks().forEach(track=>track.addEventListener('ended',()=>{if(state.running)stopMicrophone();}));
   } catch(e) {
@@ -176,7 +183,7 @@ function stopMicrophone(){
   if(state.exercise && !state.exercise.done) {state.exercise=null;setPracticeOptionsLocked(false);setNotice('연습이 중단되었습니다. 다시 연습 시작을 누르면 처음부터 시작합니다.');}
   $('startText').textContent='마이크 켜기';$('startIcon').textContent='◉';$('practiceButton').disabled=true;$('practiceButton').textContent='연습 시작';
   $('saveRangeButton').disabled=state.mode!=='range'||state.lowMidi===null||state.highMidi===null;
-  $('chartOverlay').hidden=false;setLive('대기 중',false);drawChart(state.lastElapsed);
+  $('chartOverlay').hidden=false;setLive('대기 중',false);if(window.VoiceLineExtra)window.VoiceLineExtra.micStopped();drawChart(state.lastElapsed);
 }
 function trackStable(midi, elapsed){
   state.stableWindow.push({midi,t:elapsed});
@@ -196,16 +203,17 @@ function analyse(elapsed){
   const detected=detectPitchYIN(state.audioBuffer,state.audioContext.sampleRate);
   if(!detected){
     state.current=null;state.recentPitch=[];state.stableWindow=[];
-    state.points.push({t:elapsed,midi:null});setLive('음성 신호 대기',true);
+    state.points.push({t:elapsed,midi:null});setLive('음성 신호 대기',true);if(state.mode==='vibrato'&&window.VoiceLineExtra)window.VoiceLineExtra.noPitch(elapsed);
   } else {
     const rawMidi=hzToMidi(detected.hz);
     if(state.recentPitch.length && Math.abs(rawMidi-median(state.recentPitch))>3)state.recentPitch=[];
     state.recentPitch.push(rawMidi);if(state.recentPitch.length>3)state.recentPitch.shift();
-    const midi=median(state.recentPitch);const hz=midiToHz(midi);
+    const midi=state.mode==='vibrato'?rawMidi:median(state.recentPitch);const hz=midiToHz(midi);
     state.current={midi,hz};state.lastVoiced=elapsed;state.points.push({t:elapsed,midi});
     trackStable(midi,elapsed);setLive('실시간 측정 중',true);
+    if(state.mode==='vibrato'&&window.VoiceLineExtra)window.VoiceLineExtra.addPitch(elapsed,midi);
     const nearest=Math.round(midi),cents=Math.round((midi-nearest)*100);
-    $('noteName').textContent=noteLabel(nearest);$('noteKorean').textContent=noteKorean(nearest);$('freqValue').textContent=hz.toFixed(1)+' Hz';
+    $('noteName').textContent=noteLabel(nearest);$('noteKorean').textContent=koreanFullNote(nearest);$('freqValue').textContent=hz.toFixed(1)+' Hz';
     $('centValue').innerHTML=(cents>0?'+':'')+cents+' <small>cent</small>';
     $('tuningPin').style.left=clamp(50+cents,0,100)+'%';
   }
@@ -259,7 +267,8 @@ function finalizePractice(){
 function loop(time){
   if(!state.running)return;
   const elapsed=time-state.sessionStart;state.lastElapsed=elapsed;
-  if(time-state.lastAnalysis>=85){analyse(elapsed);state.lastAnalysis=time;}
+  if(time-state.lastAnalysis>=(state.mode==='vibrato'?45:85)){analyse(elapsed);state.lastAnalysis=time;}
+  if(window.VoiceLineExtra)window.VoiceLineExtra.update(elapsed);
   $('chartClock').textContent=seconds(elapsed);drawChart(elapsed);
   state.raf=requestAnimationFrame(loop);
 }
@@ -274,15 +283,47 @@ function fitCanvas(){
 }
 function bounds(){
   if(state.mode==='practice') {const root=Number($('rootSelect').value);return [root-5,root+13];}
+  if(state.mode==='vibrato'){const root=Number($('vibratoRoot').value);return [root-2.5,root+2.5];}
   if(state.lowMidi!==null){const center=(state.lowMidi+state.highMidi)/2;const span=Math.max(22,state.highMidi-state.lowMidi+12);return [center-span/2,center+span/2];}
   if(state.current){return [state.current.midi-13,state.current.midi+13];}
   return [47,83];
 }
+function smoothViewport(){
+  // Keep the active sung note in view, including 3rd/4th Korean octaves (C5/C6).
+  // Small note fluctuations don't cause a jarring full-screen jump.
+  const mode=state.mode, actual=state.current?.midi;
+  let low=47,high=83;
+  if(mode==='vibrato'){const root=Number($('vibratoRoot').value);low=root-3;high=root+3;}
+  else if(mode==='practice'){
+    const notes=getSteps().map(p=>p.midi);low=Math.min(...notes)-5;high=Math.max(...notes)+5;
+    // If the singer goes beyond the exercise's vertical extent, follow without clipping.
+    if(Number.isFinite(actual)){low=Math.min(low,actual-5);high=Math.max(high,actual+5);}
+  }else if(mode==='range'){
+    const n=Number.isFinite(actual)?actual:state.highMidi??state.lowMidi;
+    if(Number.isFinite(n)){low=n-12;high=n+12;}
+  }else if(Number.isFinite(actual)){low=actual-12;high=actual+12;}
+  const targetSpan=mode==='vibrato'?6:Math.max(22,high-low);
+  const targetCenter=(low+high)/2;
+  if(!Number.isFinite(state.viewportCenter)||state.viewportMode!==mode){
+    state.viewportCenter=targetCenter;state.viewportSpan=targetSpan;state.viewportMode=mode;
+  }
+  const span=state.viewportSpan+(targetSpan-state.viewportSpan)*0.1;
+  let center=state.viewportCenter;
+  const margin=span*(mode==='vibrato'?.18:.28);
+  if(Number.isFinite(actual)&&mode!=='vibrato'){
+    if(actual>center+margin)center=actual-margin;
+    if(actual<center-margin)center=actual+margin;
+  }else if(mode==='practice')center=targetCenter;
+  else if(mode==='vibrato')center=targetCenter;
+  state.viewportCenter+=(center-state.viewportCenter)*.16;
+  state.viewportSpan=span;
+  return [state.viewportCenter-span/2,state.viewportCenter+span/2];
+}
 function drawChart(elapsed){
   const {w,h}=fitCanvas();if(w<2||h<2)return;
-  const l=w<440?41:51,r=15,t=20,b=29, pw=w-l-r,ph=h-t-b;
+  const l=w<440?75:91,r=15,t=22,b=32, pw=w-l-r,ph=h-t-b;
   ctx.clearRect(0,0,w,h);
-  const [low,high]=bounds();
+  const [low,high]=smoothViewport();
   const y=(m)=>t+(high-m)/(high-low)*ph;
   const timeWindow=12000, markerFraction=.68;
   const start=elapsed-timeWindow*markerFraction;
@@ -315,6 +356,7 @@ function drawChart(elapsed){
       steps.forEach((step,i)=>{const yy=y(step.midi),a=l+i*width+4,z=l+(i+1)*width-4;ctx.strokeStyle='#8ceef09e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a,yy);ctx.lineTo(z,yy);ctx.stroke();ctx.fillStyle='#b9f4f6';ctx.font='11px system-ui';ctx.fillText(step.vowel,a,yy-12);});
     }
   }
+  if(state.mode==='vibrato'&&window.VoiceLineExtra)window.VoiceLineExtra.drawVibratoGuide(ctx,{l,r,t,b,w,h,x,y,start,elapsed});
   // 시간 축을 따라 검출된 음의 연결선 (무음 구간은 끊기도록 처리)
   ctx.beginPath();let connected=false;let lastT=-Infinity;
   for(const p of state.points){
@@ -329,10 +371,14 @@ function drawChart(elapsed){
   if(state.current&&state.running){const cy=y(state.current.midi);if(cy>=t&&cy<=h-b){ctx.fillStyle='#e8ceff';ctx.shadowColor='#dcc0ff';ctx.shadowBlur=22;ctx.beginPath();ctx.arc(markerX,cy,5.7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}}
   ctx.restore();
   // Y축 음이름 / X축 시간
-  ctx.fillStyle='#a49abb';ctx.textAlign='right';ctx.textBaseline='middle';ctx.font='10px system-ui';
-  const stride=(high-low)>28?5:3;
-  for(let note=Math.ceil(low/stride)*stride;note<=high;note+=stride){ctx.fillText(noteLabel(note),l-9,y(note));}
-  ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='10px system-ui';ctx.fillStyle='#9288aa';
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  const stride=(high-low)>26?5:3;
+  for(let note=Math.ceil(low/stride)*stride;note<=high;note+=stride){
+    const yy=y(note);if(yy<t+10||yy>h-b-11)continue;
+    ctx.font='600 11px system-ui';ctx.fillStyle='#f1e7ff';ctx.fillText(koreanFullNote(note),l-9,yy-6);
+    ctx.font='10px system-ui';ctx.fillStyle='#c3bad7';ctx.fillText(noteLabel(note),l-9,yy+8);
+  }
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='11px system-ui';ctx.fillStyle='#c2b8d5';
   for(let shift=-8;shift<=4;shift+=4){const xx=x(elapsed+shift*1000);if(xx>=l+14&&xx<=w-r-14)ctx.fillText(shift===0?'현재':`${shift>0?'+':''}${shift}s`,xx,h-9);}
   ctx.fillStyle='#f2d8ff';ctx.font='bold 10px system-ui';ctx.fillText('NOW',clamp(markerX,l+18,w-r-18),11);
 }
@@ -353,6 +399,6 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.runn
   stopMicrophone();setNotice('화면이 백그라운드로 이동해 마이크 측정을 종료했습니다.');
 }});
 loadData();setMode('free');
-if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator && location.protocol==='https:' && location.hostname!=='appassets.androidplatform.net')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 // 테스트용 순수 함수 공개. 실제 앱 실행 시 오디오나 서버 연결을 요구하지 않습니다.
-window.VoiceLineTest={detectPitchYIN,hzToMidi,midiToHz,noteLabel};
+window.VoiceLineTest={detectPitchYIN,hzToMidi,midiToHz,noteLabel,koreanFullNote,smoothViewport};

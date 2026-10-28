@@ -1,0 +1,39 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.voiceline.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.voiceline.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 12
+        versionName '1.2.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+
+// Always package the current web app code from the repository root when building Android.
+tasks.register('syncWebAssets', Copy) {
+    from(rootProject.projectDir.parentFile) {
+        include 'index.html', 'styles.css', 'training-guide.css', 'vibrato-breath.css', 'readability.css'
+        include 'app.js', 'training-plus.js', 'vibrato-breath.js', 'sw.js', 'manifest.webmanifest'
+        include 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'
+    }
+    into('src/main/assets/www')
+}
+tasks.named('preBuild').configure { dependsOn tasks.named('syncWebAssets') }
