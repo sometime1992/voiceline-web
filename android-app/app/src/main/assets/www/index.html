@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#100f1b">
+  <meta name="description" content="목소리의 음정을 실시간으로 보고 연습하는 무료 보컬 트레이닝 웹앱">
+  <title>보이스라인 · 내 목소리를 눈으로</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="training-guide.css">
+  <link rel="stylesheet" href="vibrato-breath.css">
+  <link rel="stylesheet" href="readability.css">
+  <link rel="stylesheet" href="ui-v13.css">
+  <script src="app.js" defer></script>
+  <script src="training-plus.js" defer></script>
+  <script src="vibrato-breath.js" defer></script>
+  <script src="ui-v13.js" defer></script>
+</head>
+<body>
+  <div class="ambient a1" aria-hidden="true"></div><div class="ambient a2" aria-hidden="true"></div>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="보이스라인 홈"><span class="brand-mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 26h6l4-12 7 22 6-25 5 15h10" stroke="currentColor" fill="none" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>VOICE<span class="brand-accent">LINE</span><small>보이스라인</small></span></a>
+      <div class="top-actions"><a class="guide-nav" href="#userGuide">사용법</a><span class="local-label"><span class="dot"></span> 내 기기에서 분석</span></div>
+    </header>
+    <main id="top">
+      <section class="hero"><div><div class="eyebrow"><span class="sparkle">✦</span> 내 목소리 실시간 연습</div><h1>노래하면 <em>음정이 보여요.</em></h1><p>마이크만 켜면 지금 부르는 음을 바로 확인할 수 있어요. 어렵게 설정할 필요 없이 시작해 보세요.</p></div><div class="hero-rings" aria-hidden="true"><div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div><div class="ring-core">♪</div></div></section>
+      <nav class="mode-nav" aria-label="연습 모드"><button type="button" class="mode-tab active" data-mode="free" aria-pressed="true"><span class="tab-icon">〰</span> 자유 측정</button><button type="button" class="mode-tab" data-mode="practice" aria-pressed="false"><span class="tab-icon">♫</span> 음정 따라가기</button><button type="button" class="mode-tab" data-mode="vibrato" aria-pressed="false"><span class="tab-icon">∿</span> 비브라토</button><button type="button" class="mode-tab" data-mode="breath" aria-pressed="false"><span class="tab-icon">◡</span> 호흡 훈련</button><button type="button" class="mode-tab" data-mode="range" aria-pressed="false"><span class="tab-icon">↕</span> 음역대 측정</button></nav>
+      <section class="quick-path" aria-label="현재 연습 시작 안내" aria-live="polite">
+        <div class="quick-path-main"><div class="quick-path-kicker">처음이라면 이렇게 시작해요</div><p class="quick-path-title" id="quickPathTitle">내 목소리의 음을 확인해요</p><p class="quick-path-caption" id="quickPathCaption">① 마이크 켜기 → ② 편안하게 소리 내기 → ③ 선 확인하기</p></div>
+        <a class="quick-path-link" id="settingsShortcut" href="#modeSettings" hidden>연습 설정 보기</a>
+      </section>
+      <section class="live-card" aria-label="실시간 측정 화면">
+        <div class="card-topline"><span class="card-kicker">LIVE PITCH MONITOR</span><span class="live-state" id="liveState"><span class="status-led"></span> 대기 중</span></div>
+        <div class="readout">
+          <div class="note-readout"><span class="readout-label">현재 음정</span><div class="note-line"><strong id="noteName">--</strong><span class="note-korean" id="noteKorean">마이크 대기</span></div><span class="hz-readout" id="freqValue">-- Hz</span></div>
+          <div class="tuning-readout"><span class="readout-label">음정 편차</span><strong id="centValue">-- <small>cent</small></strong><div class="tuning-track"><span class="tuning-mid"></span><span class="tuning-pin" id="tuningPin"></span></div><div class="tuning-ends"><span>낮음 ♭</span><span>높음 ♯</span></div></div>
+        </div>
+        <div class="graph-head"><div><strong id="graphTitle">실시간 음정 그래프</strong><p id="graphSubtitle">목소리의 높낮이를 한국식 계이름과 함께 표시합니다.</p></div><span class="graph-legend"><i class="legend-voice"></i> 내 음정 <span id="targetLegend" hidden><i class="legend-target"></i> 목표</span></span></div>
+        <div class="chart-wrap" id="chartWrap"><canvas id="pitchChart" aria-label="실시간 음정 그래프. 음정은 위쪽일수록 높고 시간은 오른쪽으로 흐릅니다." role="img"></canvas><div class="chart-overlay" id="chartOverlay"><div class="chart-overlay-icon">♪</div><strong>마이크를 켜고 소리를 내보세요</strong><span>목소리가 그래프에 나타납니다</span></div></div>
+        <div class="graph-bottom"><span id="chartHint">음정 감지 범위: 약 65–2,100 Hz · 고음 자동 따라가기</span><span id="chartClock">00:00</span></div>
+        <div class="progress-section" id="progressSection" hidden><div class="progress-top"><span id="stepLabel">음정 따라 부르기</span><span id="stepProgress">0 / 9</span></div><div class="progress-track"><div id="progressFill"></div></div></div>
+        <div class="action-row" id="micActionRow"><button id="startButton" type="button" class="btn-primary"><span class="btn-icon" id="startIcon">◉</span><span id="startText">마이크 켜기</span></button><button id="clearButton" type="button" class="btn-secondary" title="현재 측정 결과를 초기화">↻ <span>초기화</span></button></div>
+        <div id="errorMessage" class="notice" role="status" hidden></div>
+      </section>
+      <section class="lower-grid">
+        <div class="panel control-panel" id="modeSettings"><div class="section-title"><div><span class="mini-heading">TRAINING SETTINGS</span><h2 id="modeTitle">자유롭게 불러보세요</h2></div><span class="section-icon">✧</span></div><p id="modeDescription" class="desc">편안한 음부터 불러보세요. 그래프에 목소리의 움직임과 음정이 기록됩니다.</p>
+          <div id="practiceControls" hidden><div class="input-grid"><label class="field full"><span>연습 패턴</span><select id="patternSelect"><option value="scale">기본 음계 · 도레미파솔</option><option value="vowel">모음 발성 · 아에이오우</option><option value="leap">음정 도약 · 도미솔</option><option value="descending">하행 음계 · 내려갔다 오기</option><option value="arpeggio">아르페지오 · 도미솔도</option><option value="chromatic">반음 이동 · 정밀 훈련</option><option value="sustain">한 음 길게 · 안정성</option><option value="thirds">3도 간격 · 장3도와 단3도</option><option value="fifths">5도 간격 · 4도와 5도</option><option value="octave">옥타브 왕복 · 높은 난도</option><option value="low">편안한 저음 · 낮은 음</option><option value="high">점진적 고음 · 높은 음</option></select></label><label class="field"><span>시작 음정</span><select id="rootSelect"><option value="48">C3 · 도</option><option value="50">D3 · 레</option><option value="52">E3 · 미</option><option value="53">F3 · 파</option><option value="55">G3 · 솔</option><option value="57">A3 · 라</option><option value="59">B3 · 시</option><option value="60" selected>C4 · 도</option><option value="62">D4 · 레</option><option value="64">E4 · 미</option><option value="65">F4 · 파</option><option value="67">G4 · 솔</option><option value="69">A4 · 라</option><option value="72">C5 · 3옥 도</option><option value="76">E5 · 3옥 미</option><option value="79">G5 · 3옥 솔</option><option value="84">C6 · 4옥 도</option></select></label><label class="field"><span>음정 길이</span><select id="speedSelect"><option value="2400">천천히 · 2.4초</option><option value="1800" selected>보통 · 1.8초</option><option value="1200">빠르게 · 1.2초</option></select></label><label class="field full"><span>반복 횟수</span><select id="repeatSelect"><option value="1" selected>1회 · 짧은 연습</option><option value="3">3회 · 반복 연습</option><option value="10">10회 · 장시간 연습 (보통 속도 약 3분)</option></select></label></div><div class="pattern-guide" aria-live="polite"><div class="pattern-guide-head"><strong id="patternGoal">연습 목표</strong><span id="patternCategory">기초</span></div><p id="patternTip">선택한 연습의 방법이 여기에 나타납니다.</p><div class="sequence-title">목표 음정 순서</div><div class="note-sequence" id="patternSequence"></div><small class="duration" id="patternDuration"></small></div><label class="switch-row"><span><strong>목표 음 미리 듣기</strong><small>음정이 바뀔 때 짧게 기준음을 재생합니다. 이어폰 권장.</small></span><span class="toggle"><input type="checkbox" id="guideSound"><span class="toggle-slider"></span></span></label><div class="info-tint">마이크를 켠 다음 <b>연습 시작</b>을 누르면 3초 준비 후 목표 음정이 움직입니다.</div><button type="button" id="practiceButton" class="btn-outline" disabled>연습 시작</button></div>
+          <div id="freeControls"><div class="tip-block"><span>TIP 01</span><p>한 음을 길게 내거나 음을 올리고 내리며 곡선이 어떻게 변하는지 관찰해 보세요.</p></div><div class="tip-block"><span>TIP 02</span><p>주변이 조용할수록 음정을 더 안정적으로 추적할 수 있습니다.</p></div></div>
+          <div id="vibratoControls" hidden>
+            <div class="input-grid"><label class="field full"><span>비브라토 연습 방법</span><select id="vibratoMode">
+              <option value="free">자유 비브라토 · 움직임만 관찰</option><option value="slow">느린 비브라토 · 천천히 흔들기</option><option value="natural" selected>일정한 비브라토 · 리듬 유지</option><option value="quick">빠른 비브라토 · 속도 올리기</option><option value="narrow">좁은 폭 · 작은 음정 변화</option><option value="wide">넓은 폭 · 충분한 변화 관찰</option><option value="steady">흔들림 줄이기 · 평탄한 음 유지</option>
+            </select></label>
+            <label class="field"><span>기준 음정</span><select id="vibratoRoot"><option value="48">C3</option><option value="50">D3</option><option value="52">E3</option><option value="53">F3</option><option value="55">G3</option><option value="57">A3</option><option value="59">B3</option><option value="60" selected>C4</option><option value="62">D4</option><option value="64">E4</option><option value="65">F4</option><option value="67">G4</option><option value="69">A4</option><option value="72">C5 · 3옥 도</option><option value="76">E5 · 3옥 미</option><option value="79">G5 · 3옥 솔</option><option value="84">C6 · 4옥 도</option></select></label>
+            <label class="field"><span>연습 길이 (초)</span><input id="vibratoDuration" type="number" inputmode="numeric" min="3" max="180" step="1" value="20"></label>
+            <label class="field"><span>목표 속도 <b id="vibratoRateLabel">5.0 Hz</b></span><input id="vibratoRate" type="range" min="2" max="8" step="0.5" value="5"></label>
+            <label class="field"><span>목표 폭 <b id="vibratoDepthLabel">±40 cent</b></span><input id="vibratoDepth" type="range" min="10" max="100" step="5" value="40"></label>
+            </div>
+            <div class="pattern-guide"><div class="pattern-guide-head"><strong id="vibratoGoal">비브라토 유지</strong><span>실시간 추정</span></div><p id="vibratoTip">편안한 한 음을 유지하면서 조금씩 자연스럽게 흔들어 보세요.</p><div class="metric-grid"><div><small>측정된 변화 속도</small><strong id="vibratoDetectedRate">-- Hz</strong></div><div><small>측정된 변화 폭</small><strong id="vibratoDetectedDepth">-- cent</strong></div><div><small>진행 시간</small><strong id="vibratoElapsed">00:00</strong></div></div><p class="metric-caption" id="vibratoFeedback">마이크를 켜면 음정 변화가 분석됩니다. 진동이 충분히 규칙적일 때만 속도를 표시합니다.</p></div>
+            <div class="info-tint">비브라토 속도·폭은 학습용 참고 목표입니다. 자연스럽고 편안한 발성에 우선순위를 두고, 목을 억지로 흔들지 마세요.</div>
+            <button type="button" id="vibratoButton" class="btn-outline" disabled>비브라토 연습 시작</button>
+          </div>
+          <div id="breathControls" hidden>
+            <div class="breath-stage" aria-live="polite"><div class="breath-orb" id="breathOrb"><span id="breathStage">준비</span><strong id="breathCountdown">00:00</strong></div><p id="breathCycle">호흡 시간을 설정한 뒤 시작하세요</p><div class="progress-track"><div id="breathProgress"></div></div></div>
+            <p class="desc">들이쉬기 · 유지 · 내쉬기 · 쉬기의 시간을 모두 직접 바꿀 수 있습니다. 유지와 쉬기는 0초로 건너뛸 수 있습니다.</p>
+            <div class="input-grid breath-fields"><label class="field"><span>들이쉬기 (초)</span><input id="breathIn" type="number" inputmode="numeric" min="1" max="60" step="1" value="3"></label><label class="field"><span>숨 유지 (초)</span><input id="breathHold" type="number" inputmode="numeric" min="0" max="60" step="1" value="0"></label><label class="field"><span>내쉬기 (초)</span><input id="breathOut" type="number" inputmode="numeric" min="1" max="120" step="1" value="5"></label><label class="field"><span>쉬는 시간 (초)</span><input id="breathRest" type="number" inputmode="numeric" min="0" max="60" step="1" value="2"></label><label class="field full"><span>반복 횟수</span><input id="breathRepeats" type="number" inputmode="numeric" min="1" max="30" step="1" value="5"></label></div>
+            <div class="breath-presets"><button type="button" data-breath-preset="easy">가볍게 3·0·4·2</button><button type="button" data-breath-preset="even">균등하게 4·0·4·2</button><button type="button" data-breath-preset="long">천천히 4·0·6·3</button></div>
+            <p class="duration" id="breathDuration">예상 시간 50초</p>
+            <div class="action-row breath-actions"><button type="button" class="btn-outline" id="breathStart">호흡 훈련 시작</button><button type="button" class="btn-secondary" id="breathReset">↻ 초기화</button></div>
+            <div class="info-tint">호흡 훈련에는 마이크가 필요하지 않습니다. 어지럽거나 불편하면 즉시 멈추고 평소 호흡으로 돌아가세요. 숨을 억지로 참을 필요는 없습니다.</div>
+          </div>
+          <div id="rangeControls" hidden><div class="tip-block"><span>STEP 01</span><p>편안하고 낮은 음을 <b>0.5초 이상</b> 안정적으로 유지해 보세요.</p></div><div class="tip-block"><span>STEP 02</span><p>무리하지 않고 조금씩 높은 음으로 올라가세요. 잡음과 순간적인 소리는 결과에서 제외하도록 설계했습니다.</p></div><button id="saveRangeButton" class="btn-outline" type="button" disabled>측정한 음역대 저장하기</button></div>
+        </div>
+        <div class="panel stats-panel"><div class="section-title"><div><span class="mini-heading">YOUR SESSION</span><h2>나의 측정 결과</h2></div><span class="section-icon">◈</span></div><div class="stats-grid"><div class="stat-tile"><span>최저음</span><strong id="lowNote">--</strong><small id="lowHz">-- Hz</small></div><div class="stat-tile"><span>최고음</span><strong id="highNote">--</strong><small id="highHz">-- Hz</small></div><div class="stat-tile"><span>측정 음역</span><strong id="rangeSpan">--</strong><small>반음 단위</small></div><div class="stat-tile"><span id="scoreLabel">정확한 음정</span><strong id="scoreValue">--</strong><small id="scoreHint">연습 모드에서 측정</small></div></div><div class="saved-result" id="savedResult"><span class="saved-icon">▤</span><div><strong>저장된 음역대가 없습니다</strong><span>음역대 측정 후 이 기기에 저장할 수 있어요.</span></div></div><div class="history-head"><h3>최근 연습 기록</h3><button id="clearHistoryButton" class="subtle-btn" type="button">기록 삭제</button></div><div id="historyList" class="history-list"><p class="empty-history">아직 연습 기록이 없습니다.</p></div></div>
+      </section>
+      <section class="guide-section" id="userGuide" aria-label="보이스라인 사용법과 연습 가이드">
+        <div class="guide-header"><div><span class="mini-heading">GET STARTED</span><h2>사용법 · 연습 가이드</h2><p>처음 사용하더라도 3단계만 따라 하면 바로 연습할 수 있습니다.</p></div><span class="guide-pill">처음 사용한다면 여기부터</span></div>
+        <div class="quick-guide">
+          <div class="quick-step"><b>STEP 01</b><h3>마이크 켜기</h3><p>조용한 곳에서 위쪽 <strong>마이크 켜기</strong>를 누르고 브라우저의 마이크 권한을 허용하세요.</p></div>
+          <div class="quick-step"><b>STEP 02</b><h3>연습 모드 선택</h3><p>자유 측정·음정 따라가기·비브라토·호흡 훈련·음역대 측정 중 선택하세요. 목표 음정을 따라 부르려면 두 번째 탭을 선택합니다.</p></div>
+          <div class="quick-step"><b>STEP 03</b><h3>목표 음정 따라 부르기</h3><p>시작 음과 패턴·속도를 선택한 뒤 <strong>연습 시작</strong>을 누르세요. 3초 뒤 목표 음정이 표시됩니다.</p></div>
+        </div>
+        <details class="guide-details"><summary>다섯 가지 모드는 어떻게 다른가요?</summary><p><strong>자유 측정:</strong> 지금 부르는 음이름과 Hz, 그래프를 실시간 확인합니다.<br><strong>음정 따라가기:</strong> 민트색 목표선과 보라색 내 목소리 선을 최대한 겹치게 부릅니다. 패턴과 반복 횟수도 바꿀 수 있습니다.<br><strong>비브라토:</strong> 한 음의 흔들림 속도(Hz)와 폭(cent)을 확인합니다. 7가지 연습 중 선택하거나 목표 속도·폭을 직접 설정하세요.<br><strong>호흡 훈련:</strong> 들숨·유지·날숨·쉼 시간을 초 단위로 바꾸고 반복 횟수를 지정합니다. 마이크 없이 진행할 수 있습니다.<br><strong>음역대 측정:</strong> 낮은 음과 높은 음을 하나씩 편안하게 유지합니다. 안정적으로 감지한 최저·최고음만 기록한 뒤 저장 버튼을 누르세요.</p></details>
+        <details class="guide-details"><summary>그래프와 점수는 어떻게 읽나요?</summary><p>세로 방향은 음 높이(위로 갈수록 높은 음), 가로 방향은 시간입니다. <strong>보라색 선</strong>이 실제 목소리, <strong>민트색 선</strong>이 목표 음정입니다. <strong>2옥 도(C4)</strong>는 가온도이며, <strong>3옥 도(C5)</strong>·<strong>4옥 도(C6)</strong>도 자동 추적합니다. 국제 표기는 C4처럼 표시하고, <strong>Hz</strong>는 초당 진동수입니다. 센트(cent)는 가장 가까운 음정과의 차이로, 0에 가까울수록 정확합니다. 연습 점수는 소리가 감지된 구간에서 목표음의 ±35센트 이내였던 비율이며, 음색·호흡·리듬 점수는 아닙니다.</p></details>
+        <details class="guide-details"><summary>어떤 순서로 연습하는 것이 좋나요?</summary><p>초보자라면 <strong>한 음 길게 → 기본 음계 → 하행 음계 → 모음 발성</strong> 순서로 시작해 보세요. 익숙해지면 <strong>반음 이동 → 3도·5도 간격 → 아르페지오</strong>로 정확도를 높이고, 마지막에 <strong>옥타브 왕복·점진적 고음</strong>을 선택해 보세요. 반드시 높은 음까지 낼 필요는 없습니다. 음정 길이는 처음에는 '천천히', 반복은 '1회'를 추천합니다.</p></details>
+        <details class="guide-details"><summary>비브라토는 어떻게 연습하나요?</summary><p>편안하게 한 음을 내면서 비브라토의 속도와 폭을 관찰하세요. 느린 변화부터 시작한 후, 익숙해지면 일정한 속도·좁은 폭·넓은 폭을 시도할 수 있습니다. 목표 그래프와 수치는 절대적인 정답이 아니며 실제 추정값은 잡음이나 마이크에 따라 달라질 수 있습니다. 목에 힘을 주거나 인위적으로 턱을 흔들지 마세요.</p></details><details class="guide-details"><summary>호흡 시간을 바꾸려면?</summary><p>호흡 훈련 탭에서 들숨, 숨 유지, 날숨, 쉬는 시간을 초 단위로 설정하고 반복 횟수를 정하세요. 유지·쉬기는 0초도 가능합니다. 시작 후 화면에 표시되는 단계와 남은 시간을 따라갑니다. 일시정지와 초기화가 가능하며, 도중에 불편하면 중단해도 됩니다.</p></details><details class="guide-details"><summary>소리가 잡히지 않거나 음정이 흔들리면?</summary><p>사이트 주소가 HTTPS인지, 브라우저에서 마이크가 허용되었는지 확인해 주세요. 다른 앱이 마이크를 점유 중이라면 종료하세요. 한 사람이 반주 없이 발성하면 감지가 더 정확합니다. 기준음 미리 듣기를 켰다면 이어폰을 권장합니다. 휴대폰 화면을 벗어나면 마이크가 자동으로 종료될 수 있습니다.</p></details>
+        <details class="guide-details"><summary>기록과 개인정보는 어디에 저장되나요?</summary><p>음성 원본은 녹음 파일로 저장하거나 서버로 전송하지 않습니다. 표시할 음정을 기기에서 계산합니다. 연습 기록과 저장한 음역대는 <strong>이 브라우저의 로컬 저장소</strong>에 남으며, 브라우저 데이터를 삭제하거나 시크릿 모드를 사용하면 기록이 사라질 수 있습니다.</p></details>
+        <p class="guide-bottom">안전한 연습을 위해 목에 통증이나 쉰 목소리가 생기면 멈추고 쉬세요. 음역대 측정 결과는 연습 참고용이며 의학적인 음성 검사 결과가 아닙니다.</p>
+      </section>
+      <footer><div class="footer-brand">VOICE<span>LINE</span> <i>✦</i></div><p>별도 계정 없이 사용하는 보컬 트레이닝 웹앱 · v1.3 · 마이크 소리는 서버로 전송하지 않습니다.</p><p class="footnote">브라우저 음정 분석은 참고용이며, 의학적 진단이나 전문적인 음성 검사 결과를 대신하지 않습니다. 목이 아프면 연습을 멈추세요.</p></footer>
+    </main>
+  </div>
+</body>
+</html>
