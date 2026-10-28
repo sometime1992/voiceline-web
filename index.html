@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#100e1e">
+  <meta name="theme-color" content="#100f1b">
   <meta name="description" content="목소리의 음정을 실시간으로 보고 연습하는 무료 보컬 트레이닝 웹앱">
   <title>보이스라인 · 내 목소리를 눈으로</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -12,20 +12,26 @@
   <link rel="stylesheet" href="training-guide.css">
   <link rel="stylesheet" href="vibrato-breath.css">
   <link rel="stylesheet" href="readability.css">
+  <link rel="stylesheet" href="ui-v13.css">
   <script src="app.js" defer></script>
   <script src="training-plus.js" defer></script>
   <script src="vibrato-breath.js" defer></script>
+  <script src="ui-v13.js" defer></script>
 </head>
 <body>
   <div class="ambient a1" aria-hidden="true"></div><div class="ambient a2" aria-hidden="true"></div>
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="#top" aria-label="보이스라인 홈"><span class="brand-mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 26h6l4-12 7 22 6-25 5 15h10" stroke="currentColor" fill="none" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>VOICE<span class="brand-accent">LINE</span><small>보이스라인</small></span></a>
-      <div class="top-actions"><a class="guide-nav" href="#userGuide">? 사용법 · 연습 가이드</a><span class="local-label"><span class="dot"></span> 내 기기에서 분석</span></div>
+      <div class="top-actions"><a class="guide-nav" href="#userGuide">사용법</a><span class="local-label"><span class="dot"></span> 내 기기에서 분석</span></div>
     </header>
     <main id="top">
-      <section class="hero"><div><div class="eyebrow"><span class="sparkle">✦</span> REAL-TIME VOCAL TRAINER</div><h1>내 목소리를<br><em>눈으로 확인하다.</em></h1><p>부르는 음정을 실시간으로 확인하고, 목표 음을 따라 부르며 차근차근 연습해 보세요.</p></div><div class="hero-rings" aria-hidden="true"><div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div><div class="ring-core">♪</div></div></section>
+      <section class="hero"><div><div class="eyebrow"><span class="sparkle">✦</span> 내 목소리 실시간 연습</div><h1>노래하면 <em>음정이 보여요.</em></h1><p>마이크만 켜면 지금 부르는 음을 바로 확인할 수 있어요. 어렵게 설정할 필요 없이 시작해 보세요.</p></div><div class="hero-rings" aria-hidden="true"><div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div><div class="ring-core">♪</div></div></section>
       <nav class="mode-nav" aria-label="연습 모드"><button type="button" class="mode-tab active" data-mode="free" aria-pressed="true"><span class="tab-icon">〰</span> 자유 측정</button><button type="button" class="mode-tab" data-mode="practice" aria-pressed="false"><span class="tab-icon">♫</span> 음정 따라가기</button><button type="button" class="mode-tab" data-mode="vibrato" aria-pressed="false"><span class="tab-icon">∿</span> 비브라토</button><button type="button" class="mode-tab" data-mode="breath" aria-pressed="false"><span class="tab-icon">◡</span> 호흡 훈련</button><button type="button" class="mode-tab" data-mode="range" aria-pressed="false"><span class="tab-icon">↕</span> 음역대 측정</button></nav>
+      <section class="quick-path" aria-label="현재 연습 시작 안내" aria-live="polite">
+        <div class="quick-path-main"><div class="quick-path-kicker">처음이라면 이렇게 시작해요</div><p class="quick-path-title" id="quickPathTitle">내 목소리의 음을 확인해요</p><p class="quick-path-caption" id="quickPathCaption">① 마이크 켜기 → ② 편안하게 소리 내기 → ③ 선 확인하기</p></div>
+        <a class="quick-path-link" id="settingsShortcut" href="#modeSettings" hidden>연습 설정 보기</a>
+      </section>
       <section class="live-card" aria-label="실시간 측정 화면">
         <div class="card-topline"><span class="card-kicker">LIVE PITCH MONITOR</span><span class="live-state" id="liveState"><span class="status-led"></span> 대기 중</span></div>
         <div class="readout">
@@ -40,7 +46,7 @@
         <div id="errorMessage" class="notice" role="status" hidden></div>
       </section>
       <section class="lower-grid">
-        <div class="panel control-panel"><div class="section-title"><div><span class="mini-heading">TRAINING SETTINGS</span><h2 id="modeTitle">자유롭게 불러보세요</h2></div><span class="section-icon">✧</span></div><p id="modeDescription" class="desc">편안한 음부터 불러보세요. 그래프에 목소리의 움직임과 음정이 기록됩니다.</p>
+        <div class="panel control-panel" id="modeSettings"><div class="section-title"><div><span class="mini-heading">TRAINING SETTINGS</span><h2 id="modeTitle">자유롭게 불러보세요</h2></div><span class="section-icon">✧</span></div><p id="modeDescription" class="desc">편안한 음부터 불러보세요. 그래프에 목소리의 움직임과 음정이 기록됩니다.</p>
           <div id="practiceControls" hidden><div class="input-grid"><label class="field full"><span>연습 패턴</span><select id="patternSelect"><option value="scale">기본 음계 · 도레미파솔</option><option value="vowel">모음 발성 · 아에이오우</option><option value="leap">음정 도약 · 도미솔</option><option value="descending">하행 음계 · 내려갔다 오기</option><option value="arpeggio">아르페지오 · 도미솔도</option><option value="chromatic">반음 이동 · 정밀 훈련</option><option value="sustain">한 음 길게 · 안정성</option><option value="thirds">3도 간격 · 장3도와 단3도</option><option value="fifths">5도 간격 · 4도와 5도</option><option value="octave">옥타브 왕복 · 높은 난도</option><option value="low">편안한 저음 · 낮은 음</option><option value="high">점진적 고음 · 높은 음</option></select></label><label class="field"><span>시작 음정</span><select id="rootSelect"><option value="48">C3 · 도</option><option value="50">D3 · 레</option><option value="52">E3 · 미</option><option value="53">F3 · 파</option><option value="55">G3 · 솔</option><option value="57">A3 · 라</option><option value="59">B3 · 시</option><option value="60" selected>C4 · 도</option><option value="62">D4 · 레</option><option value="64">E4 · 미</option><option value="65">F4 · 파</option><option value="67">G4 · 솔</option><option value="69">A4 · 라</option><option value="72">C5 · 3옥 도</option><option value="76">E5 · 3옥 미</option><option value="79">G5 · 3옥 솔</option><option value="84">C6 · 4옥 도</option></select></label><label class="field"><span>음정 길이</span><select id="speedSelect"><option value="2400">천천히 · 2.4초</option><option value="1800" selected>보통 · 1.8초</option><option value="1200">빠르게 · 1.2초</option></select></label><label class="field full"><span>반복 횟수</span><select id="repeatSelect"><option value="1" selected>1회 · 짧은 연습</option><option value="3">3회 · 반복 연습</option><option value="10">10회 · 장시간 연습 (보통 속도 약 3분)</option></select></label></div><div class="pattern-guide" aria-live="polite"><div class="pattern-guide-head"><strong id="patternGoal">연습 목표</strong><span id="patternCategory">기초</span></div><p id="patternTip">선택한 연습의 방법이 여기에 나타납니다.</p><div class="sequence-title">목표 음정 순서</div><div class="note-sequence" id="patternSequence"></div><small class="duration" id="patternDuration"></small></div><label class="switch-row"><span><strong>목표 음 미리 듣기</strong><small>음정이 바뀔 때 짧게 기준음을 재생합니다. 이어폰 권장.</small></span><span class="toggle"><input type="checkbox" id="guideSound"><span class="toggle-slider"></span></span></label><div class="info-tint">마이크를 켠 다음 <b>연습 시작</b>을 누르면 3초 준비 후 목표 음정이 움직입니다.</div><button type="button" id="practiceButton" class="btn-outline" disabled>연습 시작</button></div>
           <div id="freeControls"><div class="tip-block"><span>TIP 01</span><p>한 음을 길게 내거나 음을 올리고 내리며 곡선이 어떻게 변하는지 관찰해 보세요.</p></div><div class="tip-block"><span>TIP 02</span><p>주변이 조용할수록 음정을 더 안정적으로 추적할 수 있습니다.</p></div></div>
           <div id="vibratoControls" hidden>
@@ -83,7 +89,7 @@
         <details class="guide-details"><summary>기록과 개인정보는 어디에 저장되나요?</summary><p>음성 원본은 녹음 파일로 저장하거나 서버로 전송하지 않습니다. 표시할 음정을 기기에서 계산합니다. 연습 기록과 저장한 음역대는 <strong>이 브라우저의 로컬 저장소</strong>에 남으며, 브라우저 데이터를 삭제하거나 시크릿 모드를 사용하면 기록이 사라질 수 있습니다.</p></details>
         <p class="guide-bottom">안전한 연습을 위해 목에 통증이나 쉰 목소리가 생기면 멈추고 쉬세요. 음역대 측정 결과는 연습 참고용이며 의학적인 음성 검사 결과가 아닙니다.</p>
       </section>
-      <footer><div class="footer-brand">VOICE<span>LINE</span> <i>✦</i></div><p>별도 계정 없이 사용하는 보컬 트레이닝 웹앱 · v1.2 · 마이크 소리는 서버로 전송하지 않습니다.</p><p class="footnote">브라우저 음정 분석은 참고용이며, 의학적 진단이나 전문적인 음성 검사 결과를 대신하지 않습니다. 목이 아프면 연습을 멈추세요.</p></footer>
+      <footer><div class="footer-brand">VOICE<span>LINE</span> <i>✦</i></div><p>별도 계정 없이 사용하는 보컬 트레이닝 웹앱 · v1.3 · 마이크 소리는 서버로 전송하지 않습니다.</p><p class="footnote">브라우저 음정 분석은 참고용이며, 의학적 진단이나 전문적인 음성 검사 결과를 대신하지 않습니다. 목이 아프면 연습을 멈추세요.</p></footer>
     </main>
   </div>
 </body>
