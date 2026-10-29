@@ -1,0 +1,33 @@
+/* Training mode guidance and embedded manual */
+.top-actions{display:flex;align-items:center;gap:12px;min-width:0}
+.guide-nav{color:#d9c9ff;text-decoration:none;font-size:12px;font-weight:700;border:1px solid #594b75;background:#3b305259;padding:9px 13px;border-radius:999px;white-space:nowrap}
+.guide-nav:hover{background:#4c3a68}
+.pattern-guide{margin-top:16px;padding:15px;border:1px solid #554568;background:linear-gradient(120deg,#34294799,#26354166);border-radius:13px}
+.pattern-guide-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pattern-guide-head strong{font-size:13px;color:#e7dbff}
+.pattern-guide-head span{font-size:11px;color:#9df0e8;background:#7bd7d310;padding:5px 8px;border-radius:7px}
+.pattern-guide p{font-size:12px;line-height:1.65;color:#c9bfd9;margin:8px 0}
+.pattern-guide p.exercise-tip{color:#aaa5bf}
+.sequence-title{font-size:11px;color:#aaa5bf;margin:10px 0 7px}
+.note-sequence{display:flex;flex-wrap:wrap;gap:6px}
+.note-chip{display:inline-block;border:1px solid #66578a;background:#48385f90;color:#e8dfff;font-size:11px;font-variant-numeric:tabular-nums;border-radius:7px;padding:5px 7px}
+.pattern-guide .duration{display:block;color:#96e3dc;margin-top:10px;font-size:11px}
+.guide-section{margin-top:22px;background:linear-gradient(150deg,#211c33,#171625);border:1px solid #403650;border-radius:21px;padding:28px;scroll-margin-top:20px}
+.guide-header{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:20px}
+.guide-header h2{font-size:23px;letter-spacing:-.04em;margin:5px 0}
+.guide-header p{font-size:12px;color:#a9a2ba;margin:0;line-height:1.7}
+.guide-pill{background:#382c53;color:#cfc1ff;font-size:11px;white-space:nowrap;border-radius:99px;padding:7px 10px}
+.quick-guide{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px}
+.quick-step{border:1px solid #443a59;background:#29233990;border-radius:13px;padding:16px}
+.quick-step b{color:#adf2e7;font-size:11px;letter-spacing:.04em}
+.quick-step h3{font-size:14px;margin:7px 0}
+.quick-step p{font-size:12px;color:#bdb5ce;margin:0;line-height:1.7}
+.guide-details{border:1px solid #443951;border-radius:11px;background:#27223877;margin-top:9px;overflow:hidden}
+.guide-details summary{cursor:pointer;padding:14px 15px;font-weight:700;font-size:13px;color:#e8e1f5;list-style:none;display:flex;justify-content:space-between;gap:9px}
+.guide-details summary::after{content:'＋';color:#c5a8ff}
+.guide-details[open] summary::after{content:'−'}
+.guide-details summary::-webkit-details-marker{display:none}
+.guide-details p{padding:0 15px 16px;margin:0;color:#bdb5cd;font-size:12px;line-height:1.85}
+.guide-bottom{font-size:12px;line-height:1.75;color:#a9a0b9;padding:13px 4px 0}
+@media(max-width:700px){.quick-guide{grid-template-columns:1fr}.guide-section{padding:19px}.guide-header h2{font-size:20px}}
+@media(max-width:520px){.top-actions{gap:5px}.guide-nav{padding:7px 9px;font-size:10px}.local-label{font-size:0;gap:0;padding:8px}.local-label .dot{width:7px;height:7px}.guide-pill{display:none}.note-chip{font-size:10px;padding:4px 6px}.pattern-guide{padding:12px}}

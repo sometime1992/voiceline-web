@@ -36,11 +36,11 @@ function detectPitchYIN(samples, sampleRate) {
   let power=0;
   for (let i=0;i<samples.length;i++) power+=samples[i]*samples[i];
   const rms=Math.sqrt(power/samples.length);
-  if (rms < 0.014) return null;
+  if (rms < 0.007) return null;
   const minTau=Math.max(2,Math.floor(sampleRate/2100));
   const maxTau=Math.min(Math.floor(sampleRate/65),Math.floor(samples.length/2)-2);
   if(maxTau <= minTau) return null;
-  const windowSize=Math.min(2048,samples.length-maxTau-1);
+  const windowSize=Math.min(1024,samples.length-maxTau-1);
   const diffs=new Float32Array(maxTau+1);
   for(let tau=1;tau<=maxTau;tau++) {
     let sum=0;
@@ -129,6 +129,7 @@ function setMode(mode){
   $('scoreLabel').textContent=mode==='practice'?'연습 정확도':mode==='vibrato'?'비브라토 속도':'정확한 음정';
   $('scoreHint').textContent=mode==='practice'?'목표에서 ±35센트 이내':mode==='vibrato'?'참고용 추정 Hz':'연습 모드에서 측정';
   $('scoreValue').textContent='--';updateStats();drawChart(0);
+  if(window.VoiceLineDiagnostics)window.VoiceLineDiagnostics.refresh();
   if(window.VoiceLineExtra)window.VoiceLineExtra.modeChanged(mode);
 }
 function resetSession(){
@@ -137,6 +138,7 @@ function resetSession(){
   $('chartClock').textContent='00:00';$('progressFill').style.width='0%';$('stepLabel').textContent='음정 따라 부르기';$('stepProgress').textContent='0 / '+getExerciseSteps().length;
   $('scoreValue').textContent='--';if(window.VoiceLineExtra)window.VoiceLineExtra.resetVibrato();$('saveRangeButton').disabled=true;$('practiceButton').textContent='연습 시작';setPracticeOptionsLocked(false);
   $('chartOverlay').hidden=state.running;
+  if($('micMonitor'))$('micMonitor').hidden=!state.running;
   setNotice('');updateStats();
 }
 function updateStats(){
@@ -145,24 +147,24 @@ function updateStats(){
   $('highNote').textContent=state.highMidi===null?'--':noteLabel(state.highMidi);
   $('highHz').textContent=state.highMidi===null?'-- Hz':midiToHz(state.highMidi).toFixed(1)+' Hz';
   $('rangeSpan').textContent=state.lowMidi===null||state.highMidi===null?'--':String(state.highMidi-state.lowMidi);
-  $('saveRangeButton').disabled=state.mode!=='range'||!state.running||state.lowMidi===null||state.highMidi===null;
+  $('saveRangeButton').disabled=state.mode!=='range'||state.lowMidi===null||state.highMidi===null;
 }
 async function startMicrophone(){
   setNotice('');
-  if(!navigator.mediaDevices?.getUserMedia){setNotice('마이크를 사용할 수 없습니다. HTTPS 사이트 또는 localhost로 접속해 주세요.');return;}
-  $('startButton').disabled=true;
+  if(!navigator.mediaDevices?.getUserMedia){setNotice('이 환경에서 마이크 API를 사용할 수 없습니다. Android System WebView를 업데이트하거나 HTTPS 웹사이트에서 확인해 주세요.');if(window.VoiceLineDiagnostics)window.VoiceLineDiagnostics.setError('마이크 API 지원 안 됨');return;}
+  $('startButton').disabled=true;setLive('마이크 권한 확인 중…',false);if(window.VoiceLineDiagnostics)window.VoiceLineDiagnostics.setError('');
   let stream=null,audio=null;
   try {
     try {stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});}
-    catch(e) {if(e.name==='OverconstrainedError') stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});else throw e;}
+    catch(e) {if(['OverconstrainedError','TypeError','NotSupportedError'].includes(e.name)) stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});else throw e;}
     audio=new(window.AudioContext||window.webkitAudioContext)();
     await audio.resume();
     const source=audio.createMediaStreamSource(stream);const analyser=audio.createAnalyser();
     analyser.fftSize=4096;analyser.smoothingTimeConstant=0;source.connect(analyser); // 절대 스피커에 연결하지 않음
     state.stream=stream;state.audioContext=audio;state.audioSource=source;state.analyser=analyser;state.audioBuffer=new Float32Array(analyser.fftSize);
-    state.running=true;resetSession();state.sessionStart=performance.now();state.lastAnalysis=0;
+    state.running=true;resetSession();state.sessionStart=performance.now();state.lastAnalysis=0;state.lastRender=0;
     $('startText').textContent='마이크 끄기';$('startIcon').textContent='◼';$('practiceButton').disabled=false;
-    $('chartOverlay').hidden=true;setLive('마이크 연결됨',true);if(window.VoiceLineExtra)window.VoiceLineExtra.micStarted();state.raf=requestAnimationFrame(loop);
+    $('chartOverlay').hidden=true;$('micMonitor').hidden=false;$('micInputStatus').textContent='마이크 연결됨 · 목소리를 내보세요';setLive('마이크 연결됨',true);if(window.VoiceLineExtra)window.VoiceLineExtra.micStarted();state.raf=requestAnimationFrame(loop);
     // 사용자가 브라우저 UI에서 마이크 권한을 끊으면 즉시 정리
     stream.getAudioTracks().forEach(track=>track.addEventListener('ended',()=>{if(state.running)stopMicrophone();}));
   } catch(e) {
@@ -171,7 +173,7 @@ async function startMicrophone(){
     if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError') message='마이크 접근이 차단되었습니다. 브라우저 사이트 설정에서 마이크 권한을 허용해 주세요.';
     if(e.name==='NotFoundError')message='연결된 마이크를 찾을 수 없습니다.';
     if(e.name==='NotReadableError')message='마이크를 다른 앱에서 사용 중일 수 있습니다. 다른 앱을 종료한 뒤 다시 시도해 주세요.';
-    setNotice(message);setLive('연결 실패',false);
+    setNotice(message);setLive('연결 실패',false);if(window.VoiceLineDiagnostics)window.VoiceLineDiagnostics.setError((e.name||'Error')+': '+(e.message||message));
   } finally {$('startButton').disabled=false;}
 }
 function stopMicrophone(){
@@ -183,7 +185,8 @@ function stopMicrophone(){
   if(state.exercise && !state.exercise.done) {state.exercise=null;setPracticeOptionsLocked(false);setNotice('연습이 중단되었습니다. 다시 연습 시작을 누르면 처음부터 시작합니다.');}
   $('startText').textContent='마이크 켜기';$('startIcon').textContent='◉';$('practiceButton').disabled=true;$('practiceButton').textContent='연습 시작';
   $('saveRangeButton').disabled=state.mode!=='range'||state.lowMidi===null||state.highMidi===null;
-  $('chartOverlay').hidden=false;setLive('대기 중',false);if(window.VoiceLineExtra)window.VoiceLineExtra.micStopped();drawChart(state.lastElapsed);
+  // Keep the recorded curve visible after stopping; the hint overlay must not cover results.
+  $('chartOverlay').hidden=state.points.some(point=>point.midi!==null);$('micMonitor').hidden=true;setLive('대기 중',false);if(window.VoiceLineExtra)window.VoiceLineExtra.micStopped();drawChart(state.lastElapsed);
 }
 function trackStable(midi, elapsed){
   state.stableWindow.push({midi,t:elapsed});
@@ -200,7 +203,14 @@ function trackStable(midi, elapsed){
 }
 function analyse(elapsed){
   state.analyser.getFloatTimeDomainData(state.audioBuffer);
+  // Signal meter distinguishes silence, low level and unstable pitch from permission failure.
+  let sumSquares=0;
+  for(let i=0;i<state.audioBuffer.length;i+=4)sumSquares+=state.audioBuffer[i]*state.audioBuffer[i];
+  const rms=Math.sqrt(sumSquares/(state.audioBuffer.length/4));
+  const volume=Math.round(clamp(rms*450,0,100));
+  $('micLevelBar').style.width=volume+'%';$('micLevelText').textContent=volume+'%';
   const detected=detectPitchYIN(state.audioBuffer,state.audioContext.sampleRate);
+  $('micInputStatus').textContent=detected?'음정 측정 중 · 입력 정상':rms<0.007?'소리 입력이 거의 없습니다 · 마이크를 확인하세요':'소리는 감지되지만 음정이 불안정합니다';
   if(!detected){
     state.current=null;state.recentPitch=[];state.stableWindow=[];
     state.points.push({t:elapsed,midi:null});setLive('음성 신호 대기',true);if(state.mode==='vibrato'&&window.VoiceLineExtra)window.VoiceLineExtra.noPitch(elapsed);
@@ -269,7 +279,9 @@ function loop(time){
   const elapsed=time-state.sessionStart;state.lastElapsed=elapsed;
   if(time-state.lastAnalysis>=(state.mode==='vibrato'?45:85)){analyse(elapsed);state.lastAnalysis=time;}
   if(window.VoiceLineExtra)window.VoiceLineExtra.update(elapsed);
-  $('chartClock').textContent=seconds(elapsed);drawChart(elapsed);
+  $('chartClock').textContent=seconds(elapsed);
+  // A 30fps chart is responsive on phones without redrawing the grid at 60/120Hz.
+  if(time-(state.lastRender||0)>=33){drawChart(elapsed);state.lastRender=time;}
   state.raf=requestAnimationFrame(loop);
 }
 function fitCanvas(){
@@ -384,7 +396,7 @@ function drawChart(elapsed){
 }
 
 $('startButton').addEventListener('click',()=>state.running?stopMicrophone():startMicrophone());
-$('clearButton').addEventListener('click',()=>{if(state.running){state.sessionStart=performance.now();state.lastAnalysis=0;}resetSession();drawChart(0);});
+$('clearButton').addEventListener('click',()=>{if(state.running){state.sessionStart=performance.now();state.lastAnalysis=0;state.lastRender=0;}resetSession();drawChart(0);});
 $('practiceButton').addEventListener('click',startPractice);
 $('saveRangeButton').addEventListener('click',()=>{
   if(state.lowMidi===null||state.highMidi===null)return;

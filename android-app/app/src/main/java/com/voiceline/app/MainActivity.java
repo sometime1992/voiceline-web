@@ -3,9 +3,12 @@ package com.voiceline.app;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
+import android.webkit.ConsoleMessage;
+import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -31,6 +34,10 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            // Chrome://inspect can read the WebView console only in local debug builds.
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
         assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
@@ -39,7 +46,8 @@ public class MainActivity extends Activity {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16, 15, 27));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        // Edge-to-edge Android 15/16: apply insets on native root, not twice in WebView.
+        // Android 15+ enforces edge-to-edge. Apply safe area ONCE at the native root,
+        // consume insets so the WebView does not add duplicate padding.
         if (Build.VERSION.SDK_INT >= 35) {
             root.setOnApplyWindowInsetsListener((v, insets) -> {
                 Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
@@ -54,12 +62,15 @@ public class MainActivity extends Activity {
         setContentView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
-        // Native APK keeps one-finger scrolling but does not allow pinch-to-zoom.
+        // Disable native pinch-to-zoom while preserving single-finger vertical scrolling.
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         web.setHorizontalScrollBarEnabled(false);
         settings.setDomStorageEnabled(true);
+        // Local application assets must never reuse stale CSS/JS from a previous APK.
+        web.clearCache(true);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
@@ -76,6 +87,11 @@ public class MainActivity extends Activity {
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onConsoleMessage(ConsoleMessage msg) {
+                if (msg.messageLevel() == ConsoleMessage.MessageLevel.ERROR || msg.messageLevel() == ConsoleMessage.MessageLevel.WARNING)
+                    Log.w("VoiceLineWeb", msg.sourceId() + ":" + msg.lineNumber() + " " + msg.message());
+                return true;
+            }
             @Override public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> handleWebPermission(request));
             }
@@ -83,13 +99,13 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {if (pendingAudioRequest == request) pendingAudioRequest = null;});
             }
         });
-        if (state != null) web.restoreState(state);
-        else web.loadUrl(APP_ORIGIN + "/assets/www/index.html");
+        // Always load the packaged version, not a saved stale navigation state.
+        web.loadUrl(APP_ORIGIN + "/assets/www/index.html");
     }
 
     private void handleWebPermission(PermissionRequest request) {
         Uri origin = request.getOrigin();
-        if (!APP_ORIGIN.equals(origin.getScheme() + "://" + origin.getHost())) {request.deny();return;}
+        if (origin == null || !APP_ORIGIN.equals(origin.getScheme() + "://" + origin.getHost())) {request.deny();return;}
         boolean asksForAudio = false;
         for (String resource : request.getResources()) {
             if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) asksForAudio = true;

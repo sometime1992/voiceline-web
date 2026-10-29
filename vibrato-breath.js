@@ -103,7 +103,7 @@
     if(state.mode!=='vibrato')return;
     const p=currentProfile(),r=p.rate===null?Number(el('vibratoRate').value):p.rate;
     const d=p.depth===null?Number(el('vibratoDepth').value):p.depth;
-    const base=Number(el('vibratoRoot').value),s=Math.max(120,Math.min(300,opt.w/3));
+    const base=Number(el('vibratoRoot').value);
     context.save();context.strokeStyle='#80ede2';context.lineWidth=2.5;context.globalAlpha=.88;
     context.beginPath();
     for(let px=opt.l;px<=opt.w-opt.r;px+=2){
@@ -126,7 +126,7 @@
   function cancelBreath(){if(frame)cancelAnimationFrame(frame);frame=0;breath=null;el('breathStart').textContent='호흡 훈련 시작';el('breathStage').textContent='준비';el('breathCountdown').textContent='00:00';el('breathProgress').style.width='0%';el('breathCycle').textContent='호흡 시간을 설정한 뒤 시작하세요';el('breathOrb').removeAttribute('data-stage');}
   function paintBreath(now){
     if(!breath || breath.paused)return;
-    const delta=now-breath.time;breath.time=now;breath.elapsed+=Math.max(0,Math.min(delta,250));
+    const delta=now-breath.time;breath.time=now;breath.elapsed+=Math.max(0,delta);
     let t=breath.elapsed,i=0;
     while(i<breath.stages.length && t>=breath.stages[i].duration){t-=breath.stages[i].duration;i++;}
     if(i===breath.stages.length){
