@@ -8,6 +8,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test piano application
+        run: node --test tests/piano.test.cjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,6 +26,6 @@ jobs:
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceLine-v1.3-debug-APK
+          name: VoiceLine-v2-piano-debug-APK
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 3
