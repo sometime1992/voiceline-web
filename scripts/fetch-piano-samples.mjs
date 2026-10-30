@@ -14,7 +14,7 @@ const upstream='https://raw.githubusercontent.com/facebookincubator/Meta-open-so
 const notes=['C','Cs','D','Ds','E','F','Fs','G','Gs','A','As','B'];
 function filename(midi){
  const name=notes[midi%12]+(Math.floor(midi/12)-1);
- return 'INSPiano_Vel03_'+name+'_01.ogg';
+ return 'INSPiano_Vel01_'+name+'_01.ogg';
 }
 // One natural acoustic recording every three semitones (maximum 1.5 semitone repitch).
 // Covers piano C1 through B7 without generating tones mathematically.
@@ -33,7 +33,7 @@ async function download(midi){
    const response=await fetch(upstream+name,{signal:AbortSignal.timeout(20000)});
    if(!response.ok)throw Error(name+' HTTP '+response.status);
    const buf=Buffer.from(await response.arrayBuffer());
-   if(buf.length<4096||buf.toString('ascii',0,4)!=='OggS')throw Error(name+' invalid Ogg Vorbis file');
+   if(buf.length<4096||buf.toString('ascii',0,4)!=='OggS')throw Error(name+' invalid Ogg/Opus file');
    await writeFile(file,buf);
    downloaded++;totalBytes+=buf.length;
    process.stdout.write('Bundled '+name+' ('+Math.round(buf.length/1024)+' KiB)\n');
@@ -49,7 +49,7 @@ await writeFile(path.join(destination,'source.json'),JSON.stringify({
  license:'CC0-1.0',
  source:'https://github.com/facebookincubator/Meta-open-sound/tree/'+revision+'/systems/instruments/meta-piano',
  revision,
- velocity:3,
+ velocity:1,
  intervalSemitones:3,
  midiKeys:keys,
  files:keys.map(filename)
