@@ -44,6 +44,28 @@ function store(kind,method,item){
    req.onerror=()=>reject(req.error||new Error('저장 실패'));
  }));
 }
+async function importLegacyRecords(){
+  try{
+    if(localStorage.getItem('voiceline-v2-migrated')==='1')return;
+    const old=JSON.parse(localStorage.getItem('voiceline-records-v1')||'null');
+    if(old&&Array.isArray(old.history)){
+      for(let i=0;i<old.history.length;i++){
+        const r=old.history[i];if(!r||typeof r!=='object')continue;
+        await store('events','put',{
+          id:'legacy-'+i,date:String(r.date||'이전 기록'),timestamp:i+1,
+          title:String(r.title||'이전 연습'),detail:String(r.result||''),mode:'legacy'
+        });
+      }
+    }
+    if(old?.savedRange&&Number.isFinite(old.savedRange.low)&&Number.isFinite(old.savedRange.high)){
+      await store('events','put',{
+        id:'legacy-range',date:String(old.savedRange.date||'이전 기록'),timestamp:100,
+        title:'기존 음역대 기록',detail:name(old.savedRange.low)+' ~ '+name(old.savedRange.high),mode:'legacy'
+      });
+    }
+    localStorage.setItem('voiceline-v2-migrated','1');
+  }catch(e){console.warn('Previous records could not be imported; source data is preserved.',e);}
+}
 function id(){return Date.now()+'-'+Math.random().toString(36).slice(2,9);}
 function stamp(){return new Date().toLocaleString('ko-KR');}
 function name(m){m=Math.round(m);return NAMES[(m%12+12)%12]+(Math.floor(m/12)-1);}
@@ -570,6 +592,7 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden){allKeysOff();if(app.record)stopRecording().then(stopMic);else if(app.mic){stopMic();if(app.exercise)finishExercise(false);if(app.vibratoStart)finishVibrato();}}
 });
 drawKeys();modeControls();progress(0,'건반 연주 준비');
+importLegacyRecords();
 if('serviceWorker' in navigator){
   if(location.hostname==='appassets.androidplatform.net'){
     navigator.serviceWorker.getRegistrations().then(regs=>Promise.all(regs.map(reg=>reg.unregister()))).catch(()=>{});
