@@ -637,6 +637,16 @@ function showHelp(){
  ['주의','녹음 내용에 피아노 소리가 섞일 수 있으므로 이어폰 사용을 권장합니다. 목이 아프거나 어지러우면 즉시 중단하세요. 분석 결과는 의료적 진단이 아닙니다.']
  ];
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
+ plain(b,'h3','', '마이크 연결 상태 확인');
+ const status=plain(b,'p','', '마이크가 연결되지 않으면 아래 버튼을 눌러 현재 권한과 오류 정보를 확인하세요.');
+ const diagnose=plain(b,'button','', '마이크 상태 진단');
+ diagnose.onclick=()=>{
+   try {
+     const d=window.VoiceLineMicrophoneDiagnostics();
+     status.textContent='Android: '+d.nativeStatus+' | WebView 마이크: '+(d.webMediaSupported?'사용 가능':'미지원')+
+       ' | 최근 오류: '+d.lastError;
+   }catch(e){status.textContent='진단 실패: '+String(e);}
+ };
  modalOpen('infoDialog');
 }
 async function showHistory(){
