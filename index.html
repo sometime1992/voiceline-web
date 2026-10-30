@@ -16,7 +16,9 @@
 <div id="app" class="app">
 <header class="toolbar">
   <div class="brand" aria-label="보이스라인">VOICE<span>LINE</span><small>보이스라인</small></div>
-  <div class="toolbar-center"><span id="modeChip">피아노 연주</span><span id="micChip" role="status">마이크 꺼짐</span></div>
+  <div class="toolbar-center"><span id="modeChip">피아노 연주</span><button type="button" id="micToggle" class="mic-toggle" aria-label="마이크 켜기" aria-pressed="false" title="피아노 소리가 마이크에 들어가면 음정 인식이 달라질 수 있습니다.">
+     <span id="micChip" role="status">마이크 꺼짐</span><span id="micToggleAction" aria-hidden="true">켜기</span>
+    </button></div>
   <button type="button" class="icon-btn menu-button" id="menuOpen" aria-label="메뉴 열기" aria-expanded="false" aria-controls="menuDialog"><span></span><span></span><span></span></button>
 </header>
 <section class="workspace" aria-label="피아노 연습 화면">
