@@ -9,6 +9,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="piano.css">
+<script src="vendor/tone-piano.js" defer></script>
 <script src="piano.js" defer></script>
 </head>
 <body>
@@ -29,7 +30,7 @@
     <div class="main-actions"><button id="mainButton" type="button" class="main-button">마이크 켜기</button><button id="stopButton" type="button" class="sub-button" hidden>종료</button></div>
   </div>
   <div class="piano-area">
-    <div class="piano-topline"><div class="octave-tools"><button type="button" id="octaveDown" aria-label="낮은 옥타브로 이동">−</button><span id="octaveLabel">C3 – B4</span><button type="button" id="octaveUp" aria-label="높은 옥타브로 이동">+</button></div><div class="legend"><span id="pianoSoundChip" class="piano-sound-chip" role="status">피아노 음원 준비 중</span><span class="key-legend played"></span> 터치 <span class="key-legend detected"></span> 내 음정 <span class="key-legend target"></span> 목표</div></div>
+    <div class="piano-topline"><div class="octave-tools"><button type="button" id="octaveDown" aria-label="낮은 옥타브로 이동">−</button><span id="octaveLabel">C3 – B4</span><button type="button" id="octaveUp" aria-label="높은 옥타브로 이동">+</button></div><div class="legend"><span id="pianoSoundChip" class="piano-sound-chip" role="status">그랜드 피아노 음원 준비 중</span><span class="key-legend played"></span> 터치 <span class="key-legend detected"></span> 내 음정 <span class="key-legend target"></span> 목표</div></div>
     <div id="keyboard" class="keyboard" aria-label="터치하면 소리 나는 피아노 건반" role="group"></div>
   </div>
 </section>
