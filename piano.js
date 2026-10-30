@@ -1194,7 +1194,7 @@ async function switchMode(mode){
  try{
   await stopActivity();app.mode=mode;app.detected=null;app.currentMidi=null;
   $('modeChip').textContent=MODES[mode][0];setTitle(MODES[mode][0]);setMessage(MODES[mode][1]);
-  $('noteHint').textContent='건반을 누르거나 마이크를 시작하세요';
+  $('noteHint').textContent='건반·마이크 대기';
   clearNote();progress(0,'준비');modeControls();
   syncVibratoOverlay();syncRecordPitchOverlay();
   if(mode==='vibrato')focusVibratoReference();
