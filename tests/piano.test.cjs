@@ -64,3 +64,19 @@ test('Keyboard synthesis ramps from silence and holds release gain without pops'
  assert.match(code,/limiter\.connect\(ac\.destination\)/,'limiter sits before speaker output');
  assert.doesNotMatch(code,/g\.connect\(ac\.destination\)/,'no note is wired direct to speakers');
 });
+
+test('Real piano samples are packaged locally with a three-semitone sampler',()=>{
+ const source=readFileSync(path.join(root,'scripts/fetch-piano-samples.mjs'),'utf8');
+ assert.match(source,/Meta-open-sound/);
+ assert.match(source,/CC0 1.0/);
+ assert.match(source,/length:28/);
+ assert.match(source,/24\+i\*3/);
+ assert.match(source,/OggS/);
+ assert.match(code,/ac\.createBufferSource\(\)/,'acoustic PCM playback uses sampled audio buffers');
+ assert.match(code,/\.decodeAudioData\(bytes\)/);
+ assert.match(code,/source\.playbackRate\.setValueAtTime\(Math\.pow\(2,\(m-anchor\)\/12\),t\)/);
+ assert.match(code,/preloadAcousticPiano\(app\.base\)/);
+ assert.match(code,/\.\/samples\/piano\//);
+ const manifest=readFileSync(path.join(root,'android-app/app/src/main/AndroidManifest.xml'),'utf8');
+ assert.match(manifest,/screenOrientation="sensorLandscape"/);
+});
