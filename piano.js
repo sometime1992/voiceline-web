@@ -76,7 +76,18 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function notify(s){const t=$('toast');t.textContent=s;t.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>t.classList.remove('show'),3300);}
 function setTitle(text){$('modeTitle').textContent=text;}
 function setMessage(text){$('modeMessage').textContent=text;}
-function micStatus(text){$('micChip').textContent=text;}
+function micStatus(text){$('micChip').textContent=text;updateMicToggle();}
+function updateMicToggle(){
+ const button=$('micToggle'),action=$('micToggleAction');
+ if(!button||!action)return;
+ const active=Boolean(app.mic);
+ action.textContent=active?'끄기':'켜기';
+ button.disabled=Boolean(app.busy||app.nativeStartResolve);
+ button.classList.toggle('active',active);
+ button.setAttribute('aria-pressed',String(active));
+ button.setAttribute('aria-label',active?'마이크 끄기':'마이크 켜기');
+ button.title=active?'마이크 끄기: 녹음·비브라토·음정 연습 중이라면 먼저 정상 종료합니다.':'마이크 켜기: 피아노 소리가 함께 인식될 수 있습니다.';
+}
 function progress(r,text){$('progressBar').style.width=clamp(r,0,1)*100+'%';$('exerciseProgress').textContent=text;}
 async function addEvent(title,detail,mode){
  try{await store('events','put',{id:id(),date:stamp(),timestamp:Date.now(),title,detail,mode});}
@@ -935,6 +946,46 @@ async function stopActivity(){
   stopMic();
  }
 }
+function resetMainAction(){
+ const b=$('mainButton');
+ b.classList.remove('recording');
+ b.textContent=app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':'마이크 켜기';
+ $('stopButton').hidden=true;
+}
+// Keep microphone control independent of the main activity button.
+// A manual OFF must finish active recording/exercises rather than lose data.
+$('micToggle').addEventListener('click',async()=>{
+ if(app.busy||app.nativeStartResolve)return;
+ app.busy=true;updateMicToggle();
+ try{
+   if(app.mic){
+     await stopActivity();
+     resetMainAction();
+     clearNote();
+     setMessage('마이크가 꺼졌습니다. 피아노 건반은 계속 연주할 수 있습니다.');
+     notify('마이크 꺼짐');
+   }else if(await startMic()){
+     if(app.mode==='piano'){
+       app.mode='pitch';
+       $('modeChip').textContent=MODES.pitch[0];
+       setTitle(MODES.pitch[0]);
+       modeControls();
+     }
+     if(app.mode==='pitch'){
+       $('mainButton').textContent='마이크 끄기';
+       $('stopButton').hidden=false;
+     }
+     setMessage('마이크 켜짐 · 피아노 건반의 소리도 함께 감지될 수 있습니다. 정확한 측정에는 이어폰을 권장합니다.');
+     notify('마이크 켜짐 · 피아노 소리가 음정 측정에 영향을 줄 수 있습니다.');
+   }
+ }catch(e){
+   console.warn('Microphone toggle failed',e);
+   notify('마이크를 전환하는 중 문제가 발생했습니다.');
+ }finally{
+   app.busy=false;
+   updateMicToggle();
+ }
+});
 async function switchMode(mode){
  if(!MODES[mode])return;
  if(app.busy)return;app.busy=true;
@@ -947,7 +998,7 @@ async function switchMode(mode){
   $('mainButton').textContent=mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':'마이크 켜기';
   $('mainButton').classList.remove('recording');$('stopButton').hidden=true;
   syncKeyColors();
- }finally{app.busy=false;}
+ }finally{app.busy=false;updateMicToggle();}
 }
 $('mainButton').addEventListener('click',async()=>{
  if(app.busy)return;app.busy=true;const b=$('mainButton');b.disabled=true;
@@ -968,12 +1019,12 @@ $('mainButton').addEventListener('click',async()=>{
    if(app.mic){await stopActivity();b.textContent='마이크 켜기';$('stopButton').hidden=true;}
    else if(await startMic()){if(app.mode==='piano'){app.mode='pitch';$('modeChip').textContent='음정 측정하기';setTitle('음정 측정하기');}b.textContent='마이크 끄기';$('stopButton').hidden=false;}
   }
- }finally{b.disabled=false;app.busy=false;}
+ }finally{b.disabled=false;app.busy=false;updateMicToggle();}
 });
 $('stopButton').addEventListener('click',async()=>{
  if(app.busy)return;app.busy=true;
  try{await stopActivity();$('stopButton').hidden=true;$('mainButton').classList.remove('recording');$('mainButton').textContent=app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':'마이크 켜기';}
- finally{app.busy=false;}
+ finally{app.busy=false;updateMicToggle();}
 });
 function modalOpen(name){
  $(name).hidden=false;const focus=$(name).querySelector('.close-btn');focus?.focus();
@@ -1000,12 +1051,13 @@ function showHelp(){
  $('infoTitle').textContent='사용법';const b=$('infoBody');b.replaceChildren();
  const sections=[
  ['피아노 건반','화면의 흰 건반과 검은 건반을 터치하면 해당 음이 재생되고 건반이 내려갑니다. 여러 건반을 동시에 누를 수 있습니다. − / +로 건반의 옥타브 범위를 옮길 수 있습니다.'],
- ['음정 측정하기','메뉴에서 음정 측정하기를 선택하고 마이크 켜기를 누릅니다. 마이크 권한을 허용하고 한 음을 길게 불러보세요. 내 음정에 해당하는 건반이 보라색으로 표시됩니다.'],
+ ['음정 측정하기','메뉴에서 음정 측정하기를 선택하고 마이크 켜기를 누릅니다. 마이크 권한을 허용하고 한 음을 길게 불러보세요. 내 음정에 해당하는 건반이 보라색으로 표시됩니다. 상단의 마이크 버튼에서 켜짐/꺼짐 상태를 확인하고 사용자가 직접 끌 수 있습니다.'],
  ['녹음하기','녹음 시작을 누른 후 목소리를 녹음합니다. 녹음 중지 · 저장을 누르면 기기 내부 저장 공간에 저장되며 나의 기록에서 재생하거나 삭제할 수 있습니다. 녹음 중에는 최대 10분으로 제한됩니다.'],
  ['비브라토 연습','기준 음정을 선택하고 비브라토 시작을 누릅니다. 한 음을 편안히 유지하면 음정 흔들림의 속도(Hz)와 폭(cent)을 참고용으로 추정합니다.'],
  ['음정 연습하기','패턴, 시작음, 속도를 고르고 연습 시작을 누릅니다. 3초 후 민트색 목표 건반을 따라 부르면, ±35cent 이내로 감지된 비율로 정확도를 표시합니다.'],
  ['나의 기록과 개인정보','연습 기록은 앱 내부 IndexedDB에, 녹음 파일은 기기 내장 저장 공간의 앱 전용 데이터에 저장됩니다. 계정과 서버가 필요 없으며 마이크 소리는 서버로 업로드하지 않습니다. 앱 삭제나 앱 데이터 초기화 시 함께 삭제될 수 있습니다.'],
  ['피아노 음원 및 저작권','피아노 연주 엔진: @tonejs/piano (Yotam Mann, MIT), Tone.js (MIT). 실제 그랜드 피아노 녹음: Salamander Grand Piano / Alexander Holm, Creative Commons Attribution 3.0 (CC BY 3.0). 원본: https://github.com/tambien/Piano . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 음원과 라이브러리는 APK에 포함되어 오프라인에서도 연주할 수 있습니다.'],
+ ['마이크와 피아노 소리 주의','마이크가 켜져 있으면 피아노 건반에서 재생되는 소리도 마이크에 입력될 수 있습니다. 이 경우 내 목소리의 음정과 피아노 소리가 겹쳐 음정 측정·비브라토 연습·음정 연습의 인식 결과가 부정확할 수 있습니다. 정확한 측정이 필요하다면 이어폰을 사용하거나, 피아노 소리를 들은 뒤 건반 연주를 멈추고 목소리만 내세요. 마이크를 쓰지 않을 때는 화면 상단의 「마이크 끄기」를 누르면 됩니다. 녹음·연습 중에 마이크를 끄면 해당 활동도 정상 종료되며 녹음은 저장됩니다.'],
  ['주의','녹음 내용에 피아노 소리가 섞일 수 있으므로 이어폰 사용을 권장합니다. 목이 아프거나 어지러우면 즉시 중단하세요. 분석 결과는 의료적 진단이 아닙니다.']
  ];
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
@@ -1077,7 +1129,7 @@ window.addEventListener('pagehide',()=>{if(app.record)stopRecording();else if(ap
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){allKeysOff();if(app.record)stopRecording().then(stopMic);else if(app.mic){stopMic();if(app.exercise)finishExercise(false);if(app.vibratoStart)finishVibrato();}}
 });
-drawKeys();modeControls();progress(0,'건반 연주 준비');
+drawKeys();modeControls();progress(0,'건반 연주 준비');updateMicToggle();
 if(window.VoiceLineToneEngine)updateToneEngineStatus();
 importLegacyRecords();
 if('serviceWorker' in navigator){
