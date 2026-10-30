@@ -84,3 +84,10 @@ The testing package suffix is `.softpiano` and appears as **보이스라인 부�
 - Increase overlapping voice budget to 8 and keep stolen tails for at least 120ms (instead of 65ms) to reduce clicks in fast repeated playing.
 - Touch attack remains smoothly rounded, and actual pen pressure is optional, not assumed for finger touches.
 - A standalone test APK with separate ID `.fade10` preserves prior beta recordings.
+
+## v2.0.0-beta11 — replace DIY piano renderer with established engine
+The Android APK now prioritizes published **@tonejs/piano 0.2.0** and Tone.js 14.7.77. It uses their `keyDown`, `keyUp`, velocity, polyphony, and key damping methods. The keyboard visuals, touch targets, native microphone, vibrato reference indicator and offline recordings remain VoiceLine's.
+
+The sound source is Alexander Holm's **Salamander Grand Piano (Yamaha C5)**, licensed **CC BY 3.0**. A recording subset is packaged locally with the installed APK; the instrument code is MIT licensed. Attribution: Alexander Holm / Salamander Grand Piano — https://creativecommons.org/licenses/by/3.0/ . See `docs/third-party-piano.md`.
+
+The optional piano keybed click, string harmonics click and pedal noises are disabled so users can compare against the previous app's finger-up pops. Local build: `npm install --legacy-peer-deps; npm run piano:download; npm run piano:bundle`, then build the Android app. GitHub Actions runs these steps automatically. This is a testing branch; main and prior APK builds remain unchanged.
