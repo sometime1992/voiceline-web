@@ -1,6 +1,12 @@
-name: Build Android debug APK (manual)
+name: VoiceLine Android phone and tablet APK
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - feature/landscape-piano-v2
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,11 +27,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Build debug APK
+      - name: Build installable Android debug APK
         working-directory: android-app
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceLine-v2-piano-debug-APK
+          name: VoiceLine-v2-Android-Phone-Tablet-APK
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 3
+          if-no-files-found: error
+          retention-days: 7
