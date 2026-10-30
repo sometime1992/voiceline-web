@@ -199,3 +199,27 @@ test('Key fade-out adapts to held duration and smooth attack interpolates',()=>{
  assert.match(code,/gain\.gain\.linearRampToValueAtTime\(voiceGain\*smoothstep\(\.75\)/);
  assert.match(code,/pressureForEvent\(e\)/);
 });
+
+test('Published Tone Piano engine replaces handmade note playback inside Android APK',()=>{
+ const entry=readFileSync(path.join(root,'scripts/tone-piano-entry.mjs'),'utf8');
+ const pkg=JSON.parse(readFileSync(path.join(root,'package.json'),'utf8'));
+ const fetcher=readFileSync(path.join(root,'scripts/fetch-salamander-samples.mjs'),'utf8');
+ const workflow=readFileSync(path.join(root,'.github/workflows/build-apk.yml'),'utf8');
+ assert.equal(pkg.dependencies['@tonejs/piano'],'0.2.0');
+ assert.ok(pkg.dependencies.tone);
+ assert.match(entry,/import \{ Piano \} from '@tonejs\/piano'/);
+ assert.match(entry,/piano\.keyDown\(\{midi,velocity:/);
+ assert.match(entry,/piano\.keyUp\(\{midi\}\)/);
+ assert.match(entry,/release:false/,'native keybed/release click noises disabled');
+ assert.match(entry,/pedal:false/,'pedal clicks disabled');
+ assert.match(entry,/Tone\.start\(\)/,'audio context starts on user gesture');
+ assert.match(entry,/url:sourcePath/,'local sample path');
+ assert.match(code,/window\.VoiceLineToneEngine\.keyDown\(m,pressure\)/);
+ assert.match(code,/window\.VoiceLineToneEngine\?\.keyUp\(m\)/);
+ assert.match(code,/window\.VoiceLineToneEngine\.reference\(m\)/);
+ assert.match(html,/vendor\/tone-piano\.js/,'built library loads before UI');
+ assert.match(fetcher,/creativecommons\.org\/licenses\/by\/3\.0/);
+ assert.match(fetcher,/length:28/);
+ assert.match(workflow,/npm run piano:bundle/);
+ assert.match(workflow,/npm run piano:download/);
+});
