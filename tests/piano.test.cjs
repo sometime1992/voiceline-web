@@ -80,3 +80,25 @@ test('Real piano samples are packaged locally with a three-semitone sampler',()=
  const manifest=readFileSync(path.join(root,'android-app/app/src/main/AndroidManifest.xml'),'utf8');
  assert.match(manifest,/screenOrientation="sensorLandscape"/);
 });
+
+test('Soft sampled piano keeps hammer attacks quiet and preserves chord headroom',()=>{
+ const start=code.indexOf('const SOFT_PIANO=');
+ const end=code.indexOf('const activePianoVoices=',start);
+ assert.ok(start>=0&&end>start,'soft acoustic parameters exist');
+ const settings=vm.runInNewContext(code.slice(start,end)+'\nSOFT_PIANO',{Object});
+ assert.ok(settings.attack>=.025,'recorded hammer attack must be smoothed over >=25ms');
+ assert.ok(settings.release>=.2,'short notes are released gradually');
+ assert.ok(settings.peakGain<=.28,'sampled note is not played near full PCM volume');
+ assert.ok(settings.master<=.72,'shared mix has enough headroom');
+ assert.ok(settings.lowpass<=5000,'hammer transient has softened treble');
+ assert.ok(settings.maxVoices<=8,'limit dense simultaneous notes');
+ assert.ok(settings.peakGain*settings.master*0.62*settings.maxVoices<.9,
+   'eight sample peaks must stay below 0dBFS even if in phase');
+ assert.match(code,/const highpass=ac\.createBiquadFilter\(\),lowpass=ac\.createBiquadFilter\(\)/);
+ assert.match(code,/lowpass\.frequency\.setValueAtTime/);
+ assert.match(code,/releasePianoVoice\(oldest,true\)/);
+ assert.match(code,/sampledNoteOff\(voice\)\{releasePianoVoice\(voice\);\}/);
+ assert.match(code,/volume\.cancelAndHoldAtTime\(t\)/);
+ assert.match(code,/const held=SOFT_PIANO\.peakGain\*Math\.min\(1,elapsed\/SOFT_PIANO\.attack\)/,
+   'held short-tap amplitude correctly preserved on older WebViews');
+});
