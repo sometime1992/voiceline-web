@@ -19,6 +19,12 @@ jobs:
           node-version: '22'
       - name: Test piano application
         run: node --test tests/piano.test.cjs
+      - name: Bundle CC0 acoustic upright piano recordings into offline APK
+        run: node scripts/fetch-piano-samples.mjs
+      - name: Verify offline piano recordings
+        run: |
+          node -e "const fs=require('fs');const p='android-app/app/src/main/assets/www/samples/piano';const d=JSON.parse(fs.readFileSync(p+'/source.json'));if(d.files.length!==28||d.files.some(f=>fs.statSync(p+'/'+f).size<4096))process.exit(1);console.log('Offline acoustic piano validated:',d.files.length,'samples')"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -41,7 +47,7 @@ jobs:
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceLine-v2-beta3-piano-sound-fixed-APK
+          name: VoiceLine-v2-beta4-real-acoustic-piano-APK
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
