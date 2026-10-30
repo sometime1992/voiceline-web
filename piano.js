@@ -993,6 +993,7 @@ function showHelp(){
  ['비브라토 연습','기준 음정을 선택하고 비브라토 시작을 누릅니다. 한 음을 편안히 유지하면 음정 흔들림의 속도(Hz)와 폭(cent)을 참고용으로 추정합니다.'],
  ['음정 연습하기','패턴, 시작음, 속도를 고르고 연습 시작을 누릅니다. 3초 후 민트색 목표 건반을 따라 부르면, ±35cent 이내로 감지된 비율로 정확도를 표시합니다.'],
  ['나의 기록과 개인정보','연습 기록은 앱 내부 IndexedDB에, 녹음 파일은 기기 내장 저장 공간의 앱 전용 데이터에 저장됩니다. 계정과 서버가 필요 없으며 마이크 소리는 서버로 업로드하지 않습니다. 앱 삭제나 앱 데이터 초기화 시 함께 삭제될 수 있습니다.'],
+ ['피아노 음원 및 저작권','피아노 연주 엔진: @tonejs/piano (Yotam Mann, MIT), Tone.js (MIT). 실제 그랜드 피아노 녹음: Salamander Grand Piano / Alexander Holm, Creative Commons Attribution 3.0 (CC BY 3.0). 원본: https://github.com/tambien/Piano . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 음원과 라이브러리는 APK에 포함되어 오프라인에서도 연주할 수 있습니다.'],
  ['주의','녹음 내용에 피아노 소리가 섞일 수 있으므로 이어폰 사용을 권장합니다. 목이 아프거나 어지러우면 즉시 중단하세요. 분석 결과는 의료적 진단이 아닙니다.']
  ];
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
