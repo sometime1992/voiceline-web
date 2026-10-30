@@ -291,3 +291,67 @@ test('Tone Piano engine keeps standard 400ms release and sane diagnostic routing
  const tone=code.indexOf('if(window.VoiceLineToneEngine){',code.indexOf('function soundOn(m'));
  assert.ok(diagnostic>0&&tone>diagnostic,'sine diagnostic bypasses grand piano engine');
 });
+
+test('Top bar microphone toggle and help caution are wired in every mode',()=>{
+ assert.match(html,/id="micToggle"/,'persistent touchable button');
+ assert.match(html,/id="micChip"/,'existing live microphone status remains visible');
+ assert.match(html,/id="micToggleAction"/,'mic button shows turn on/off action');
+ assert.match(code,/function updateMicToggle\(\)/);
+ assert.match(code,/button\.setAttribute\('aria-pressed',String\(active\)\)/);
+ assert.match(code,/button\.disabled=Boolean\(app\.busy\|\|app\.nativeStartResolve\)/);
+ assert.match(code,/\$\('micToggle'\)\.addEventListener\('click'/);
+ assert.match(code,/await stopActivity\(\);\s*resetMainAction\(\);/,'manual off safely stops an active recording or practice');
+ assert.match(code,/마이크가 켜져 있으면 피아노 건반에서 재생되는 소리도 마이크에 입력될 수 있습니다/);
+ assert.match(code,/음정 측정·비브라토 연습·음정 연습의 인식 결과가 부정확/);
+ assert.match(code,/이어폰을 사용하거나/);
+ assert.match(code,/녹음은 저장됩니다/);
+ const css=readFileSync(path.join(root,'piano.css'),'utf8');
+ assert.match(css,/\.mic-toggle\.active/);
+});
+test('Mic toggle OFF safely ends recording and ON does not auto-record',async()=>{
+ const begin=code.indexOf('function resetMainAction(){');
+ const end=code.indexOf('async function switchMode(mode){',begin);
+ assert.ok(begin>=0&&end>begin);
+ let clickHandler=null,events=[];
+ const elements={
+  micToggle:{addEventListener:(name,fn)=>{if(name==='click')clickHandler=fn;}},
+  mainButton:{textContent:'녹음 중지 · 저장',classList:{remove(name){events.push('remove:'+name);}}},
+  stopButton:{hidden:false},
+  modeChip:{textContent:''}
+ };
+ const app={mode:'record',mic:true,busy:false,nativeStartResolve:null,record:{type:'native'}};
+ const ctx={
+  app,
+  $:id=>elements[id],
+  MODES:{pitch:['음정 측정하기']},
+  updateMicToggle:()=>events.push('refresh'),
+  stopActivity:async()=>{events.push('stopActivity');app.mic=false;app.record=null;},
+  startMic:async()=>{events.push('startMic');app.mic=true;return true;},
+  clearNote:()=>events.push('clearNote'),
+  setMessage:(m)=>events.push('message:'+m),
+  notify:(m)=>events.push('notify:'+m),
+  setTitle:()=>events.push('title'),
+  modeControls:()=>events.push('controls'),
+  console
+ };
+ vm.runInNewContext(code.slice(begin,end),ctx);
+ assert.equal(typeof clickHandler,'function');
+ await clickHandler();
+ assert.ok(events.includes('stopActivity'),'microphone off uses shared activity shutdown');
+ assert.equal(app.mic,false);
+ assert.equal(app.record,null);
+ assert.equal(elements.mainButton.textContent,'녹음 시작');
+ assert.equal(elements.stopButton.hidden,true);
+ events=[];
+ await clickHandler();
+ assert.equal(app.mic,true);
+ assert.equal(app.record,null,'manual microphone enable does not initiate recording');
+ assert.equal(elements.mainButton.textContent,'녹음 시작');
+ assert.ok(events.includes('startMic'));
+ assert.equal(app.busy,false);
+ // A microphone-only flow exposes the same toggle without another control.
+ app.mode='pitch';app.mic=false;events=[];
+ await clickHandler();
+ assert.equal(elements.mainButton.textContent,'마이크 끄기');
+ assert.equal(elements.stopButton.hidden,false);
+});
