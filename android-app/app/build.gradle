@@ -8,11 +8,15 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 15
-        versionName '1.4.0'
+        versionCode 25
+        versionName '2.0.0-beta10'
     }
 
     buildTypes {
+        debug {
+            // Audio diagnostics beta uses a separate package suffix to preserve previous test apps and on-device recordings.
+            applicationIdSuffix '.fade10'
+        }
         release {
             minifyEnabled false
         }
@@ -27,14 +31,11 @@ dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
 }
 
-// Always package the current web app code from the repository root when building Android.
-// Standalone Android Studio copies may sit beside an older web source folder.
-// Only sync when the matching v1.3.1 web files are present to prevent overwriting bundled working assets.
+// Keep the bundled offline Android app in sync with the latest web UI.
 tasks.register('syncWebAssets', Copy) {
-    onlyIf { new File(rootProject.projectDir.parentFile, 'diagnostics.js').isFile() && new File(rootProject.projectDir.parentFile, 'ui-v14.js').isFile() }
+    onlyIf { new File(rootProject.projectDir.parentFile, 'piano.js').isFile() && new File(rootProject.projectDir.parentFile, 'piano.css').isFile() }
     from(rootProject.projectDir.parentFile) {
-        include 'index.html', 'styles.css', 'training-guide.css', 'vibrato-breath.css', 'readability.css', 'ui-v13.css', 'diagnostics.css', 'ui-v14.css'
-        include 'app.js', 'training-plus.js', 'vibrato-breath.js', 'ui-v13.js', 'diagnostics.js', 'ui-v14.js', 'sw.js', 'manifest.webmanifest'
+        include 'index.html', 'piano.css', 'piano.js', 'sw.js', 'manifest.webmanifest'
         include 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'
     }
     into('src/main/assets/www')

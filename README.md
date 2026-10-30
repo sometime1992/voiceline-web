@@ -1,90 +1,86 @@
-# 보이스라인 VOICE LINE v1.4.0
+# VOICE LINE 보이스라인 v2.0.0-beta1
 
-목소리의 높낮이를 마이크로 분석하는 브라우저/Android 보컬 연습 앱입니다. 녹음 원본은 저장하거나 서버에 보내지 않습니다.
+가로 화면을 피아노 건반이 대부분 차지하는 보컬 연습 앱입니다.
 
-## 이용 방법
+## 기능
+- 터치할 때 음이 나고 키가 눌리는 흰/검은 피아노 건반, 멀티터치, 옥타브 이동.
+- 오른쪽 위 햄버거 메뉴: 음정 측정, 녹음, 비브라토, 음정 연습, 나의 기록, 사용법.
+- 마이크로 감지한 음정은 보라색 건반으로, 연습 목표 음정은 민트색 건반으로 표시.
+- 녹음 파일은 MediaRecorder 우선, 지원되지 않는 경우 Web Audio PCM/WAV 대체 방식 사용.
+- 녹음 및 연습 기록은 IndexedDB로 휴대폰 앱 내부에만 저장하고 재생·개별 삭제 가능.
+- 기존 1.4.0의 최근 연습 기록과 저장 음역대를 새 기록으로 가져옵니다.
+- 녹음은 1회 최대 10분으로 제한합니다. 피아노 소리가 마이크에 들어갈 수 있으니 이어폰을 권장합니다.
 
-1. HTTPS 웹사이트에서 '마이크 켜기'를 누르고 권한을 허용합니다(호흡 훈련에는 필요 없음).
-2. 상단에서 자유 측정 / 음정 따라가기 / 비브라토 / 호흡 훈련 / 음역대 측정을 선택합니다.
-3. 음정 따라가기: 시작 음정과 12개 패턴, 길이와 반복 횟수를 선택하고 '연습 시작'을 누릅니다. 화면에 목표(민트)와 실제(보라) 음정이 표시됩니다.
-4. 비브라토: 7종 훈련에서 선택하거나 목표 속도(Hz)와 폭(cent)을 조절합니다. 마이크 시작 후 비브라토 연습을 누릅니다. 결과는 음정 흔들림을 이용한 참고용 추정치입니다.
-5. 호흡 훈련: 들숨(1~60초), 유지(0~60초), 날숨(1~120초), 쉼(0~60초), 반복(1~30회)을 자유롭게 설정합니다. 일시정지 및 초기화가 가능합니다. 편안한 범위에서 연습하고 무리해서 참지 마세요.
-6. 음역대 측정: 편안히 지속할 수 있는 최저음/최고음을 측정하고 기기 로컬에 저장합니다.
+## 웹 / PWA
+Cloudflare Pages의 루트에서 정적 배포합니다. HTTPS 필요. PWA는 가로 방향을 요청합니다. 일반 브라우저에서는 화면 회전 강제가 불가능할 수 있어 세로 방향 안내를 표시합니다.
 
-### 옥타브 · 그래프
+## Android
+1. Android Studio에서 android-app 폴더를 엽니다.
+2. SDK Platform 35, Java 17 확인 후 Gradle Sync.
+3. Build → Build APK(s)로 디버그 APK 생성.
+4. 결과: android-app/app/build/outputs/apk/debug/app-debug.apk
 
-* 왼쪽 Y축과 현재 음정 칸에는 한국식 **N옥 도/레/미...**와 국제 표기 **C4, C5, C6...**가 함께 표시됩니다.
-* 한국식 **2옥 도=C4, 3옥 도=C5, 4옥 도=C6**입니다.
-* 고음으로 올라갈 때 그래프의 세로 범위가 부드럽게 따라 움직여 고음이 잘리지 않도록 합니다.
-* 감지 대역은 약 **65~2,100Hz**입니다. 마이크·주위 소음·발성에 따라 특히 높은 음의 인식 정확도에 차이가 있습니다.
-* 자유 측정에서 주파수, 편차(cent), 현재 음을 확인하고 음정 따라가기에서 목표의 ±35 cent 안에 든 측정 비율로 정확도를 표시합니다.
+Android 앱은 sensorLandscape로 가로 방향 고정, WebViewAssetLoader 로컬 오프라인 assets 사용. Gradle preBuild에서 최상위 웹 파일을 앱에 복사합니다.
 
-## 웹 배포
+## 코드 검사
+Node.js 환경에서 node --test tests/piano.test.cjs 실행. YIN 음정 분석 사인파 검증, 필수 메뉴, 문법과 안드로이드 설정을 확인합니다.
 
-Cloudflare Pages에서 프로젝트 루트(`.`), 정적 사이트(None), 빌드 명령 없이 배포합니다.
+## 주의 및 추가 검증
+실제 갤럭시/안드로이드 기기에서 마이크 권한, 멀티터치, 스피커 소리, 음성 녹음, 녹음 재생, 앱 재시작 후 기록 유지, 화면 회전을 확인해야 합니다. 현재 코드는 소스 점검과 합성 음성 테스트까지 수행했습니다. 앱 삭제 또는 앱 데이터 초기화 시 IndexedDB의 기록과 녹음도 삭제될 수 있습니다. 영구 보관용 내보내기는 아직 지원하지 않습니다.
 
-## Android APK
+v1.x 원본 스크립트는 롤백용으로 보존했지만 새 화면에서는 로드하지 않습니다. 음성은 서버에 업로드하지 않습니다. 음정 추정은 연습 참고용이며 의료 검사가 아닙니다.
 
-`android-app/` 폴더는 **Android Studio에서 열고 빌드하는 오프라인 앱 프로젝트**입니다. `android-app/app/src/main/assets/www` 안의 웹 코드를 사용하므로 APK 앱에서는 인터넷 없이도 기본 기능을 쓸 수 있도록 구성했습니다.
+## v2.0.0-beta2 · Android microphone fix
+- Native AudioRecord bridge obtains Android RECORD_AUDIO permission directly, without WebView microphone permission dependencies.
+- Android PCM 16-bit samples are passed to the local pitch detector, and recordings are saved as WAV in IndexedDB.
+- In-browser fallback remains available for development; Android installed app prefers native audio.
+- If permission is denied, the screen shows the reason. Recordings do not leave the device.
 
-1. PC에서 Android Studio를 열고 **Open → `android-app` 폴더** 선택.
-2. Android SDK Platform 35 및 빌드 도구 설치 확인. Gradle 동기화(sync)합니다. Gradle 설치/네트워크 연결은 최초 빌드 때 필요할 수 있습니다.
-3. 휴대폰 USB 디버깅을 켜고 연결하여 **Run** 하거나, **Build → Build APK(s)**를 선택합니다.
-4. 결과는 보통 `android-app/app/build/outputs/apk/debug/app-debug.apk`에 있습니다.
-5. 휴대폰에 APK를 복사하여 설치합니다. 마이크 권한은 앱 내 마이크 버튼을 누를 때 요청됩니다.
+## v2.0.0-beta4 — acoustic piano keyboard
 
-`android-app/`에는 `gradle/wrapper/gradle-wrapper.properties`가 포함되어 있으나 wrapper JAR은 동봉하지 않습니다. Android Studio에서 Gradle 프로젝트로 열거나, SDK가 설치된 PC에서 `gradle wrapper --gradle-version 8.10.2` 후 명령행 빌드할 수 있습니다.
+The mobile APK now carries natural acoustic piano recordings **offline**, based on the public-domain Meta Piano upright samples (CC0 1.0). One recorded mid-velocity note every three semitones maps across the keyboard, with gentle attacks and damped releases. The previous synthesizer is used only if device sample decoding fails. See `docs/acoustic-piano-samples.md` for the sample source and license.
 
-GitHub Actions에서 APK를 생성하려면 `.github/workflows/build-apk.yml`의 수동 실행 `Run workflow`를 선택할 수 있습니다. GitHub Actions 무료 사용량을 소진한 경우에는 실행되지 않을 수 있으며, **로컬 Android Studio 빌드가 더 안정적**입니다.
+Local Android Studio builds: Run `node scripts/fetch-piano-samples.mjs` **once** from the repository root before building. GitHub Actions automatically downloads the pinned CC0 source recordings and packages them in the APK. After installation, piano playback uses **no network**.
 
-## 프로젝트 구성
+This testing APK is installed alongside the prior beta to avoid signing conflicts and accidental erasure of existing local recordings. Records are private to each app ID.
 
-* `index.html`, `styles.css`, `training-guide.css`, `vibrato-breath.css`, `readability.css` – 인터페이스
-* `app.js` – WebAudio/YIN 실시간 음정 분석, 그래프, 기록
-* `training-plus.js` – 12가지 음정 연습 및 목표 가이드
-* `vibrato-breath.js` – 비브라토 분석, 호흡 타이머
-* `sw.js`, `manifest.webmanifest`, 아이콘 – PWA
-* `android-app/` – Android WebView 래퍼 프로젝트
+## v2.0.0-beta5 — reduced acoustic piano pops (Android)
 
-## 주의
+The actual included acoustic Opus recordings were decoded and measured: none of the 28 samples had full-scale clipping (largest sample peak about 0.62). The preceding app played the original hammer transient with a very short 6ms ramp and 0.76 sample gain, before the 0.78 master and heavy compressor, which can sound percussive or overdriven on small phone speakers.
 
-목에 무리가 가는 음을 억지로 내거나 숨을 오래 참지 마세요. 어지럽거나 쉰 목소리가 나면 즉시 중단합니다. 이 앱은 참고용 음정 분석 도구로 의료/전문 음성 검사에 해당하지 않습니다.
+Soft piano now defaults to a 34ms note attack, 240ms note release, sub-bass/high-frequency filtering, 0.24 sample gain and 0.68 master gain, plus a safety-only compressor for loud peaks. The polyphony budget prioritizes newly touched notes. The existing Android native microphone support, on-device WAV recording and pitch tracking remain unchanged.
 
+The testing package suffix is `.softpiano` and appears as **보이스라인 부드러운 피아노** so it can be tested without uninstalling other versions. Separate package IDs do not share locally saved data.
 
-## v1.3 모바일 사용성 개선
+## v2.0.0-beta6 — vibrato reference keyboard alignment
 
-- 한눈에 이해되는 첫 시작 안내와 선택한 모드별 1줄 절차
-- 모바일에서 연습 모드를 한 줄 가로 스크롤 카드로 표시 (세로 손가락 스크롤 유지)
-- 현재 음정/시작 버튼/그래프의 시각적 우선순위 재정렬
-- Android APK WebView 확대/축소 차단 (`setSupportZoom(false)`), 상태바/내비게이션바 안전 영역 처리
-- 웹 브라우저의 접근성 확대 기능은 유지. Android APK에서만 화면 확대 비활성화
-- 최신 훈련 기능(음정 12종, 비브라토 7종, 호흡 조절) 유지
+- Selecting **비브라토 연습** now centers the keyboard around the currently selected reference pitch.
+- The note selector offers every chromatic pitch, including black keys, from C2 (MIDI 36) through B6 (MIDI 95). Previously only white notes from C3 to B5 were present.
+- Changing the reference automatically shifts the two-octave keyboard range and clearly marks the selected white or black key with a persistent mint outline and indicator.
+- Live microphone pitch tracking never scrolls the selected vibrato reference off-screen while practice is underway.
+- Includes the beta5 acoustic-piano transient and headroom improvements.
 
+## v2.0.0-beta7 — anti-pop piano note transitions
+- Change acoustic sampled instrument to softest authentic Meta Piano velocity layer (Vel01), minimizing hammer-onset thunk.
+- Fade decoded Ogg/Opus sample data smoothly to zero at source endpoints and keep per-voice click-free gain ramps.
+- Do not start a note while the Android Web Audio context is suspended; after resuming, play only if touch is still held.
+- Fix voice-stealing tail accounting during rapid glissando, avoiding overaccumulation of overlapping voices.
+- Add **사용법 → 소리 테스트: 순음으로 비교**, an A/B diagnostic to tell piano-sample-related pops from the audio output stack. Switch back via the same button.
+- This Android debug test APK uses a separate application ID to protect the previous beta's local saved recordings and settings.
 
-## v1.4.0 모바일 안정화 및 고장 진단
+## v2.0.0-beta8 — consistent gentle piano levels
+- Peak levels in 28 pinned, softest-velocity recordings vary substantially, so beta7 made some keys too quiet. Beta8 calibrates per-note gain against measured sample peaks (bounded boost ≤5×), with conservative mixer headroom.
+- Preserves click-resistant PCM edge fades, safe AudioContext startup, bounded release tails, and the clean sine-tone audio diagnostic in **사용법**.
 
-- `마이크 켜기`를 누르면 권한 요청 중인지, 마이크가 연결됐는지, 실제로 신호가 들어오는지 화면에 표시됩니다.
-- 마이크가 켜진 동안 **입력 강도(%)**가 바뀌는지 확인합니다. 신호가 잡히는데 음정만 안 나오면 주변 소음을 줄이고 한 음을 길게 발성해 보세요.
-- 화면 아래의 **마이크가 작동하지 않나요? · 앱 상태 확인**을 펼치면 마이크 API·보안 환경·권한·최근 오류가 보입니다. **진단 내용 복사**로 오류를 재현한 후 상태를 공유할 수 있습니다. 음성 원본은 보내지 않습니다.
-- 소리 크기 감지 임계값 및 음정 분석 부하를 조정했습니다. 호흡 훈련은 느린 화면에서도 남은 시간을 실제 시각에 맞춰 표시합니다.
-- 음역대 저장은 마이크를 끈 뒤에도 가능한 상태가 유지됩니다.
-- Android WebView는 `RECORD_AUDIO` 앱 권한과 웹 미디어 권한을 모두 승인해야 합니다. 문제가 생기면 `설정 → 애플리케이션 → 보이스라인 → 권한 → 마이크`에서 확인하고 Android System WebView를 최신 버전으로 유지하세요.
-- Gradle APK를 빌드할 때 최상위 웹 소스와 `android-app/app/src/main/assets/www/` 안의 파일이 같은 버전인지 확인하세요. `app` 모듈만 따로 열어 빌드하는 경우 포함된 assets를 사용합니다.
+## v2.0.0-beta9 — duration-adaptive piano fades
+- Acoustic piano keys now use a rounded fade-in envelope rather than an immediate attack. Normal touch has a consistent timbre because capacitive pressure is unreliable on most phones.
+- Release duration varies with how long the note has actually sounded: about 105ms for a quick tap, increasing smoothly up to 400ms for longer holds. No hard stop until the fade has reached zero.
+- When real stylus pressure is reported, the attack and expression adjust modestly. Regular finger pressure values are intentionally ignored.
+- Pressed-key hold ownership, multi-touch, vibrato reference tracking, offline samples, microphone recording and local history are unchanged.
+- Android beta9 uses a separate debug app ID `.fade9` to avoid deleting existing beta recordings.
 
-### 확인 순서
-1. `자유 측정` → `마이크 켜기` → 권한 허용 → 입력 강도와 음정을 확인합니다.
-2. `음정 따라가기` → `마이크 켜기` → `연습 시작` → 카운트다운과 목표음을 확인합니다.
-3. `비브라토` → `마이크 켜기` → `비브라토 연습 시작` → 결과를 관찰합니다.
-4. `호흡 훈련` → 1초·1초·0초·1회처럼 짧게 설정해 마이크 없이 타이머가 끝나는지 확인합니다.
-5. 오류가 있으면 진단 패널을 열고 상태를 복사합니다.
-
-> 가상 마이크와 브라우저를 이용한 테스트를 통과했지만 Galaxy S24 Ultra의 실제 마이크와 APK 설치 시험은 아직 별도로 필요합니다.
-
-
-## v1.4.0 UI 및 안정화 검토
-- 한 번에 시작하는 상단 CTA, 연습/비브라토 빠른 패턴 선택 및 설정 바로가기
-- 녹음 종료 후에도 음정 그래프가 가려지지 않도록 개선
-- 그래프 화면 갱신을 30fps로 제한하여 모바일 연산량 완화
-- Android WebView 오래된 캐시/저장된 URL 사용 방지; 웹 파일 최신본 재패키징
-- 모드 변경/마이크 권한/비브라토/호흡 UX는 브라우저 모의 마이크 테스트와 실제 기기 테스트를 구분
-- 참고 디자인: Yousician의 즉시 음정 피드백과 Simply Sing의 간결한 학습 흐름. 기존 UI 복제 없음.
+## v2.0.0-beta10 — prevent pops on quick taps
+- Responding to test feedback, reverse the beta9 release envelope: ultra-short taps get a long fade-out (about 390ms); held notes get a shorter but smooth release (about 240ms). Interpolate continuously with smoothstep.
+- Increase overlapping voice budget to 8 and keep stolen tails for at least 120ms (instead of 65ms) to reduce clicks in fast repeated playing.
+- Touch attack remains smoothly rounded, and actual pen pressure is optional, not assumed for finger touches.
+- A standalone test APK with separate ID `.fade10` preserves prior beta recordings.

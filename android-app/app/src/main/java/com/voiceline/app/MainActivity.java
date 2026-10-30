@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
     private WebView web;
     private PermissionRequest pendingAudioRequest;
     private WebViewAssetLoader assetLoader;
+    private NativeMicBridge nativeMic;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -43,6 +44,9 @@ public class MainActivity extends Activity {
             .build();
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(16, 15, 27));
+        nativeMic = new NativeMicBridge(this, web);
+        // Expose only in the offline application WebView. All foreign origins are blocked below.
+        web.addJavascriptInterface(nativeMic, "VoiceLineNative");
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16, 15, 27));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -76,6 +80,7 @@ public class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
@@ -123,6 +128,10 @@ public class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grants) {
         super.onRequestPermissionsResult(requestCode, permissions, grants);
+        if (requestCode == NativeMicBridge.PERMISSION_CODE && nativeMic != null) {
+            nativeMic.onPermissionResult(grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED);
+            return;
+        }
         if (requestCode == AUDIO_PERMISSION_REQUEST && pendingAudioRequest != null) {
             PermissionRequest request = pendingAudioRequest;pendingAudioRequest = null;
             if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED)
@@ -140,7 +149,12 @@ public class MainActivity extends Activity {
         if (web != null) web.saveState(state);
         super.onSaveInstanceState(state);
     }
+    @Override protected void onPause() {
+        if (nativeMic != null) nativeMic.stopFromActivity();
+        super.onPause();
+    }
     @Override protected void onDestroy() {
+        if (nativeMic != null) nativeMic.stopFromActivity();
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}
         if (web != null) {web.loadUrl("about:blank");web.destroy();web = null;}
         super.onDestroy();

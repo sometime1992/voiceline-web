@@ -1,6 +1,12 @@
-name: Build Android debug APK (manual)
+name: VoiceLine Android phone and tablet APK
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - feature/landscape-piano-v2
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -8,19 +14,40 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test piano application
+        run: node --test tests/piano.test.cjs
+      - name: Bundle CC0 acoustic upright piano recordings into offline APK
+        run: node scripts/fetch-piano-samples.mjs
+      - name: Verify offline piano recordings
+        run: |
+          node -e "const fs=require('fs');const p='android-app/app/src/main/assets/www/samples/piano';const d=JSON.parse(fs.readFileSync(p+'/source.json'));if(d.files.length!==28||d.files.some(f=>fs.statSync(p+'/'+f).size<4096))process.exit(1);console.log('Offline acoustic piano validated:',d.files.length,'samples')"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      # GitHub's hosted Ubuntu runner already provides cmdline-tools and ANDROID_HOME.
+      # setup-android@v3 attempts to install the removed legacy "tools" package,
+      # so use the existing command-line tools instead.
+      - name: Ensure Android SDK 35 packages
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDK_MANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          test -x "$SDK_MANAGER"
+          yes | "$SDK_MANAGER" --licenses >/dev/null || true
+          "$SDK_MANAGER" --install "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Build debug APK
+      - name: Build installable Android debug APK
         working-directory: android-app
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceLine-v1.3-debug-APK
+          name: VoiceLine-v2-beta10-short-tap-long-fade-APK
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 3
+          if-no-files-found: error
+          retention-days: 7
