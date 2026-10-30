@@ -244,6 +244,11 @@ function updateDetection(t){
  app.notes.push(midi);if(app.notes.length>3)app.notes.shift();
  const sorted=[...app.notes].sort((a,b)=>a-b);midi=sorted[Math.floor(sorted.length/2)];
  app.detected=midi;app.currentMidi=midi;app.sessionSamples++;
+ // Follow the measured singing range with the two-octave keyboard.
+ if(app.owners.size===0&&(midi<app.base || midi>=app.base+24)){
+  const next=clamp((Math.floor(midi/12)-1)*12,24,84);
+  if(next!==app.base){app.base=next;drawKeys();}
+ }
  app.sessionLow=Math.min(app.sessionLow??midi,midi);
  app.sessionHigh=Math.max(app.sessionHigh??midi,midi);
  $('noteHint').textContent='실시간 음정';
@@ -335,7 +340,7 @@ function modeControls(){
  } else if(app.mode==='vibrato'){
   c.innerHTML='<label>연습 기준음 <select id="vroot"></select></label><span class="control-note">내 목소리의 흔들림을 실시간으로 계산합니다.</span>';
   fillNotes($('vroot'),app.vibratoRoot);
-  $('vroot').onchange=e=>{app.vibratoRoot=Number(e.target.value);syncKeyColors();};
+  $('vroot').onchange=e=>{app.vibratoRoot=Number(e.target.value);if(app.vibratoRoot<app.base||app.vibratoRoot>=app.base+24){app.base=clamp((Math.floor(app.vibratoRoot/12)-1)*12,24,84);drawKeys();}syncKeyColors();};
  } else if(app.mode==='record'){
   c.innerHTML='<span class="control-note">최대 10분 · 마이크 녹음 · 내장 저장 공간에 파일 보관</span><button type="button" id="recordList">저장된 녹음 보기</button>';
   $('recordList').onclick=showHistory;
