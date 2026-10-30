@@ -32,3 +32,14 @@ test('Synthetic 82Hz–1760Hz notes and silence',()=>{
  }
  assert.equal(detector(new Float32Array(4096),48000),null);
 });
+test('Android bridge handles microphone independently of WebView',()=>{
+ const java=readFileSync(path.join(root,'android-app/app/src/main/java/com/voiceline/app/NativeMicBridge.java'),'utf8');
+ const activity=readFileSync(path.join(root,'android-app/app/src/main/java/com/voiceline/app/MainActivity.java'),'utf8');
+ assert.match(java,/new AudioRecord\(/);
+ assert.match(java,/AudioRecord\.READ_BLOCKING/);
+ assert.match(java,/@JavascriptInterface/);
+ assert.match(activity,/addJavascriptInterface\(nativeMic, "VoiceLineNative"\)/);
+ assert.match(activity,/NativeMicBridge\.PERMISSION_CODE/);
+ assert.match(code,/if\(window\.VoiceLineNative\?\.start\)return startNativeMic\(\)/);
+ assert.match(code,/if\(app\.nativeMic\)/);
+});
