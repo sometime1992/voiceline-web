@@ -1113,7 +1113,7 @@ async function stopRecording(){
  const r=app.record;if(!r)return;
  app.recordPitchFrozenAt=performance.now();
  renderRecordPitchOverlay(app.recordPitchFrozenAt,true);
- app.record=null;$('mainButton').textContent='녹음 시작';$('mainButton').classList.remove('recording');
+ app.record=null;renderRecordPitchOverlay(app.recordPitchFrozenAt,true);$('mainButton').textContent='녹음 시작';$('mainButton').classList.remove('recording');
  const elapsed=Math.max(0,Math.round((performance.now()-app.recordStart)/1000));
  let blob;
  try{
