@@ -178,10 +178,14 @@ test('Key fade-out adapts to held duration and smooth attack interpolates',()=>{
  assert.equal(smoothstep(1),1);
  assert.ok(smoothstep(.25)>0&&smoothstep(.25)<.25);
  assert.ok(Math.abs(smoothstep(.5)-.5)<1e-10);
- assert.ok(releaseDuration(.03)<releaseDuration(.30),'short tap has shorter fade-out');
- assert.ok(releaseDuration(.30)<releaseDuration(1.5),'held key has longer fade-out');
+ assert.ok(releaseDuration(.03)>releaseDuration(.30),'short tap has LONGER fade-out');
+ assert.ok(releaseDuration(.30)>releaseDuration(1.5),'held key needs shorter fade-out');
  assert.ok(releaseDuration(2)<=.4,'maximum release is bounded');
- assert.ok(releaseDuration(0)>=.10,'release never snaps off');
+ assert.ok(releaseDuration(2)>=.23,'held note still releases smoothly');
+ assert.ok(Math.abs(releaseDuration(.05)-.39)<1e-9,'short tap baseline 390ms');
+ assert.ok(Math.abs(releaseDuration(.70)-.24)<1e-9,'long hold baseline 240ms');
+ assert.ok(releaseDuration(.14)>releaseDuration(.16),'fade duration changes continuously');
+ assert.ok(releaseDuration(0)>=.38,'very short taps get a long gentle release');
  assert.ok(attackDuration(0.1)>attackDuration(.95),'stylus hard press has faster attack');
  assert.equal(pressureForEvent({pointerType:'touch',pressure:.001}),.7,'touch force is ignored as unreliable');
  assert.equal(pressureForEvent({pointerType:'touch',pressure:1}),.7,'touch force still ignored');
