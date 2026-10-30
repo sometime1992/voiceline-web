@@ -106,3 +106,13 @@ The optional piano keybed click, string harmonics click and pedal noises are dis
 - No change to keyboard layout, pitch sensing, vibrato reference, recording, or on-device stored history.
 
 The beta13 Android debug package uses `.rapid13` and installs independently to protect previous beta installations and their saved data. Acoustic-sample license credit remains in the app's help menu.
+
+## v2.0.0-beta14 — user-controlled microphone and detection warning
+
+- A clearly labeled **마이크 켜기 / 끄기** control is always available in the top bar. It shows the current live state, accessible pressed status, and disables itself during microphone permission/start/stop actions.
+- The existing main mode button retains its behavior: recording, vibrato, exercise and pitch modes still start or stop as before.
+- Manually switching the mic off safely finishes the current activity using the existing `stopActivity` path: a recording is saved, running practice/vibrato sessions are finished, and microphone capture is closed.
+- Switching the microphone on in recording/vibrato/practice mode does **not** automatically start a recording or score an exercise; those remain explicitly controlled by the mode's Start button.
+- Help now explains that audible piano playback can be picked up by the active mic and cause inaccurate sung pitch, vibrato and pitch exercise recognition. Earphones or pausing piano output during singing are recommended.
+- Mobile landscape header mic button is sized for touch and 150% font growth. No new app permission and no network access are added.
+- Debug application ID suffix `.mic14` keeps earlier tester's recordings intact.
