@@ -35,3 +35,11 @@ v1.x 원본 스크립트는 롤백용으로 보존했지만 새 화면에서는 
 - Android PCM 16-bit samples are passed to the local pitch detector, and recordings are saved as WAV in IndexedDB.
 - In-browser fallback remains available for development; Android installed app prefers native audio.
 - If permission is denied, the screen shows the reason. Recordings do not leave the device.
+
+## v2.0.0-beta4 — acoustic piano keyboard
+
+The mobile APK now carries natural acoustic piano recordings **offline**, based on the public-domain Meta Piano upright samples (CC0 1.0). One recorded mid-velocity note every three semitones maps across the keyboard, with gentle attacks and damped releases. The previous synthesizer is used only if device sample decoding fails. See `docs/acoustic-piano-samples.md` for the sample source and license.
+
+Local Android Studio builds: Run `node scripts/fetch-piano-samples.mjs` **once** from the repository root before building. GitHub Actions automatically downloads the pinned CC0 source recordings and packages them in the APK. After installation, piano playback uses **no network**.
+
+This testing APK is installed alongside the prior beta to avoid signing conflicts and accidental erasure of existing local recordings. Records are private to each app ID.
