@@ -7,3 +7,12 @@
 .black-key.vibrato-reference{outline:3px solid #37ffcf;outline-offset:-3px;z-index:4}
 .white-key.vibrato-reference::after{content:'기준음';position:absolute;top:13%;left:50%;transform:translateX(-50%);font-size:clamp(9px,1.2vw,12px);font-weight:900;border-radius:99px;background:#0e9989;color:#fff;padding:2px 5px;pointer-events:none;white-space:nowrap;box-shadow:0 1px 6px #0339}
 .black-key.vibrato-reference::after{content:'●';position:absolute;top:12%;left:50%;transform:translateX(-50%);font-size:16px;line-height:1;color:#46f7d4;text-shadow:0 1px 5px #000;pointer-events:none}
+
+/* Top-bar microphone: one reliable tap target for toggling capture in every mode. */
+.toolbar-center .mic-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:37px;max-width:min(37vw,225px);min-width:0;padding:4px 8px;border:1px solid #79748d;border-radius:12px;background:#2b293d;color:#eeeafc;font-weight:750;font-size:clamp(10px,1.2vw,12px);white-space:nowrap;flex:none}
+.toolbar-center .mic-toggle #micChip{padding:0;border:0;background:none;color:inherit;font-size:inherit;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.toolbar-center .mic-toggle #micToggleAction{padding:3px 6px;border:1px solid #ffffff32;border-radius:7px;background:#5fe6cf25;color:#8cfbe2;font-size:inherit;font-weight:900}
+.toolbar-center .mic-toggle.active{border-color:#5fe6cfbb;background:#174d48;color:#eafffa}
+.toolbar-center .mic-toggle.active #micToggleAction{background:#e98f9361;color:#ffe7e8;border-color:#ffbbbb70}
+.toolbar-center .mic-toggle:disabled{opacity:.65;cursor:progress}
+@media(max-width:680px){.toolbar{gap:6px;padding-left:8px;padding-right:8px}.toolbar-center{gap:5px}.toolbar-center .mic-toggle{gap:4px;padding:3px 5px;max-width:33vw}.toolbar-center .mic-toggle #micToggleAction{padding:2px 4px}}
