@@ -99,7 +99,7 @@ test('Soft sampled piano keeps hammer attacks quiet and preserves chord headroom
  assert.match(code,/releasePianoVoice\(oldest,true\)/);
  assert.match(code,/sampledNoteOff\(voice\)\{releasePianoVoice\(voice\);\}/);
  assert.match(code,/volume\.cancelAndHoldAtTime\(t\)/);
- assert.match(code,/const held=SOFT_PIANO\.peakGain\*Math\.min\(1,elapsed\/SOFT_PIANO\.attack\)/,
+ assert.match(code,/const held=voice\.voiceGain\*Math\.min\(1,elapsed\/SOFT_PIANO\.attack\)/,
    'held short-tap amplitude correctly preserved on older WebViews');
 });
 
@@ -149,4 +149,20 @@ test('Acoustic audio pipeline smooths the PCM endpoints and uses the quietest re
  assert.match(code,/app\.owners\.has\(m\)/,'resume request only triggers a still-held key');
  assert.match(code,/activePianoVoices\.delete\(oldest\)/,'voice stealing bounds the released-tail budget');
  assert.match(code,/soundOnDiagnostic\(m\)/,'clean sine mode permits speaker/audio-route A-B comparison');
+});
+
+test('28 gentle piano recordings have peak calibration and safe bounded loudness',()=>{
+ const start=code.indexOf('const ACOUSTIC_PEAKS=new Map(');
+ const end=code.indexOf('const activePianoVoices=',start);
+ assert.ok(start>=0&&end>start,'peak metadata exists');
+ const env={Map,SOFT_PIANO:{peakGain:0.25},clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
+ const gain=vm.runInNewContext(code.slice(start,end)+'\ncalibratedPianoGain',env);
+ const peaks=vm.runInNewContext(code.slice(start,end)+'\nACOUSTIC_PEAKS',env);
+ assert.equal(peaks.size,28,'calibrate all recorded pitch anchors');
+ for(let midi=24;midi<=105;midi+=3){
+  assert.ok(peaks.has(midi),'missing '+midi);
+  const level=gain(midi),peak=peaks.get(midi);
+  assert.ok(Number.isFinite(level)&&level>=.17&&level<=1.251,'gain bounds '+midi);
+  assert.ok(level*peak*.64<.04,'per-voice sample output remains safe '+midi);
+ }
 });
