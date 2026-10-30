@@ -132,3 +132,9 @@
  .vibrato-metric strong{font-size:clamp(12px,2vw,16px)}
  .vibrato-metric small{display:none}
 }
+
+/* Let user-facing note hints wrap rather than truncating on 320px-tall phones. */
+@media (max-width:900px), (max-height:460px){
+ .note-panel .label{white-space:normal;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25;
+   max-height:2.5em;overflow-y:auto;scrollbar-width:thin}
+}
