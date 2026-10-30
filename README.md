@@ -71,3 +71,10 @@ The testing package suffix is `.softpiano` and appears as **보이스라인 부�
 ## v2.0.0-beta8 — consistent gentle piano levels
 - Peak levels in 28 pinned, softest-velocity recordings vary substantially, so beta7 made some keys too quiet. Beta8 calibrates per-note gain against measured sample peaks (bounded boost ≤5×), with conservative mixer headroom.
 - Preserves click-resistant PCM edge fades, safe AudioContext startup, bounded release tails, and the clean sine-tone audio diagnostic in **사용법**.
+
+## v2.0.0-beta9 — duration-adaptive piano fades
+- Acoustic piano keys now use a rounded fade-in envelope rather than an immediate attack. Normal touch has a consistent timbre because capacitive pressure is unreliable on most phones.
+- Release duration varies with how long the note has actually sounded: about 105ms for a quick tap, increasing smoothly up to 400ms for longer holds. No hard stop until the fade has reached zero.
+- When real stylus pressure is reported, the attack and expression adjust modestly. Regular finger pressure values are intentionally ignored.
+- Pressed-key hold ownership, multi-touch, vibrato reference tracking, offline samples, microphone recording and local history are unchanged.
+- Android beta9 uses a separate debug app ID `.fade9` to avoid deleting existing beta recordings.
