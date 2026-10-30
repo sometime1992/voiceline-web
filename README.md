@@ -78,3 +78,9 @@ The testing package suffix is `.softpiano` and appears as **보이스라인 부�
 - When real stylus pressure is reported, the attack and expression adjust modestly. Regular finger pressure values are intentionally ignored.
 - Pressed-key hold ownership, multi-touch, vibrato reference tracking, offline samples, microphone recording and local history are unchanged.
 - Android beta9 uses a separate debug app ID `.fade9` to avoid deleting existing beta recordings.
+
+## v2.0.0-beta10 — prevent pops on quick taps
+- Responding to test feedback, reverse the beta9 release envelope: ultra-short taps get a long fade-out (about 390ms); held notes get a shorter but smooth release (about 240ms). Interpolate continuously with smoothstep.
+- Increase overlapping voice budget to 8 and keep stolen tails for at least 120ms (instead of 65ms) to reduce clicks in fast repeated playing.
+- Touch attack remains smoothly rounded, and actual pen pressure is optional, not assumed for finger touches.
+- A standalone test APK with separate ID `.fade10` preserves prior beta recordings.
