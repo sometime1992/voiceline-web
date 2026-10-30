@@ -8,14 +8,14 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 29
-        versionName '2.0.0-beta14'
+        versionCode 30
+        versionName '2.0.0-beta15'
     }
 
     buildTypes {
         debug {
             // Published Tone Piano integration beta is separate from prior test app IDs to protect on-device recordings.
-            applicationIdSuffix '.mic14'
+            applicationIdSuffix '.vib15'
         }
         release {
             minifyEnabled false
