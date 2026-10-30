@@ -225,3 +225,69 @@ test('Published Tone Piano engine replaces handmade note playback inside Android
  assert.match(workflow,/npm run piano:bundle/);
  assert.match(workflow,/npm run piano:download/);
 });
+
+test('Rapid and short note presses cannot leave a stale key-up that kills a new note',async()=>{
+ const script=readFileSync(path.join(root,'scripts/tone-piano-entry.mjs'),'utf8')
+   .replace(/^import .*?;\s*$/gm,'');
+ const actions=[];
+ let virtualTime=0,nextTimer=1,activePiano=null;
+ const timers=new Map();
+ class FakePiano {
+   constructor(){this._strings={_strings:[{output:{attack:0}}]};activePiano=this;}
+   toDestination(){return this;}
+   load(){return Promise.resolve();}
+   keyDown({midi}){actions.push('down:'+midi);}
+   keyUp({midi}){actions.push('up:'+midi);}
+   stopAll(){actions.push('stop');}
+ }
+ const running={state:'running'};
+ const env={
+   Piano:FakePiano,
+   Tone:{getContext:()=>running,start:()=>Promise.resolve(),now:()=>virtualTime/1000},
+   window:{dispatchEvent(){}},
+   CustomEvent:class{constructor(type,args){this.type=type;this.detail=args?.detail;}},
+   performance:{now:()=>virtualTime},
+   setTimeout:(cb,ms)=>{const id=nextTimer++;timers.set(id,{cb,at:virtualTime+ms});return id;},
+   clearTimeout:(id)=>timers.delete(id),
+   Map,Math,Promise,Object,console,
+ };
+ const engine=vm.runInNewContext(script+'\nengine',env);
+ await engine.load();
+ assert.ok(Math.abs(activePiano._strings._strings[0].output.attack-.018)<1e-8,
+   'published Sampler attack is smoothed to 18ms');
+ engine.keyDown(60);
+ assert.deepEqual(actions,['down:60'],'ready audio schedules the key synchronously');
+ virtualTime=12;engine.keyUp(60);
+ assert.deepEqual(actions,['down:60'],'tiny tap does not immediately cut off sample');
+ assert.equal(timers.size,1,'short release is pending');
+ virtualTime=22;engine.keyDown(60);
+ assert.deepEqual(actions,['down:60','up:60','down:60'],
+   'previous note released BEFORE the immediate retrigger');
+ assert.equal(timers.size,0,'stale old timer canceled');
+ virtualTime=38;engine.keyUp(60);
+ assert.equal(timers.size,1);
+ const [id,task]=[...timers][0];
+ virtualTime=task.at;
+ timers.delete(id);task.cb();
+ assert.deepEqual(actions,['down:60','up:60','down:60','up:60'],
+   'new note is released once after its protected minimum hold');
+ engine.keyDown(62);
+ engine.keyUp(62);
+ engine.stopAll();
+ assert.equal(timers.size,0,'stopping all cancels delayed note-off timers');
+ assert.equal(engine.diagnostics.pendingReleases,0);
+ assert.ok(engine.diagnostics.rapidReleases>=2);
+ assert.ok(engine.diagnostics.retriggered>=1);
+});
+
+test('Tone Piano engine keeps standard 400ms release and sane diagnostic routing',()=>{
+ const script=readFileSync(path.join(root,'scripts/tone-piano-entry.mjs'),'utf8');
+ assert.match(script,/samplerAttack:0\.018/,'18ms attack suppresses abrupt PCM transients');
+ assert.match(script,/minHoldMs:90/,'very short touches are held just long enough to ramp up');
+ assert.match(script,/release:false/,'keybed click effect remains disabled');
+ assert.match(script,/if\(available&&contextIsRunning\(\)\)/,
+   'ready audio uses synchronous dispatch rather than Promise microtasks');
+ const diagnostic=code.indexOf('if(app.audioDiagnosticTone){',code.indexOf('function soundOn(m'));
+ const tone=code.indexOf('if(window.VoiceLineToneEngine){',code.indexOf('function soundOn(m'));
+ assert.ok(diagnostic>0&&tone>diagnostic,'sine diagnostic bypasses grand piano engine');
+});
