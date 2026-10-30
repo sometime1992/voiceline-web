@@ -8,14 +8,14 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 23
-        versionName '2.0.0-beta8'
+        versionCode 24
+        versionName '2.0.0-beta9'
     }
 
     buildTypes {
         debug {
             // Audio diagnostics beta uses a separate package suffix to preserve previous test apps and on-device recordings.
-            applicationIdSuffix '.audio8'
+            applicationIdSuffix '.fade9'
         }
         release {
             minifyEnabled false
