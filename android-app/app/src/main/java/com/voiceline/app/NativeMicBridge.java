@@ -96,7 +96,8 @@ public final class NativeMicBridge {
             diagnostic = "네이티브 마이크 연결 성공 · " + rate + "Hz";
             dispatch("started", diagnostic);
             int finalRate = rate;
-            captureThread = new Thread(() -> captureLoop(input, finalRate, chunkSize, token), "VoiceLineMicrophone");
+            final AudioRecord captureInput = input;
+            captureThread = new Thread(() -> captureLoop(captureInput, finalRate, chunkSize, token), "VoiceLineMicrophone");
             captureThread.setDaemon(true);
             captureThread.start();
         } catch (Exception e) {
