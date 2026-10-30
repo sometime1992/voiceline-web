@@ -1,0 +1,33 @@
+name: VoiceLine iOS browser-source preview
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ios-record-pitch-responsive
+jobs:
+  build-ios-source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install piano dependencies
+        run: npm install --legacy-peer-deps --no-fund --no-audit
+      - name: Run recording, vibrato, pitch and UI regression tests
+        run: npm test
+      - name: Include licensed offline piano recordings
+        run: npm run piano:download
+      - name: Compile established piano playback library
+        run: npm run piano:bundle
+      - name: Collect iOS-ready browser resources (not IPA)
+        run: node scripts/build-ios-web.mjs
+      - name: Upload unsigned iOS web assets for a future iOS wrapper
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-iOS-recording-pitch-WEB-source-NOT-IPA
+          path: dist/ios-web/
+          if-no-files-found: error
+          retention-days: 14
