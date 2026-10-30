@@ -22,7 +22,7 @@ const app={
   sessionStart:0,sessionLow:null,sessionHigh:null,sessionSamples:0,record:null,
   exercise:null,exercisePattern:'scale',exerciseRoot:60,exerciseSpeed:1800,
   vibratoRoot:60,vibratoStart:0,vibratoSamples:[],vibratoLast:null,recordStart:0,
-  openAudio:null,openAudioUrl:null
+  openAudio:null,openAudioUrl:null,audioDiagnosticTone:false
 };
 const audioCtor=window.AudioContext||window.webkitAudioContext;
 const dbPromise=new Promise((resolve,reject)=>{
@@ -154,14 +154,32 @@ const acoustic={buffers:new Map(),pending:new Map(),failed:new Set(),preloadEpoc
 // Offline recordings contain a genuine hammer attack. Avoid amplifying that transient.
 // 28 samples checked against the prior beta4 APK: none showed digital full-scale clipping.
 // Keep conservative headroom for chords and fade each note smoothly.
-const SOFT_PIANO=Object.freeze({peakGain:0.24,attack:0.034,release:0.24,master:0.68,lowpass:4600,highpass:32,maxVoices:8});
+const SOFT_PIANO=Object.freeze({peakGain:0.25,attack:0.050,release:0.32,master:0.64,lowpass:4200,highpass:45,maxVoices:6});
 const activePianoVoices=new Set();
 function nearestAcousticMidi(midi){
  return clamp(24+3*Math.round((clamp(midi,24,107)-24)/3),24,105);
 }
 function acousticFilename(midi){
  const keys=['C','Cs','D','Ds','E','F','Fs','G','Gs','A','As','B'];
- return 'INSPiano_Vel03_'+keys[midi%12]+(Math.floor(midi/12)-1)+'_01.ogg';
+ return 'INSPiano_Vel01_'+keys[midi%12]+(Math.floor(midi/12)-1)+'_01.ogg';
+}
+// Fade the recorded signal itself at both ends before it reaches the synthesis graph.
+// This eliminates an abrupt PCM edge even if the AudioParam automation is interrupted.
+function conditionAcousticBuffer(buffer){
+ const fadeIn=Math.min(Math.round(buffer.sampleRate*.035),Math.floor(buffer.length/4));
+ const fadeOut=Math.min(Math.round(buffer.sampleRate*.04),Math.floor(buffer.length/4));
+ for(let ch=0;ch<buffer.numberOfChannels;ch++){
+  const pcm=buffer.getChannelData(ch);
+  for(let i=0;i<fadeIn;i++){
+   const x=i/Math.max(1,fadeIn-1);
+   pcm[i]*=x*x*(3-2*x);
+  }
+  for(let i=0;i<fadeOut;i++){
+   const x=i/Math.max(1,fadeOut-1);
+   pcm[pcm.length-1-i]*=x*x*(3-2*x);
+  }
+ }
+ return buffer;
 }
 async function loadAcousticSample(anchor){
  if(acoustic.buffers.has(anchor))return acoustic.buffers.get(anchor);
@@ -177,7 +195,7 @@ async function loadAcousticSample(anchor){
      if(!ac)throw Error('AudioContext not supported');
      const buffer=await ac.decodeAudioData(bytes);
      if(!buffer||buffer.duration<0.1)throw Error('Empty piano recording '+anchor);
-     acoustic.buffers.set(anchor,buffer);
+     acoustic.buffers.set(anchor,conditionAcousticBuffer(buffer));
      updateAcousticStatus();
      return buffer;
    }catch(err){
@@ -208,6 +226,8 @@ function updateAcousticStatus(anchors=null){
  badge.classList.toggle('ready',ready===requested.length);
 }
 function activePianoCount(){return activePianoVoices.size;}
+// An interrupted gain envelope may still be in its attack phase when a touch ends.
+// Capture its instantaneous level and fade it to zero without a discontinuity.
 function releasePianoVoice(voice,forced=false){
  if(!app.ctx||voice.releasing)return;
  voice.releasing=true;
@@ -222,7 +242,7 @@ function releasePianoVoice(voice,forced=false){
   volume.cancelScheduledValues(t);
   volume.setValueAtTime(held,t);
  }
- const duration=forced?0.055:SOFT_PIANO.release;
+ const duration=forced?0.045:SOFT_PIANO.release;
  volume.linearRampToValueAtTime(0,t+duration);
  try{voice.source.stop(t+duration+0.016);}catch(_){}
 }
@@ -232,10 +252,13 @@ function sampledNoteOn(m){
  const ac=ensureSynth();if(!ac)return false;
  // Limit the number of overlapping attack/release tails, which otherwise saturate
  // a phone speaker during glissando or rapid note repetition.
- if(activePianoCount()>=SOFT_PIANO.maxVoices){
+ while(activePianoCount()>=SOFT_PIANO.maxVoices){
   const oldest=activePianoVoices.values().next().value;
-  if(oldest)releasePianoVoice(oldest,true);
-  // Oldest will disconnect onended; a newly played note gets immediate priority.
+  if(!oldest)break;
+  // Evict released tails from the polyphony budget immediately; otherwise a
+  // rapid glissando can accumulate arbitrarily many already-releasing voices.
+  releasePianoVoice(oldest,true);
+  activePianoVoices.delete(oldest);
  }
  const t=ac.currentTime,source=ac.createBufferSource(),gain=ac.createGain();
  const highpass=ac.createBiquadFilter(),lowpass=ac.createBiquadFilter();
@@ -294,8 +317,46 @@ function ensureSynth(){
   return app.ctx;
  }catch(e){console.warn('Piano audio unavailable',e);notify('오디오 장치를 시작할 수 없습니다.');return null;}
 }
+// Diagnostics: a clean sine note shares the same speaker/AudioContext output.
+// If pops persist with this mode, they are not inside the original piano recording.
+function soundOnDiagnostic(m){
+ const ac=ensureSynth();if(!ac)return;
+ const t=ac.currentTime,oscillator=ac.createOscillator(),gain=ac.createGain();
+ oscillator.type='sine';
+ oscillator.frequency.setValueAtTime(frequency(m),t);
+ gain.gain.setValueAtTime(0,t);
+ gain.gain.linearRampToValueAtTime(0.035,t+0.06);
+ oscillator.connect(gain);
+ gain.connect(app.synthMaster);
+ const voice={type:'diagnostic',oscillator,gain,started:t};
+ oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
+ oscillator.start(t);
+ app.playing.set(m,voice);
+}
+function releaseDiagnostic(voice){
+ const ac=app.ctx;if(!ac)return;
+ const t=ac.currentTime,p=voice.gain.gain;
+ if(typeof p.cancelAndHoldAtTime==='function')p.cancelAndHoldAtTime(t);
+ else{
+  const held=0.035*Math.min(1,Math.max(0,(t-voice.started)/0.06));
+  p.cancelScheduledValues(t);p.setValueAtTime(held,t);
+ }
+ p.linearRampToValueAtTime(0,t+0.24);
+ try{voice.oscillator.stop(t+0.245);}catch(_){}
+}
 function soundOn(m){
  if(app.playing.has(m))return;
+ const context=ensureSynth();
+ if(!context)return;
+ if(context.state!=='running'){
+   // No note is scheduled inside a suspended AudioContext: starting in the middle
+   // of its attack when resume() completes can produce an audible thump.
+   context.resume().then(()=>{
+     if(app.ctx===context&&app.owners.has(m)&&!app.playing.has(m))soundOn(m);
+   }).catch(()=>{});
+   return;
+ }
+ if(app.audioDiagnosticTone){soundOnDiagnostic(m);return;}
  if(sampledNoteOn(m))return;
  // Only when a bundled recording is not ready/decodable, keep the older fallback.
  loadAcousticSample(nearestAcousticMidi(m));
@@ -322,6 +383,7 @@ function soundOff(m){
  const p=app.playing.get(m);if(!p||!app.ctx)return;
  app.playing.delete(m);
  if(p.type==='sample'){sampledNoteOff(p);return;}
+ if(p.type==='diagnostic'){releaseDiagnostic(p);return;}
  const t=app.ctx.currentTime,volume=p.g.gain;
  // AudioParam.value is NOT the current value of a pending automation.
  // Holding the scheduled instantaneous gain avoids a step to near-silence
@@ -859,6 +921,19 @@ function showHelp(){
  ['주의','녹음 내용에 피아노 소리가 섞일 수 있으므로 이어폰 사용을 권장합니다. 목이 아프거나 어지러우면 즉시 중단하세요. 분석 결과는 의료적 진단이 아닙니다.']
  ];
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
+ plain(b,'h3','','건반 소리 진단');
+ const soundHelp=plain(b,'p','', '음원 자체의 잡음인지 기기 오디오 출력 문제인지 확인할 수 있습니다. 기본은 실제 피아노 녹음입니다.');
+ const soundButton=plain(b,'button','','소리 테스트: 순음으로 비교');
+ soundButton.onclick=()=>{
+   allKeysOff();
+   app.audioDiagnosticTone=!app.audioDiagnosticTone;
+   soundButton.textContent=app.audioDiagnosticTone?'소리 테스트 종료 · 실제 피아노로 복귀':'소리 테스트: 순음으로 비교';
+   soundHelp.textContent=app.audioDiagnosticTone?
+    '점검용 단순 순음을 재생합니다. 건반을 누르거나 뗄 때 같은 잡음이 나는지 비교해 보세요.':
+    '실제 피아노 음원으로 돌아왔습니다.';
+   notify(app.audioDiagnosticTone?'음향 진단 순음 활성화':'실제 피아노 음원 활성화');
+ };
+ if(app.audioDiagnosticTone)soundButton.textContent='소리 테스트 종료 · 실제 피아노로 복귀';
  plain(b,'h3','', '마이크 연결 상태 확인');
  const status=plain(b,'p','', '마이크가 연결되지 않으면 아래 버튼을 눌러 현재 권한과 오류 정보를 확인하세요.');
  const diagnose=plain(b,'button','', '마이크 상태 진단');
