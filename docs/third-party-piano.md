@@ -16,3 +16,7 @@ node scripts/fetch-salamander-samples.mjs
 
 The current beta is an A/B integration candidate, not yet validated on actual Galaxy devices. It is intentionally separated from other beta test package IDs. If the app's audio still pops even with the library engine, further native Android audio-renderer investigation is needed.
 
+
+## Beta13 short-touch click mitigation
+
+`@tonejs/piano` 0.2.1 is preserved as the playback library. Its existing internal Tone.Sampler instance starts with `attack=0`; VoiceLine configures this property to `0.018` seconds after load, without replacing the engine. The adapter holds an ultrashort touch until its minimum 90ms note-on duration, then invokes the library's normal `keyUp`. On same-note retrigger, old pending releases are canceled before the new key begins. This improves a common source of intermittent note-clicks, but real-device audio validation is still required.
