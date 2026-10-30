@@ -137,6 +137,11 @@ function noteEnvelopeGain(start,t){
 // The Android APK includes all OGG files. Never stream samples from a server.
 const ACOUSTIC_SAMPLE_MIDI=Array.from({length:28},(_,i)=>24+3*i);
 const acoustic={buffers:new Map(),pending:new Map(),failed:new Set(),preloadEpoch:0};
+// Offline recordings contain a genuine hammer attack. Avoid amplifying that transient.
+// 28 samples checked against the prior beta4 APK: none showed digital full-scale clipping.
+// Keep conservative headroom for chords and fade each note smoothly.
+const SOFT_PIANO=Object.freeze({peakGain:0.24,attack:0.034,release:0.24,master:0.68,lowpass:4600,highpass:32,maxVoices:8});
+const activePianoVoices=new Set();
 function nearestAcousticMidi(midi){
  return clamp(24+3*Math.round((clamp(midi,24,107)-24)/3),24,105);
 }
@@ -188,32 +193,61 @@ function updateAcousticStatus(anchors=null){
  badge.textContent=errors?'피아노 음원 일부 미지원':ready===requested.length?'● 실제 피아노 음원':'피아노 음원 '+ready+'/'+requested.length;
  badge.classList.toggle('ready',ready===requested.length);
 }
+function activePianoCount(){return activePianoVoices.size;}
+function releasePianoVoice(voice,forced=false){
+ if(!app.ctx||voice.releasing)return;
+ voice.releasing=true;
+ const t=app.ctx.currentTime,volume=voice.gain.gain;
+ // The held value is calculated from the attack function on old Android WebViews.
+ // Skipping this step was making very short touches audibly snap.
+ if(typeof volume.cancelAndHoldAtTime==='function'){
+  volume.cancelAndHoldAtTime(t);
+ }else{
+  const elapsed=Math.max(0,t-voice.started);
+  const held=SOFT_PIANO.peakGain*Math.min(1,elapsed/SOFT_PIANO.attack);
+  volume.cancelScheduledValues(t);
+  volume.setValueAtTime(held,t);
+ }
+ const duration=forced?0.055:SOFT_PIANO.release;
+ volume.linearRampToValueAtTime(0,t+duration);
+ try{voice.source.stop(t+duration+0.016);}catch(_){}
+}
 function sampledNoteOn(m){
  const anchor=nearestAcousticMidi(m),buffer=acoustic.buffers.get(anchor);
  if(!buffer)return false;
  const ac=ensureSynth();if(!ac)return false;
+ // Limit the number of overlapping attack/release tails, which otherwise saturate
+ // a phone speaker during glissando or rapid note repetition.
+ if(activePianoCount()>=SOFT_PIANO.maxVoices){
+  const oldest=activePianoVoices.values().next().value;
+  if(oldest)releasePianoVoice(oldest,true);
+  // Oldest will disconnect onended; a newly played note gets immediate priority.
+ }
  const t=ac.currentTime,source=ac.createBufferSource(),gain=ac.createGain();
+ const highpass=ac.createBiquadFilter(),lowpass=ac.createBiquadFilter();
  source.buffer=buffer;
  source.playbackRate.setValueAtTime(Math.pow(2,(m-anchor)/12),t);
- // Preserve the recording's real hammer/string attack instead of synthetic harmonics.
+ // Filter sub-bass pops and the metallic edge of the recorded hammer transient.
+ highpass.type='highpass';highpass.frequency.setValueAtTime(SOFT_PIANO.highpass,t);
+ highpass.Q.setValueAtTime(0.707,t);
+ lowpass.type='lowpass';lowpass.frequency.setValueAtTime(Math.max(SOFT_PIANO.lowpass,frequency(m)*3),t);
+ lowpass.Q.setValueAtTime(0.707,t);
+ // 34 ms rounded hammer attack, 240 ms smooth release; no instant volume jumps.
  gain.gain.setValueAtTime(0,t);
- gain.gain.linearRampToValueAtTime(0.76,t+0.006);
- source.connect(gain);gain.connect(app.synthMaster);
+ gain.gain.linearRampToValueAtTime(SOFT_PIANO.peakGain,t+SOFT_PIANO.attack);
+ source.connect(highpass);highpass.connect(lowpass);lowpass.connect(gain);gain.connect(app.synthMaster);
+ const voice={type:'sample',source,gain,highpass,lowpass,started:t,releasing:false};
+ source.onended=()=>{
+  source.disconnect();highpass.disconnect();lowpass.disconnect();gain.disconnect();
+  activePianoVoices.delete(voice);
+  if(app.playing.get(m)===voice)app.playing.delete(m);
+ };
+ activePianoVoices.add(voice);
  source.start(t);
- const voice={type:'sample',source,gain,started:t};
- source.onended=()=>{source.disconnect();gain.disconnect();if(app.playing.get(m)===voice)app.playing.delete(m);};
  app.playing.set(m,voice);
  return true;
 }
-function sampledNoteOff(voice){
- const ac=app.ctx;if(!ac)return;
- const t=ac.currentTime,volume=voice.gain.gain;
- // Never jump volume at key-off, including very short taps.
- if(typeof volume.cancelAndHoldAtTime==='function')volume.cancelAndHoldAtTime(t);
- else{volume.cancelScheduledValues(t);volume.setValueAtTime(Math.min(0.76,0.76*Math.max(0,(t-voice.started)/0.006)),t);}
- volume.linearRampToValueAtTime(0,t+0.14);
- try{voice.source.stop(t+0.145);}catch(_){}
-}
+function sampledNoteOff(voice){releasePianoVoice(voice);}
 
 function ensureSynth(){
  if(!audioCtor){notify('이 환경에서는 소리를 낼 수 없습니다.');return null;}
@@ -225,14 +259,15 @@ function ensureSynth(){
   if(!app.synthMaster){
     const ac=app.ctx;
     const master=ac.createGain();
-    master.gain.setValueAtTime(0.78,ac.currentTime);
+    master.gain.setValueAtTime(SOFT_PIANO.master,ac.currentTime);
     if(typeof ac.createDynamicsCompressor==='function'){
       const limiter=ac.createDynamicsCompressor();
-      limiter.threshold.setValueAtTime(-16,ac.currentTime);
-      limiter.knee.setValueAtTime(18,ac.currentTime);
-      limiter.ratio.setValueAtTime(3.5,ac.currentTime);
-      limiter.attack.setValueAtTime(0.006,ac.currentTime);
-      limiter.release.setValueAtTime(0.16,ac.currentTime);
+      // Safety catch only on loud chord peaks, not an always-on transient compressor.
+      limiter.threshold.setValueAtTime(-4,ac.currentTime);
+      limiter.knee.setValueAtTime(2,ac.currentTime);
+      limiter.ratio.setValueAtTime(12,ac.currentTime);
+      limiter.attack.setValueAtTime(0.003,ac.currentTime);
+      limiter.release.setValueAtTime(0.23,ac.currentTime);
       master.connect(limiter);
       limiter.connect(ac.destination);
       app.synthLimiter=limiter;
@@ -612,9 +647,9 @@ function playReference(m){
    const s=ac.createBufferSource();
    s.buffer=sample;s.playbackRate.setValueAtTime(Math.pow(2,(m-anchor)/12),t);
    g.gain.setValueAtTime(0,t);
-   g.gain.linearRampToValueAtTime(0.38,t+0.008);
-   g.gain.linearRampToValueAtTime(0,t+0.32);
-   s.connect(g);g.connect(app.synthMaster);s.start(t);s.stop(t+0.328);
+   g.gain.linearRampToValueAtTime(SOFT_PIANO.peakGain*0.66,t+SOFT_PIANO.attack);
+   g.gain.linearRampToValueAtTime(0,t+0.36);
+   s.connect(g);g.connect(app.synthMaster);s.start(t);s.stop(t+0.37);
    s.onended=()=>{s.disconnect();g.disconnect();};
  }else{
    loadAcousticSample(anchor);
