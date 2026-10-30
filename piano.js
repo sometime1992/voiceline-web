@@ -155,6 +155,14 @@ const acoustic={buffers:new Map(),pending:new Map(),failed:new Set(),preloadEpoc
 // 28 samples checked against the prior beta4 APK: none showed digital full-scale clipping.
 // Keep conservative headroom for chords and fade each note smoothly.
 const SOFT_PIANO=Object.freeze({peakGain:0.25,attack:0.050,release:0.32,master:0.64,lowpass:4200,highpass:45,maxVoices:6});
+// Peaks measured from the 28 pinned, bundled Vel01 Ogg/Opus recordings.
+// Stabilize inter-note loudness without clipping or changing the gentle recorded timbre.
+const ACOUSTIC_PEAKS=new Map([[24,.1180],[27,.0847],[30,.2122],[33,.1387],[36,.1158],[39,.1492],[42,.1129],[45,.1609],[48,.1194],[51,.1520],[54,.2121],[57,.0152],[60,.0444],[63,.1500],[66,.0605],[69,.0283],[72,.0597],[75,.1282],[78,.0873],[81,.0256],[84,.0155],[87,.0308],[90,.1395],[93,.0811],[96,.1090],[99,.0444],[102,.0383],[105,.0705]]);
+function calibratedPianoGain(anchor){
+ // Match a quiet reference note to a ~0.18 source peak; no note gets >5x boost.
+ // With the shared master and voice cap this remains far below digital clipping.
+ return SOFT_PIANO.peakGain*clamp(0.18/(ACOUSTIC_PEAKS.get(anchor)||0.18),0.7,5);
+}
 const activePianoVoices=new Set();
 function nearestAcousticMidi(midi){
  return clamp(24+3*Math.round((clamp(midi,24,107)-24)/3),24,105);
@@ -238,7 +246,7 @@ function releasePianoVoice(voice,forced=false){
   volume.cancelAndHoldAtTime(t);
  }else{
   const elapsed=Math.max(0,t-voice.started);
-  const held=SOFT_PIANO.peakGain*Math.min(1,elapsed/SOFT_PIANO.attack);
+  const held=voice.voiceGain*Math.min(1,elapsed/SOFT_PIANO.attack);
   volume.cancelScheduledValues(t);
   volume.setValueAtTime(held,t);
  }
@@ -271,9 +279,10 @@ function sampledNoteOn(m){
  lowpass.Q.setValueAtTime(0.707,t);
  // 34 ms rounded hammer attack, 240 ms smooth release; no instant volume jumps.
  gain.gain.setValueAtTime(0,t);
- gain.gain.linearRampToValueAtTime(SOFT_PIANO.peakGain,t+SOFT_PIANO.attack);
+ const voiceGain=calibratedPianoGain(anchor);
+ gain.gain.linearRampToValueAtTime(voiceGain,t+SOFT_PIANO.attack);
  source.connect(highpass);highpass.connect(lowpass);lowpass.connect(gain);gain.connect(app.synthMaster);
- const voice={type:'sample',source,gain,highpass,lowpass,started:t,releasing:false};
+ const voice={type:'sample',source,gain,highpass,lowpass,started:t,voiceGain,releasing:false};
  source.onended=()=>{
   source.disconnect();highpass.disconnect();lowpass.disconnect();gain.disconnect();
   activePianoVoices.delete(voice);
