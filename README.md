@@ -51,3 +51,11 @@ The actual included acoustic Opus recordings were decoded and measured: none of 
 Soft piano now defaults to a 34ms note attack, 240ms note release, sub-bass/high-frequency filtering, 0.24 sample gain and 0.68 master gain, plus a safety-only compressor for loud peaks. The polyphony budget prioritizes newly touched notes. The existing Android native microphone support, on-device WAV recording and pitch tracking remain unchanged.
 
 The testing package suffix is `.softpiano` and appears as **보이스라인 부드러운 피아노** so it can be tested without uninstalling other versions. Separate package IDs do not share locally saved data.
+
+## v2.0.0-beta6 — vibrato reference keyboard alignment
+
+- Selecting **비브라토 연습** now centers the keyboard around the currently selected reference pitch.
+- The note selector offers every chromatic pitch, including black keys, from C2 (MIDI 36) through B6 (MIDI 95). Previously only white notes from C3 to B5 were present.
+- Changing the reference automatically shifts the two-octave keyboard range and clearly marks the selected white or black key with a persistent mint outline and indicator.
+- Live microphone pitch tracking never scrolls the selected vibrato reference off-screen while practice is underway.
+- Includes the beta5 acoustic-piano transient and headroom improvements.
