@@ -218,6 +218,8 @@ test('Published Tone Piano engine replaces handmade note playback inside Android
  assert.match(code,/window\.VoiceLineToneEngine\?\.keyUp\(m\)/);
  assert.match(code,/window\.VoiceLineToneEngine\.reference\(m\)/);
  assert.match(html,/vendor\/tone-piano\.js/,'built library loads before UI');
+ assert.match(code,/Alexander Holm/,'offline app displays piano recording attribution');
+ assert.match(code,/creativecommons\.org\/licenses\/by\/3\.0/,'offline app shows the sample licence');
  assert.match(fetcher,/creativecommons\.org\/licenses\/by\/3\.0/);
  assert.match(fetcher,/length:28/);
  assert.match(workflow,/npm run piano:bundle/);
