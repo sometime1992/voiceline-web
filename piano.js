@@ -154,7 +154,7 @@ const acoustic={buffers:new Map(),pending:new Map(),failed:new Set(),preloadEpoc
 // Offline recordings contain a genuine hammer attack. Avoid amplifying that transient.
 // 28 samples checked against the prior beta4 APK: none showed digital full-scale clipping.
 // Keep conservative headroom for chords and fade each note smoothly.
-const SOFT_PIANO=Object.freeze({peakGain:0.25,attack:0.055,release:0.32,master:0.64,lowpass:4200,highpass:45,maxVoices:6});
+const SOFT_PIANO=Object.freeze({peakGain:0.25,attack:0.055,release:0.32,master:0.64,lowpass:4200,highpass:45,maxVoices:8});
 // Most Android finger touch events have no reliable force measurement.
 // Use press duration for the fade-out; optionally use real stylus force for attack dynamics.
 function smoothstep(x){
@@ -169,9 +169,12 @@ function expressionFromInput(pressure=0.7){
  return clamp(0.68+0.32*pressure,0.68,1);
 }
 function releaseDuration(heldSeconds){
- // Fast taps finish quickly and quietly, while held notes get a natural damper tail.
- // This depends on how long the note ACTUALLY sounded, never on guessed touch force.
- return clamp(0.105+Math.max(0,heldSeconds)*0.35,0.105,0.40);
+ // Very short taps are the most click-prone. Give them the LONGEST soft tail.
+ // A note held for longer already has a stable body and needs less release time.
+ // Continuous ease-down prevents abrupt differences near the 150 ms boundary.
+ const hold=Math.max(0,heldSeconds);
+ const transition=smoothstep((hold-0.05)/0.65);
+ return 0.39-0.15*transition; // 390ms quick tap, 240ms sustained note.
 }
 function attackValue(voice,at){
  return voice.voiceGain*smoothstep((at-voice.started)/voice.attackDuration);
@@ -269,7 +272,7 @@ function releasePianoVoice(voice,forced=false){
  voice.releasing=true;
  const t=app.ctx.currentTime,volume=voice.gain.gain;
  const heldSeconds=Math.max(0,t-voice.started);
- const duration=forced?0.065:releaseDuration(heldSeconds);
+ const duration=forced?0.12:releaseDuration(heldSeconds);
  if(typeof volume.cancelAndHoldAtTime==='function'){
   volume.cancelAndHoldAtTime(t);
  }else{
