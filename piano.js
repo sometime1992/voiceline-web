@@ -21,7 +21,7 @@ const app={
   micError:'',busy:false,currentMidi:null,detected:null,lastAnalyze:0,notes:[],stats:[],
   sessionStart:0,sessionLow:null,sessionHigh:null,sessionSamples:0,record:null,
   exercise:null,exercisePattern:'scale',exerciseRoot:60,exerciseSpeed:1800,
-  vibratoRoot:60,vibratoStart:0,vibratoSamples:[],vibratoLast:null,recordStart:0,
+  vibratoRoot:60,vibratoStart:0,vibratoSamples:[],vibratoLast:null,vibratoOverlayLast:0,recordStart:0,
   openAudio:null,openAudioUrl:null,audioDiagnosticTone:false
 };
 const audioCtor=window.AudioContext||window.webkitAudioContext;
@@ -100,11 +100,13 @@ function targetKeyboardBase(midi){
  return clamp(Math.floor((target-11)/12)*12,24,84);
 }
 function focusVibratoReference(){
+ app.vibratoSamples=[];app.vibratoLast=null;
  const next=targetKeyboardBase(app.vibratoRoot);
  if(app.base!==next){
   allKeysOff();app.base=next;drawKeys();
  }else syncKeyColors();
  setMessage('기준음 '+name(app.vibratoRoot)+' · '+koname(app.vibratoRoot)+' (민트색 건반)');
+ renderVibratoOverlay(performance.now(),true);
 }
 function drawKeys(){
  const kb=$('keyboard');kb.replaceChildren();
@@ -583,11 +585,13 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  if(!nativeSamples)app.analyser.getFloatTimeDomainData(app.buffer);
  const p=nativeSamples?pitchYin(nativeSamples,nativeRate):pitchYin(app.buffer,app.micCtx.sampleRate);
  if(!p){
+  if(app.mode==='vibrato'){rememberVibratoPoint(t,null);renderVibratoOverlay(t);}
   app.detected=null;
   if(app.mode==='pitch'||app.mode==='record'){$('noteHint').textContent='소리를 감지하는 중…';clearNote();}
   syncKeyColors();return;
  }
  let midi=69+12*Math.log2(p.hz/440);
+ const rawVibratoMidi=midi;
  if(app.notes.length&&Math.abs(midi-app.notes[app.notes.length-1])>3)app.notes=[];
  app.notes.push(midi);if(app.notes.length>3)app.notes.shift();
  const sorted=[...app.notes].sort((a,b)=>a-b);midi=sorted[Math.floor(sorted.length/2)];
@@ -601,10 +605,12 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  app.sessionHigh=Math.max(app.sessionHigh??midi,midi);
  $('noteHint').textContent='실시간 음정';
  showNote(midi,p.hz,(midi-Math.round(midi))*100);
- if(app.mode==='vibrato'&&app.vibratoStart){
-  app.vibratoSamples.push({t,midi});
-  app.vibratoSamples=app.vibratoSamples.filter(x=>t-x.t<2700);
-  vibratoStatus();
+ if(app.mode==='vibrato'){
+  // Use unsmoothed pitch for vibrato depth; the 3-frame median above is for
+  // stable note names and would otherwise flatten fast vocal oscillations.
+  rememberVibratoPoint(t,Math.abs(rawVibratoMidi-app.vibratoRoot)<=1.5?rawVibratoMidi:null);
+  if(app.vibratoStart)vibratoStatus();
+  renderVibratoOverlay(t);
  }
  if(app.mode==='practice'&&app.exercise?.active&&t>=app.exercise.start){
   const err=Math.abs(midi-app.exercise.target)*100;
@@ -729,30 +735,142 @@ function tick(t){
  if(!app.mic)return;
  if(!app.nativeMic&&t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){updateDetection(t);app.lastAnalyze=t;}
  if(app.exercise?.active)updateExercise(t);
- if(app.mode==='vibrato'&&app.vibratoStart)progress(clamp((t-app.vibratoStart)/15000,0,1),'비브라토 '+Math.floor((t-app.vibratoStart)/1000)+'초');
+ if(app.mode==='vibrato'){
+  renderVibratoOverlay(t);
+  if(app.vibratoStart)progress(clamp((t-app.vibratoStart)/15000,0,1),'비브라토 '+Math.floor((t-app.vibratoStart)/1000)+'초');
+ }
  if(app.record)progress(clamp((t-app.recordStart)/(10*60*1000),0,1),'녹음 '+Math.floor((t-app.recordStart)/1000)+'초');
  if(app.record&&t-app.recordStart>=10*60*1000){notify('녹음은 최대 10분으로 저장됩니다.');stopRecording().then(()=>{stopMic();$('stopButton').hidden=true;});}
  app.frame=requestAnimationFrame(tick);
 }
+// The graph is in musical cents, NOT waveform amplitude. Show the actual
+// detected pitch relative to the selected note, preserving natural variation.
+const VIBRATO_WINDOW_MS=3000;
+function analyzeVibrato(samples,referenceMidi){
+ const valid=samples.filter(s=>Number.isFinite(s.midi)&&Math.abs(s.midi-referenceMidi)<=1.5)
+   .sort((a,b)=>a.t-b.t);
+ if(valid.length<16 || valid[valid.length-1].t-valid[0].t<900)return null;
+ const values=valid.map(s=>s.midi).sort((a,b)=>a-b);
+ const percentile=p=>{
+  const k=(values.length-1)*p,i=Math.floor(k),f=k-i;
+  return values[i]+(values[Math.min(i+1,values.length-1)]-values[i])*f;
+ };
+ const centerMidi=percentile(.5);
+ const depthCents=(percentile(.90)-percentile(.10))*50;
+ const centerOffsetCents=(centerMidi-referenceMidi)*100;
+ // Three-point filter reduces single-frame detector jitter without erasing
+ // the ~4-7 Hz fluctuations resolved at a 35ms analysis interval.
+ const filtered=valid.map((s,i)=>{
+  const prior=valid[i-1],next=valid[i+1];
+  if(!prior||!next||s.t-prior.t>155||next.t-s.t>155)return (s.midi-centerMidi)*100;
+  return ((prior.midi+next.midi)*.2+s.midi*.6-centerMidi)*100;
+ });
+ const crossings=[];
+ if(depthCents>=5)for(let i=1;i<valid.length;i++){
+  if(valid[i].t-valid[i-1].t>160)continue;
+  const a=filtered[i-1],b=filtered[i];
+  if(a<0&&b>=0&&b-a>1e-6){
+   const crossing=valid[i-1].t+(valid[i].t-valid[i-1].t)*(-a)/(b-a);
+   if(!crossings.length||crossing-crossings[crossings.length-1]>105)crossings.push(crossing);
+  }
+ }
+ const intervals=[];
+ for(let i=1;i<crossings.length;i++){
+  const d=crossings[i]-crossings[i-1];
+  if(d>=105&&d<=550)intervals.push(d);
+ }
+ let rate=null,regularity='측정 중';
+ if(intervals.length>=3){
+  const sorted=[...intervals].sort((a,b)=>a-b);
+  const median=sorted[Math.floor(sorted.length/2)];
+  const close=intervals.filter(x=>Math.abs(x-median)<=median*.35);
+  if(close.length>=3){
+   const mean=close.reduce((a,b)=>a+b,0)/close.length;
+   const variation=Math.sqrt(close.reduce((a,b)=>a+(b-mean)**2,0)/close.length)/mean;
+   const estimate=1000/mean;
+   if(estimate>=2&&estimate<=9){
+    rate=estimate;
+    regularity=variation<=.14?'일정':variation<=.28?'약간 변동':'불규칙';
+   }
+  }
+ }
+ return {centerMidi,centerOffsetCents,depthCents,rate,regularity,count:valid.length};
+}
+function rememberVibratoPoint(t,midi){
+ const points=app.vibratoSamples;
+ points.push({t,midi:Number.isFinite(midi)?midi:null});
+ while(points.length && t-points[0].t>VIBRATO_WINDOW_MS+200)points.shift();
+}
 function vibratoStatus(){
- const s=app.vibratoSamples;if(s.length<10)return;
- const center=s.reduce((a,b)=>a+b.midi,0)/s.length;
- const cents=s.map(x=>(x.midi-center)*100);
- const depth=Math.sqrt(cents.reduce((a,b)=>a+b*b,0)/cents.length)*1.414;
- let crossings=0,times=[];
- for(let i=1;i<cents.length;i++){
-  if(cents[i-1]<0&&cents[i]>=0){crossings++;times.push(s[i].t);}
+ const result=analyzeVibrato(app.vibratoSamples,app.vibratoRoot);
+ if(!result)return;
+ if(app.vibratoStart){
+  if(result.rate!==null){
+   app.vibratoLast={rate:result.rate,depth:result.depthCents};
+   setMessage('비브라토 '+result.rate.toFixed(1)+' Hz · 진폭 ±'+Math.round(result.depthCents)+' cent (추정)');
+  }else{
+   setMessage('음정을 유지하며 흔들림을 측정하는 중입니다.');
+  }
  }
- const duration=(s[s.length-1].t-s[0].t)/1000;
- if(duration<1.2)return;
- let rate=null;
- if(times.length>=3){const differences=[];for(let i=1;i<times.length;i++)differences.push(times[i]-times[i-1]);const avg=differences.reduce((a,b)=>a+b,0)/differences.length;rate=1000/avg;}
- if(rate!==null&&rate>=2&&rate<=9&&depth>=5&&depth<=150){
-  app.vibratoLast={rate,depth};
-  setMessage('추정 속도 '+rate.toFixed(1)+' Hz · 폭 ±'+Math.round(depth)+' cent (참고용)');
- }else{
-  setMessage('음정을 안정적으로 유지해 주세요. 충분히 규칙적일 때 속도가 표시됩니다.');
+}
+function syncVibratoOverlay(){
+ const el=$('vibratoOverlay');if(!el)return;
+ el.hidden=app.mode!=='vibrato';
+ if(!el.hidden)renderVibratoOverlay(performance.now(),true);
+}
+function renderVibratoOverlay(now=performance.now(),force=false){
+ const el=$('vibratoOverlay');
+ if(!el||el.hidden||app.mode!=='vibrato')return;
+ if(!force&&now-app.vibratoOverlayLast<55)return;
+ app.vibratoOverlayLast=now;
+ const canvas=$('vibratoGraph'),rect=canvas.getBoundingClientRect();
+ if(rect.width<15||rect.height<15)return;
+ const w=rect.width,h=rect.height,dpr=Math.min(window.devicePixelRatio||1,2);
+ const dw=Math.round(w*dpr),dh=Math.round(h*dpr);
+ if(canvas.width!==dw||canvas.height!==dh){canvas.width=dw;canvas.height=dh;}
+ const ctx=canvas.getContext('2d');if(!ctx)return;
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.clearRect(0,0,w,h);
+ const left=30,right=w-7,top=8,bottom=h-15;
+ if(right<=left||bottom<=top)return;
+ const yFor=v=>(top+bottom)/2-clamp(v,-110,110)/110*(bottom-top)/2;
+ // Soft tuning band is a guide, not a medical or singing-quality judgement.
+ ctx.fillStyle='rgba(93,231,210,.11)';
+ ctx.fillRect(left,yFor(30),right-left,yFor(-30)-yFor(30));
+ ctx.lineWidth=1;
+ ctx.font='10px system-ui,sans-serif';ctx.textAlign='right';
+ for(const cent of [-100,-50,0,50,100]){
+  const y=yFor(cent);ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);
+  ctx.strokeStyle=cent===0?'rgba(105,255,213,.95)':'rgba(210,220,240,.18)';
+  ctx.setLineDash(cent===0?[6,4]:[2,5]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=cent===0?'#85f8df':'#bbc3d7';
+  ctx.fillText((cent>0?'+':'')+cent,left-5,Math.max(9,Math.min(h-1,y+3)));
  }
+ ctx.textAlign='left';ctx.fillStyle='#abbdd3';ctx.fillText('−3초',left,bottom+12);
+ ctx.textAlign='right';ctx.fillText('현재',right,bottom+12);
+ const windowStart=now-VIBRATO_WINDOW_MS;
+ ctx.beginPath();let drawing=false,prev=null,count=0;
+ for(const sample of app.vibratoSamples){
+  if(sample.t<windowStart||sample.t>now+70)continue;
+  const valid=Number.isFinite(sample.midi)&&Math.abs(sample.midi-app.vibratoRoot)<=1.5;
+  if(!valid){drawing=false;prev=null;continue;}
+  const x=left+clamp((sample.t-windowStart)/VIBRATO_WINDOW_MS,0,1)*(right-left);
+  const y=yFor((sample.midi-app.vibratoRoot)*100);
+  if(!drawing||!prev||sample.t-prev>170)ctx.moveTo(x,y);
+  else ctx.lineTo(x,y);
+  drawing=true;prev=sample.t;count++;
+ }
+ if(count>=2){
+  ctx.strokeStyle='#d1a4ff';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.setLineDash([]);ctx.stroke();
+ }
+ const data=analyzeVibrato(app.vibratoSamples,app.vibratoRoot);
+ $('vibratoTargetLabel').textContent='기준음 '+name(app.vibratoRoot)+' · 최근 3초';
+ $('vibratoCenter').textContent=data?(data.centerOffsetCents>0?'+':'')+Math.round(data.centerOffsetCents)+' ¢':'—';
+ $('vibratoDepth').textContent=data?'±'+Math.round(data.depthCents)+' ¢':'—';
+ $('vibratoRate').textContent=data?.rate!==null&&data?' '+data.rate.toFixed(1)+' Hz':'—';
+ $('vibratoRegularity').textContent=data?.regularity||'측정 중';
+ $('vibratoGraphStatus').textContent=!app.mic?'마이크 꺼짐':!count?'목소리 대기':!data?'분석 중':data.rate===null?'흔들림 측정 중':'추정 결과';
 }
 function modeControls(){
  const c=$('exerciseControls');c.replaceChildren();
@@ -994,6 +1112,7 @@ async function switchMode(mode){
   $('modeChip').textContent=MODES[mode][0];setTitle(MODES[mode][0]);setMessage(MODES[mode][1]);
   $('noteHint').textContent='건반을 누르거나 마이크를 시작하세요';
   clearNote();progress(0,'준비');modeControls();
+  syncVibratoOverlay();
   if(mode==='vibrato')focusVibratoReference();
   $('mainButton').textContent=mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':'마이크 켜기';
   $('mainButton').classList.remove('recording');$('stopButton').hidden=true;
@@ -1014,7 +1133,7 @@ $('mainButton').addEventListener('click',async()=>{
    else if(await startMic()){startExercise(performance.now());$('stopButton').hidden=false;}
   }else if(app.mode==='vibrato'){
    if(app.vibratoStart){await finishVibrato();stopMic();}
-   else if(await startMic()){app.vibratoSamples=[];app.vibratoLast=null;app.vibratoStart=performance.now();b.textContent='비브라토 중지';$('stopButton').hidden=false;}
+   else if(await startMic()){app.vibratoSamples=[];app.vibratoLast=null;app.vibratoStart=performance.now();renderVibratoOverlay(performance.now(),true);b.textContent='비브라토 중지';$('stopButton').hidden=false;}
   }else{
    if(app.mic){await stopActivity();b.textContent='마이크 켜기';$('stopButton').hidden=true;}
    else if(await startMic()){if(app.mode==='piano'){app.mode='pitch';$('modeChip').textContent='음정 측정하기';setTitle('음정 측정하기');}b.textContent='마이크 끄기';$('stopButton').hidden=false;}
@@ -1053,7 +1172,7 @@ function showHelp(){
  ['피아노 건반','화면의 흰 건반과 검은 건반을 터치하면 해당 음이 재생되고 건반이 내려갑니다. 여러 건반을 동시에 누를 수 있습니다. − / +로 건반의 옥타브 범위를 옮길 수 있습니다.'],
  ['음정 측정하기','메뉴에서 음정 측정하기를 선택하고 마이크 켜기를 누릅니다. 마이크 권한을 허용하고 한 음을 길게 불러보세요. 내 음정에 해당하는 건반이 보라색으로 표시됩니다. 상단의 마이크 버튼에서 켜짐/꺼짐 상태를 확인하고 사용자가 직접 끌 수 있습니다.'],
  ['녹음하기','녹음 시작을 누른 후 목소리를 녹음합니다. 녹음 중지 · 저장을 누르면 기기 내부 저장 공간에 저장되며 나의 기록에서 재생하거나 삭제할 수 있습니다. 녹음 중에는 최대 10분으로 제한됩니다.'],
- ['비브라토 연습','기준 음정을 선택하고 비브라토 시작을 누릅니다. 한 음을 편안히 유지하면 음정 흔들림의 속도(Hz)와 폭(cent)을 참고용으로 추정합니다.'],
+ ['비브라토 연습','기준 음정을 선택하고 비브라토 시작을 누릅니다. 건반 위 반투명 창에서 최근 3초 동안의 실제 음높이를 확인할 수 있습니다. 민트색 가로선은 기준음(0cent), 보라색 곡선은 내 목소리입니다. 중심 음정은 기준음 대비 높낮이, 진폭은 흔들림 폭(±cent), 속도는 초당 반복 횟수(Hz), 규칙성은 주기의 일관성을 나타냅니다. 모두 참고용 추정치이며, 목소리가 감지되지 않거나 규칙적인 흔들림이 충분하지 않으면 수치가 표시되지 않습니다. 건반을 누르는 데 투명창이 영향을 주지 않습니다.'],
  ['음정 연습하기','패턴, 시작음, 속도를 고르고 연습 시작을 누릅니다. 3초 후 민트색 목표 건반을 따라 부르면, ±35cent 이내로 감지된 비율로 정확도를 표시합니다.'],
  ['나의 기록과 개인정보','연습 기록은 앱 내부 IndexedDB에, 녹음 파일은 기기 내장 저장 공간의 앱 전용 데이터에 저장됩니다. 계정과 서버가 필요 없으며 마이크 소리는 서버로 업로드하지 않습니다. 앱 삭제나 앱 데이터 초기화 시 함께 삭제될 수 있습니다.'],
  ['피아노 음원 및 저작권','피아노 연주 엔진: @tonejs/piano (Yotam Mann, MIT), Tone.js (MIT). 실제 그랜드 피아노 녹음: Salamander Grand Piano / Alexander Holm, Creative Commons Attribution 3.0 (CC BY 3.0). 원본: https://github.com/tambien/Piano . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 음원과 라이브러리는 APK에 포함되어 오프라인에서도 연주할 수 있습니다.'],
@@ -1129,7 +1248,7 @@ window.addEventListener('pagehide',()=>{if(app.record)stopRecording();else if(ap
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){allKeysOff();if(app.record)stopRecording().then(stopMic);else if(app.mic){stopMic();if(app.exercise)finishExercise(false);if(app.vibratoStart)finishVibrato();}}
 });
-drawKeys();modeControls();progress(0,'건반 연주 준비');updateMicToggle();
+drawKeys();modeControls();progress(0,'건반 연주 준비');updateMicToggle();syncVibratoOverlay();
 if(window.VoiceLineToneEngine)updateToneEngineStatus();
 importLegacyRecords();
 if('serviceWorker' in navigator){
