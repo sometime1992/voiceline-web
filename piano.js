@@ -121,7 +121,7 @@ function drawKeys(){
  }
  $('octaveLabel').textContent=name(app.base)+' – '+name(app.base+23);
  syncKeyColors();
- preloadAcousticPiano(app.base);
+ if(window.VoiceLineToneEngine)updateToneEngineStatus();else preloadAcousticPiano(app.base);
 }
 function syncKeyColors(){
  const detected=app.detected===null?null:Math.round(app.detected);
@@ -255,6 +255,14 @@ function preloadAcousticPiano(base){
    if(epoch===acoustic.preloadEpoch)updateAcousticStatus(anchors);
  });
 }
+function updateToneEngineStatus(){
+ const badge=$('pianoSoundChip');
+ if(!badge||!window.VoiceLineToneEngine)return;
+ const ready=window.VoiceLineToneEngine.ready;
+ badge.textContent=ready?'● 그랜드 피아노 준비됨':'그랜드 피아노 음원 준비 중';
+ badge.classList.toggle('ready',ready);
+}
+window.addEventListener('voiceline-piano-status',updateToneEngineStatus);
 function updateAcousticStatus(anchors=null){
  const badge=$('pianoSoundChip');
  if(!badge)return;
@@ -399,6 +407,11 @@ function releaseDiagnostic(voice){
 }
 function soundOn(m,pressure=0.7){
  if(app.playing.has(m))return;
+ if(window.VoiceLineToneEngine){
+   app.playing.set(m,{type:'tone'});
+   window.VoiceLineToneEngine.keyDown(m,pressure);
+   return;
+ }
  const context=ensureSynth();
  if(!context)return;
  if(context.state!=='running'){
@@ -433,8 +446,13 @@ function soundOn(m,pressure=0.7){
  app.playing.set(m,{oscillator,harm,g,g2,lowpass,started:t});
 }
 function soundOff(m){
- const p=app.playing.get(m);if(!p||!app.ctx)return;
+ const p=app.playing.get(m);if(!p)return;
  app.playing.delete(m);
+ if(p.type==='tone'){
+   window.VoiceLineToneEngine?.keyUp(m);
+   return;
+ }
+ if(!app.ctx)return;
  if(p.type==='sample'){sampledNoteOff(p);return;}
  if(p.type==='diagnostic'){releaseDiagnostic(p);return;}
  const t=app.ctx.currentTime,volume=p.g.gain;
@@ -785,6 +803,10 @@ function updateExercise(t){
  syncKeyColors();
 }
 function playReference(m){
+ if(window.VoiceLineToneEngine){
+   window.VoiceLineToneEngine.reference(m).catch(err=>console.warn('Reference note',err));
+   return;
+ }
  const ac=ensureSynth();if(!ac)return;
  const t=ac.currentTime,g=ac.createGain();
  const anchor=nearestAcousticMidi(m),sample=acoustic.buffers.get(anchor);
@@ -1043,6 +1065,7 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden){allKeysOff();if(app.record)stopRecording().then(stopMic);else if(app.mic){stopMic();if(app.exercise)finishExercise(false);if(app.vibratoStart)finishVibrato();}}
 });
 drawKeys();modeControls();progress(0,'건반 연주 준비');
+if(window.VoiceLineToneEngine)updateToneEngineStatus();
 importLegacyRecords();
 if('serviceWorker' in navigator){
   if(location.hostname==='appassets.androidplatform.net'){
