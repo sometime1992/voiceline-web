@@ -102,3 +102,28 @@ test('Soft sampled piano keeps hammer attacks quiet and preserves chord headroom
  assert.match(code,/const held=SOFT_PIANO\.peakGain\*Math\.min\(1,elapsed\/SOFT_PIANO\.attack\)/,
    'held short-tap amplitude correctly preserved on older WebViews');
 });
+
+test('Vibrato reference can select all twelve notes in C2-B6 and auto-centers',()=>{
+ const start=code.indexOf('function targetKeyboardBase(');
+ const end=code.indexOf('function drawKeys(){',start);
+ assert.ok(start>=0&&end>start,'helper is present');
+ const calculate=vm.runInNewContext(code.slice(start,end)+'\ntargetKeyboardBase',
+  {Math,Number,clamp:(v,a,b)=>Math.max(a,Math.min(b,v))});
+ for(let m=36;m<=95;m++){
+  const base=calculate(m);
+  assert.equal(base%12,0,'starts from C');
+  assert.ok(base>=24&&base<=84,'valid displayed two-octave range');
+  assert.ok(base<=m&&m<base+24,'reference pitch must be visible: '+m);
+ }
+ assert.equal(calculate(36),24,'lowest C2 centered');
+ assert.equal(calculate(95),84,'highest B6 centered');
+ const select=code.slice(code.indexOf('function fillNotes('),code.indexOf('function exerciseSteps('));
+ assert.match(select,/for\(let octave=2;octave<=6;octave\+\+\)/);
+ assert.match(select,/for\(let step=0;step<12;step\+\+\)/,'all semitones (black keys) available');
+ assert.doesNotMatch(select,/BLACK\.has\(m%12\)/);
+ const vibrato=code.slice(code.indexOf("else if(app.mode==='vibrato'){",code.indexOf('function modeControls(')),code.indexOf("else if(app.mode==='record'){",code.indexOf('function modeControls(')));
+ assert.match(vibrato,/focusVibratoReference\(\)/,'refocus immediately when target changes');
+ assert.match(code,/if\(mode==='vibrato'\)focusVibratoReference\(\)/,'refocus on entering vibrato');
+ assert.match(code,/if\(app.mode!=='vibrato'&&app.owners.size===0/,'microphone does not scroll target out of view');
+ assert.match(code,/key\.classList\.toggle\('vibrato-reference'/,'persistent visual marker');
+});
