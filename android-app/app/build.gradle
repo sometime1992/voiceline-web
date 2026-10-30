@@ -8,14 +8,14 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 18
-        versionName '2.0.0-beta3'
+        versionCode 19
+        versionName '2.0.0-beta4'
     }
 
     buildTypes {
         debug {
-            // Keep this sound/mic tester separate from previous debug APKs, since CI debug signing keys vary.
-            applicationIdSuffix '.audiofix'
+            // Acoustic piano beta runs separately from earlier testers to preserve their local histories, since CI debug signing keys vary.
+            applicationIdSuffix '.acoustic'
         }
         release {
             minifyEnabled false
