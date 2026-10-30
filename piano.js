@@ -407,6 +407,18 @@ function releaseDiagnostic(voice){
 }
 function soundOn(m,pressure=0.7){
  if(app.playing.has(m))return;
+ // Diagnostic mode must bypass Tone Piano; beta12 mistakenly routed it
+ // through Tone, so the in-app sine comparison did not test a separate path.
+ if(app.audioDiagnosticTone){
+   const diagnosticContext=ensureSynth();
+   if(!diagnosticContext)return;
+   if(diagnosticContext.state==='running'){soundOnDiagnostic(m,pressure);return;}
+   diagnosticContext.resume().then(()=>{
+     if(app.audioDiagnosticTone&&app.owners.has(m)&&!app.playing.has(m))
+       soundOnDiagnostic(m,pressure);
+   }).catch(()=>{});
+   return;
+ }
  if(window.VoiceLineToneEngine){
    app.playing.set(m,{type:'tone'});
    window.VoiceLineToneEngine.keyDown(m,pressure);
