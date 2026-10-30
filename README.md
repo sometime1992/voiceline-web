@@ -91,3 +91,6 @@ The Android APK now prioritizes published **@tonejs/piano 0.2.1** and Tone.js 14
 The sound source is Alexander Holm's **Salamander Grand Piano (Yamaha C5)**, licensed **CC BY 3.0**. A recording subset is packaged locally with the installed APK; the instrument code is MIT licensed. Attribution: Alexander Holm / Salamander Grand Piano — https://creativecommons.org/licenses/by/3.0/ . See `docs/third-party-piano.md`.
 
 The optional piano keybed click, string harmonics click and pedal noises are disabled so users can compare against the previous app's finger-up pops. Local build: `npm install --legacy-peer-deps; npm run piano:download; npm run piano:bundle`, then build the Android app. GitHub Actions runs these steps automatically. This is a testing branch; main and prior APK builds remain unchanged.
+
+## v2.0.0-beta12
+- Complete on-device attribution in the help menu for the MIT piano runtime and CC BY 3.0 Salamander recordings.
