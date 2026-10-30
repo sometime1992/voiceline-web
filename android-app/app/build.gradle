@@ -8,14 +8,14 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 21
-        versionName '2.0.0-beta6'
+        versionCode 22
+        versionName '2.0.0-beta7'
     }
 
     buildTypes {
         debug {
-            // Vibrato and soft-piano beta runs separately from previous tests to preserve local recordings.
-            applicationIdSuffix '.vibratofix'
+            // Audio diagnostics beta uses a separate package suffix to preserve previous test apps and on-device recordings.
+            applicationIdSuffix '.audio7'
         }
         release {
             minifyEnabled false
