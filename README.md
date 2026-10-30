@@ -86,7 +86,7 @@ The testing package suffix is `.softpiano` and appears as **보이스라인 부�
 - A standalone test APK with separate ID `.fade10` preserves prior beta recordings.
 
 ## v2.0.0-beta11 — replace DIY piano renderer with established engine
-The Android APK now prioritizes published **@tonejs/piano 0.2.0** and Tone.js 14.7.77. It uses their `keyDown`, `keyUp`, velocity, polyphony, and key damping methods. The keyboard visuals, touch targets, native microphone, vibrato reference indicator and offline recordings remain VoiceLine's.
+The Android APK now prioritizes published **@tonejs/piano 0.2.1** and Tone.js 14.7.77. It uses their `keyDown`, `keyUp`, velocity, polyphony, and key damping methods. The keyboard visuals, touch targets, native microphone, vibrato reference indicator and offline recordings remain VoiceLine's.
 
 The sound source is Alexander Holm's **Salamander Grand Piano (Yamaha C5)**, licensed **CC BY 3.0**. A recording subset is packaged locally with the installed APK; the instrument code is MIT licensed. Attribution: Alexander Holm / Salamander Grand Piano — https://creativecommons.org/licenses/by/3.0/ . See `docs/third-party-piano.md`.
 
