@@ -392,3 +392,45 @@ test('Vibrato analysis estimates 5Hz and +/- 25 cents from a clean sine pitch tr
  const wrongKey=Array.from({length:90},(_,i)=>({t:i*32,midi:63+.25*Math.sin(2*Math.PI*5*i*32/1000)}));
  assert.equal(analysis(wrongKey,60),null,'a note several semitones off target is not valid vibrato');
 });
+
+test('Record mode includes its own live musical-pitch overlay and preserves vibrato',()=>{
+ const ids=['recordPitchOverlay','recordPitchGraph','recordCurrentPitch','recordCurrentHz','recordLowNote','recordHighNote','recordPitchStatus'];
+ for(const id of ids)assert.match(html,new RegExp('id="'+id+'"'),'missing '+id);
+ const css=readFileSync(path.join(root,'piano.css'),'utf8');
+ assert.match(css,/\.record-pitch-overlay/);
+ assert.match(css,/\.vibrato-overlay\{[\s\S]*?pointer-events:none/,'the glass pane never blocks piano touch');
+ assert.match(code,/syncRecordPitchOverlay\(\)/,'graph visibility follows mode');
+ assert.match(code,/el\.hidden=app\.mode!=='record'/,'hide recording UI outside recorder');
+ assert.match(code,/rememberRecordPitchPoint\(t,midi\)/,'mic captures live note heights');
+ assert.match(code,/rememberRecordPitchPoint\(t,null\)/,'mic silence is represented as a gap');
+ assert.match(code,/recordPitchBounds\(points\)/,'dynamic pitch range');
+ assert.match(code,/pitchLow:app\.recordPitchLow,pitchHigh:app\.recordPitchHigh/,'track range saved with audio metadata');
+ assert.match(code,/renderRecordPitchOverlay\(app\.recordPitchFrozenAt,true\)/,'stop freezes graph');
+ assert.match(html,/id="vibratoOverlay"/,'existing vibrato remains available');
+});
+test('Recording-pitch sliding window and dynamic note bounds are bounded',()=>{
+ const begin=code.indexOf('const RECORD_PITCH_WINDOW_MS=');
+ const end=code.indexOf('function syncVibratoOverlay()',begin);
+ assert.ok(begin>0&&end>begin);
+ const app={recordPitchSamples:[]};
+ const context={Math,Number,app};
+ const utils=vm.runInNewContext(code.slice(begin,end)+'\n({rememberRecordPitchPoint,recordPitchBounds})',context);
+ for(let t=0;t<18000;t+=55)utils.rememberRecordPitchPoint(t,60+5*Math.sin(t/350));
+ assert.ok(app.recordPitchSamples.length<120,'three-minute use should still retain only ~6s');
+ assert.ok(app.recordPitchSamples[0].t>11000,'old audio-pitch samples removed');
+ const range=utils.recordPitchBounds([{midi:60},{midi:74},{midi:67}]);
+ assert.ok(range.low<60&&range.high>74,'wide sung register automatically fits');
+ assert.ok(range.high-range.low>=10,'small note movements do not cause overly narrow graph');
+ const quiet=utils.recordPitchBounds([{midi:null},{midi:null}]);
+ assert.equal(quiet.low,48);assert.equal(quiet.high,72);
+});
+test('iOS landscape narrow-screen typography is responsive and controls remain usable',()=>{
+ const css=readFileSync(path.join(root,'piano.css'),'utf8');
+ assert.match(css,/@media \(max-width:900px\), \(max-height:460px\)/);
+ assert.match(css,/@media \(max-width:640px\), \(max-height:360px\)/);
+ assert.match(css,/grid-template-columns:minmax\(0,26%\)/);
+ assert.match(css,/\.main-button,\.sub-button\{white-space:normal/,'long button text can wrap');
+ assert.match(css,/\.piano-topline \.legend\{[\s\S]*?overflow-x:auto/,'long legend can be scrolled');
+ assert.match(css,/\.exercise-controls\{[\s\S]*?overflow:auto/,'exercise controls scroll when narrow');
+ assert.match(css,/\.note-panel\{width:auto;min-width:0;overflow:auto/,'note area does not clip text');
+});
