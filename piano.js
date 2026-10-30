@@ -22,6 +22,7 @@ const app={
   sessionStart:0,sessionLow:null,sessionHigh:null,sessionSamples:0,record:null,
   exercise:null,exercisePattern:'scale',exerciseRoot:60,exerciseSpeed:1800,
   vibratoRoot:60,vibratoStart:0,vibratoSamples:[],vibratoLast:null,vibratoOverlayLast:0,recordStart:0,
+  recordPitchSamples:[],recordPitchLow:null,recordPitchHigh:null,recordPitchLast:0,recordPitchFrozenAt:null,
   openAudio:null,openAudioUrl:null,audioDiagnosticTone:false
 };
 const audioCtor=window.AudioContext||window.webkitAudioContext;
@@ -586,6 +587,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  const p=nativeSamples?pitchYin(nativeSamples,nativeRate):pitchYin(app.buffer,app.micCtx.sampleRate);
  if(!p){
   if(app.mode==='vibrato'){rememberVibratoPoint(t,null);renderVibratoOverlay(t);}
+  if(app.mode==='record'&&app.record){rememberRecordPitchPoint(t,null);renderRecordPitchOverlay(t);}
   app.detected=null;
   if(app.mode==='pitch'||app.mode==='record'){$('noteHint').textContent='소리를 감지하는 중…';clearNote();}
   syncKeyColors();return;
@@ -611,6 +613,12 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
   rememberVibratoPoint(t,Math.abs(rawVibratoMidi-app.vibratoRoot)<=1.5?rawVibratoMidi:null);
   if(app.vibratoStart)vibratoStatus();
   renderVibratoOverlay(t);
+ }
+ if(app.mode==='record'&&app.record){
+  rememberRecordPitchPoint(t,midi);
+  if(app.recordPitchLow===null||midi<app.recordPitchLow)app.recordPitchLow=midi;
+  if(app.recordPitchHigh===null||midi>app.recordPitchHigh)app.recordPitchHigh=midi;
+  renderRecordPitchOverlay(t);
  }
  if(app.mode==='practice'&&app.exercise?.active&&t>=app.exercise.start){
   const err=Math.abs(midi-app.exercise.target)*100;
@@ -655,7 +663,7 @@ window.VoiceLineNativeAudio = {
    app.nativeSampleRate=sampleRate;
    if(app.record?.type==='native')app.record.chunks.push(samples);
    const t=performance.now();
-   if(t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){
+   if(t-app.lastAnalyze>(app.mode==='vibrato'?35:app.mode==='record'?55:70)){
      updateDetection(t,samples,sampleRate);
      app.lastAnalyze=t;
    }
@@ -733,12 +741,13 @@ function stopMic(){
 }
 function tick(t){
  if(!app.mic)return;
- if(!app.nativeMic&&t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){updateDetection(t);app.lastAnalyze=t;}
+ if(!app.nativeMic&&t-app.lastAnalyze>(app.mode==='vibrato'?35:app.mode==='record'?55:70)){updateDetection(t);app.lastAnalyze=t;}
  if(app.exercise?.active)updateExercise(t);
  if(app.mode==='vibrato'){
   renderVibratoOverlay(t);
   if(app.vibratoStart)progress(clamp((t-app.vibratoStart)/15000,0,1),'비브라토 '+Math.floor((t-app.vibratoStart)/1000)+'초');
  }
+ if(app.mode==='record')renderRecordPitchOverlay(t);
  if(app.record)progress(clamp((t-app.recordStart)/(10*60*1000),0,1),'녹음 '+Math.floor((t-app.recordStart)/1000)+'초');
  if(app.record&&t-app.recordStart>=10*60*1000){notify('녹음은 최대 10분으로 저장됩니다.');stopRecording().then(()=>{stopMic();$('stopButton').hidden=true;});}
  app.frame=requestAnimationFrame(tick);
@@ -812,6 +821,77 @@ function vibratoStatus(){
    setMessage('음정을 유지하며 흔들림을 측정하는 중입니다.');
   }
  }
+}
+// Recording mode uses a musical-pitch (notes/semitones) graph rather than a
+// raw microphone amplitude waveform. Six seconds are kept in memory; a ten
+// minute recording does not allocate an unbounded array of pitch points.
+const RECORD_PITCH_WINDOW_MS=6000;
+function rememberRecordPitchPoint(t,midi){
+ const points=app.recordPitchSamples;
+ points.push({t,midi:Number.isFinite(midi)?midi:null});
+ while(points.length&&t-points[0].t>RECORD_PITCH_WINDOW_MS+250)points.shift();
+}
+function recordPitchBounds(points){
+ const values=points.filter(p=>Number.isFinite(p.midi)).map(p=>p.midi);
+ if(!values.length)return {low:48,high:72};
+ const low=Math.max(24,Math.floor(Math.min(...values))-2);
+ const high=Math.min(107,Math.ceil(Math.max(...values))+2);
+ // Do not stretch normal speech to fill the whole graph.
+ const center=(high+low)/2;
+ return {low:Math.max(24,Math.floor(center-Math.max(5,(high-low)/2))),
+         high:Math.min(107,Math.ceil(center+Math.max(5,(high-low)/2)))};
+}
+function syncRecordPitchOverlay(){
+ const el=$('recordPitchOverlay');if(!el)return;
+ el.hidden=app.mode!=='record';
+ if(!el.hidden)renderRecordPitchOverlay(performance.now(),true);
+}
+function renderRecordPitchOverlay(now=performance.now(),force=false){
+ const el=$('recordPitchOverlay');if(!el||el.hidden||app.mode!=='record')return;
+ if(!force&&now-app.recordPitchLast<80)return;
+ app.recordPitchLast=now;
+ const canvas=$('recordPitchGraph'),rect=canvas.getBoundingClientRect();
+ if(rect.width<15||rect.height<15)return;
+ const w=rect.width,h=rect.height,dpr=Math.min(window.devicePixelRatio||1,2);
+ const dw=Math.round(w*dpr),dh=Math.round(h*dpr);
+ if(canvas.width!==dw||canvas.height!==dh){canvas.width=dw;canvas.height=dh;}
+ const ctx=canvas.getContext('2d');if(!ctx)return;
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const left=34,right=w-8,top=8,bottom=h-15;
+ if(right<=left||bottom<=top)return;
+ const viewEnd=app.recordPitchFrozenAt??now;
+ const first=viewEnd-RECORD_PITCH_WINDOW_MS;
+ const points=app.recordPitchSamples.filter(p=>p.t>=first&&p.t<=viewEnd+50);
+ const range=recordPitchBounds(points);
+ const yFor=midi=>bottom-clamp((midi-range.low)/(range.high-range.low),0,1)*(bottom-top);
+ // Draw note grid with named C keys and a subdued semitone background.
+ const lowGrid=Math.ceil(range.low/12)*12;
+ ctx.font='10px system-ui,sans-serif';ctx.lineWidth=1;
+ ctx.textAlign='right';
+ for(let m=lowGrid;m<=range.high;m+=12){
+   const y=yFor(m);
+   ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);
+   ctx.strokeStyle='rgba(107,238,208,.43)';ctx.setLineDash([3,4]);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle='#b4ecd9';ctx.fillText(name(m),left-5,Math.max(9,Math.min(h-2,y+3)));
+ }
+ ctx.textAlign='left';ctx.fillStyle='#b8bcd4';ctx.fillText('−6초',left,bottom+12);
+ ctx.textAlign='right';ctx.fillText('현재',right,bottom+12);
+ ctx.beginPath();let last=null,count=0;
+ for(const p of points){
+   if(!Number.isFinite(p.midi)){last=null;continue;}
+   const x=left+clamp((p.t-first)/RECORD_PITCH_WINDOW_MS,0,1)*(right-left);
+   const y=yFor(p.midi);
+   if(last===null||p.t-last>200)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+   last=p.t;count++;
+ }
+ if(count>1){ctx.lineWidth=2.5;ctx.strokeStyle='#d4a6ff';ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();}
+ const latest=app.record&&points.length?[...points].reverse().find(p=>Number.isFinite(p.midi)):null;
+ $('recordCurrentPitch').textContent=latest?name(Math.round(latest.midi)):'—';
+ $('recordCurrentHz').textContent=latest?frequency(latest.midi).toFixed(1):'—';
+ $('recordLowNote').textContent=Number.isFinite(app.recordPitchLow)?name(Math.round(app.recordPitchLow)):'—';
+ $('recordHighNote').textContent=Number.isFinite(app.recordPitchHigh)?name(Math.round(app.recordPitchHigh)):'—';
+ $('recordPitchWindow').textContent='최근 6초 · 음높이';
+ $('recordPitchStatus').textContent=app.record?count?'실시간 측정':'목소리 대기':app.recordPitchFrozenAt!==null?'녹음 종료':'녹음 시작 대기';
 }
 function syncVibratoOverlay(){
  const el=$('vibratoOverlay');if(!el)return;
@@ -982,6 +1062,8 @@ function finishExercise(completed){
 function startRecording(){
  if(!app.mic)throw new Error('마이크가 연결되지 않았습니다.');
  app.recordStart=performance.now();
+ app.recordPitchSamples=[];app.recordPitchLow=null;app.recordPitchHigh=null;app.recordPitchFrozenAt=null;app.recordPitchLast=0;
+ renderRecordPitchOverlay(app.recordStart,true);
  if(app.nativeMic){
    // Store WAV directly as an IndexedDB blob; no media server or external permission.
    app.record={type:'native',targetRate:app.nativeSampleRate,chunks:[]};
@@ -1029,6 +1111,8 @@ function wavBlob(chunks,sampleRate){
 }
 async function stopRecording(){
  const r=app.record;if(!r)return;
+ app.recordPitchFrozenAt=performance.now();
+ renderRecordPitchOverlay(app.recordPitchFrozenAt,true);
  app.record=null;$('mainButton').textContent='녹음 시작';$('mainButton').classList.remove('recording');
  const elapsed=Math.max(0,Math.round((performance.now()-app.recordStart)/1000));
  let blob;
@@ -1037,7 +1121,7 @@ async function stopRecording(){
   else if(r.type==='native')blob=wavBlob(r.chunks,r.targetRate);
   else{r.processor.onaudioprocess=null;app.source?.disconnect(r.processor);r.processor.disconnect();r.silent.disconnect();blob=wavBlob(r.chunks,r.targetRate);}
   if(!blob||blob.size<128)throw new Error('녹음 데이터 없음');
-  await store('recordings','put',{id:id(),date:stamp(),timestamp:Date.now(),duration:elapsed,blob,mime:blob.type,size:blob.size,title:'목소리 녹음'});
+  await store('recordings','put',{id:id(),date:stamp(),timestamp:Date.now(),duration:elapsed,blob,mime:blob.type,size:blob.size,title:'목소리 녹음',pitchLow:app.recordPitchLow,pitchHigh:app.recordPitchHigh});
   await addEvent('녹음 완료',elapsed+'초 · '+Math.max(1,Math.round(blob.size/1024))+'KB','record');
   notify('녹음을 기기 내부에 저장했습니다.');
   progress(1,elapsed+'초 녹음 저장됨');
@@ -1112,7 +1196,7 @@ async function switchMode(mode){
   $('modeChip').textContent=MODES[mode][0];setTitle(MODES[mode][0]);setMessage(MODES[mode][1]);
   $('noteHint').textContent='건반을 누르거나 마이크를 시작하세요';
   clearNote();progress(0,'준비');modeControls();
-  syncVibratoOverlay();
+  syncVibratoOverlay();syncRecordPitchOverlay();
   if(mode==='vibrato')focusVibratoReference();
   $('mainButton').textContent=mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':'마이크 켜기';
   $('mainButton').classList.remove('recording');$('stopButton').hidden=true;
@@ -1171,7 +1255,7 @@ function showHelp(){
  const sections=[
  ['피아노 건반','화면의 흰 건반과 검은 건반을 터치하면 해당 음이 재생되고 건반이 내려갑니다. 여러 건반을 동시에 누를 수 있습니다. − / +로 건반의 옥타브 범위를 옮길 수 있습니다.'],
  ['음정 측정하기','메뉴에서 음정 측정하기를 선택하고 마이크 켜기를 누릅니다. 마이크 권한을 허용하고 한 음을 길게 불러보세요. 내 음정에 해당하는 건반이 보라색으로 표시됩니다. 상단의 마이크 버튼에서 켜짐/꺼짐 상태를 확인하고 사용자가 직접 끌 수 있습니다.'],
- ['녹음하기','녹음 시작을 누른 후 목소리를 녹음합니다. 녹음 중지 · 저장을 누르면 기기 내부 저장 공간에 저장되며 나의 기록에서 재생하거나 삭제할 수 있습니다. 녹음 중에는 최대 10분으로 제한됩니다.'],
+ ['녹음하기','녹음 시작을 누르면 건반 위 반투명 창에 내 목소리의 음높이 변화가 최근 6초 동안 음표 높이로 표시됩니다. 현재 음정, 주파수(Hz), 녹음 중 최저·최고 음정도 확인할 수 있습니다. 그래프는 마이크가 감지한 음높이이며 소리의 크기를 뜻하지 않습니다. 녹음 중지 · 저장을 누르면 기기 내부 저장 공간에 오디오와 감지된 최저·최고 음정을 저장하며 나의 기록에서 재생하거나 삭제할 수 있습니다. 최대 10분으로 제한됩니다. 아이폰이나 아이패드에서는 브라우저의 마이크 권한이 필요합니다.'],
  ['비브라토 연습','기준 음정을 선택하고 비브라토 시작을 누릅니다. 건반 위 반투명 창에서 최근 3초 동안의 실제 음높이를 확인할 수 있습니다. 민트색 가로선은 기준음(0cent), 보라색 곡선은 내 목소리입니다. 중심 음정은 기준음 대비 높낮이, 진폭은 흔들림 폭(±cent), 속도는 초당 반복 횟수(Hz), 규칙성은 주기의 일관성을 나타냅니다. 모두 참고용 추정치이며, 목소리가 감지되지 않거나 규칙적인 흔들림이 충분하지 않으면 수치가 표시되지 않습니다. 건반을 누르는 데 투명창이 영향을 주지 않습니다.'],
  ['음정 연습하기','패턴, 시작음, 속도를 고르고 연습 시작을 누릅니다. 3초 후 민트색 목표 건반을 따라 부르면, ±35cent 이내로 감지된 비율로 정확도를 표시합니다.'],
  ['나의 기록과 개인정보','연습 기록은 앱 내부 IndexedDB에, 녹음 파일은 기기 내장 저장 공간의 앱 전용 데이터에 저장됩니다. 계정과 서버가 필요 없으며 마이크 소리는 서버로 업로드하지 않습니다. 앱 삭제나 앱 데이터 초기화 시 함께 삭제될 수 있습니다.'],
@@ -1216,7 +1300,9 @@ async function showHistory(){
   for(const r of recordings.sort((a,b)=>b.timestamp-a.timestamp)){
    const row=plain(body,'div','history-row');
    const left=plain(row,'div');plain(left,'strong','',r.title);
-   plain(left,'small','',r.date+' · '+r.duration+'초 · '+Math.round(r.size/1024)+'KB');
+   plain(left,'small','',r.date+' · '+r.duration+'초 · '+Math.round(r.size/1024)+'KB'+
+    (Number.isFinite(r.pitchLow)&&Number.isFinite(r.pitchHigh)?' · 음역 '+name(Math.round(r.pitchLow))+' ~ '+name(Math.round(r.pitchHigh)):''));
+
    const actions=plain(row,'div');
    const play=plain(actions,'button','', '재생');
    play.onclick=()=>playLocal(r,play);
@@ -1248,7 +1334,7 @@ window.addEventListener('pagehide',()=>{if(app.record)stopRecording();else if(ap
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){allKeysOff();if(app.record)stopRecording().then(stopMic);else if(app.mic){stopMic();if(app.exercise)finishExercise(false);if(app.vibratoStart)finishVibrato();}}
 });
-drawKeys();modeControls();progress(0,'건반 연주 준비');updateMicToggle();syncVibratoOverlay();
+drawKeys();modeControls();progress(0,'건반 연주 준비');updateMicToggle();syncVibratoOverlay();syncRecordPitchOverlay();
 if(window.VoiceLineToneEngine)updateToneEngineStatus();
 importLegacyRecords();
 if('serviceWorker' in navigator){
