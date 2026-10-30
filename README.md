@@ -59,3 +59,11 @@ The testing package suffix is `.softpiano` and appears as **보이스라인 부�
 - Changing the reference automatically shifts the two-octave keyboard range and clearly marks the selected white or black key with a persistent mint outline and indicator.
 - Live microphone pitch tracking never scrolls the selected vibrato reference off-screen while practice is underway.
 - Includes the beta5 acoustic-piano transient and headroom improvements.
+
+## v2.0.0-beta7 — anti-pop piano note transitions
+- Change acoustic sampled instrument to softest authentic Meta Piano velocity layer (Vel01), minimizing hammer-onset thunk.
+- Fade decoded Ogg/Opus sample data smoothly to zero at source endpoints and keep per-voice click-free gain ramps.
+- Do not start a note while the Android Web Audio context is suspended; after resuming, play only if touch is still held.
+- Fix voice-stealing tail accounting during rapid glissando, avoiding overaccumulation of overlapping voices.
+- Add **사용법 → 소리 테스트: 순음으로 비교**, an A/B diagnostic to tell piano-sample-related pops from the audio output stack. Switch back via the same button.
+- This Android debug test APK uses a separate application ID to protect the previous beta's local saved recordings and settings.
