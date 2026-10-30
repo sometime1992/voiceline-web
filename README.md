@@ -29,3 +29,9 @@ Node.js 환경에서 node --test tests/piano.test.cjs 실행. YIN 음정 분석 
 실제 갤럭시/안드로이드 기기에서 마이크 권한, 멀티터치, 스피커 소리, 음성 녹음, 녹음 재생, 앱 재시작 후 기록 유지, 화면 회전을 확인해야 합니다. 현재 코드는 소스 점검과 합성 음성 테스트까지 수행했습니다. 앱 삭제 또는 앱 데이터 초기화 시 IndexedDB의 기록과 녹음도 삭제될 수 있습니다. 영구 보관용 내보내기는 아직 지원하지 않습니다.
 
 v1.x 원본 스크립트는 롤백용으로 보존했지만 새 화면에서는 로드하지 않습니다. 음성은 서버에 업로드하지 않습니다. 음정 추정은 연습 참고용이며 의료 검사가 아닙니다.
+
+## v2.0.0-beta2 · Android microphone fix
+- Native AudioRecord bridge obtains Android RECORD_AUDIO permission directly, without WebView microphone permission dependencies.
+- Android PCM 16-bit samples are passed to the local pitch detector, and recordings are saved as WAV in IndexedDB.
+- In-browser fallback remains available for development; Android installed app prefers native audio.
+- If permission is denied, the screen shows the reason. Recordings do not leave the device.
