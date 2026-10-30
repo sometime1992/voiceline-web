@@ -67,3 +67,7 @@ The testing package suffix is `.softpiano` and appears as **보이스라인 부�
 - Fix voice-stealing tail accounting during rapid glissando, avoiding overaccumulation of overlapping voices.
 - Add **사용법 → 소리 테스트: 순음으로 비교**, an A/B diagnostic to tell piano-sample-related pops from the audio output stack. Switch back via the same button.
 - This Android debug test APK uses a separate application ID to protect the previous beta's local saved recordings and settings.
+
+## v2.0.0-beta8 — consistent gentle piano levels
+- Peak levels in 28 pinned, softest-velocity recordings vary substantially, so beta7 made some keys too quiet. Beta8 calibrates per-note gain against measured sample peaks (bounded boost ≤5×), with conservative mixer headroom.
+- Preserves click-resistant PCM edge fades, safe AudioContext startup, bounded release tails, and the clean sine-tone audio diagnostic in **사용법**.
