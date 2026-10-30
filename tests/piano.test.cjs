@@ -147,7 +147,7 @@ test('Acoustic audio pipeline smooths the PCM endpoints and uses the quietest re
  assert.match(code,/context\.state!=='running'/,'do not play in a suspended AudioContext');
  assert.match(code,/app\.owners\.has\(m\)/,'resume request only triggers a still-held key');
  assert.match(code,/activePianoVoices\.delete\(oldest\)/,'voice stealing bounds the released-tail budget');
- assert.match(code,/soundOnDiagnostic\(m\)/,'clean sine mode permits speaker/audio-route A-B comparison');
+ assert.match(code,/soundOnDiagnostic\(m,pressure\)/,'clean sine mode permits speaker/audio-route A-B comparison');
 });
 
 test('28 gentle piano recordings have peak calibration and safe bounded loudness',()=>{
