@@ -127,3 +127,26 @@ test('Vibrato reference can select all twelve notes in C2-B6 and auto-centers',(
  assert.match(code,/if\(app.mode!=='vibrato'&&app.owners.size===0/,'microphone does not scroll target out of view');
  assert.match(code,/key\.classList\.toggle\('vibrato-reference'/,'persistent visual marker');
 });
+
+test('Acoustic audio pipeline smooths the PCM endpoints and uses the quietest recorded velocity',()=>{
+ const fetcher=readFileSync(path.join(root,'scripts/fetch-piano-samples.mjs'),'utf8');
+ assert.match(fetcher,/INSPiano_Vel01_/,'softest acoustic source velocity');
+ assert.match(code,/INSPiano_Vel01_/,'sampler must load the bundled soft velocity');
+ assert.match(fetcher,/velocity:1/);
+ const start=code.indexOf('function conditionAcousticBuffer(');
+ const end=code.indexOf('async function loadAcousticSample(',start);
+ assert.ok(start>=0&&end>start,'sample conditioner present');
+ const conditioner=vm.runInNewContext(code.slice(start,end)+'\nconditionAcousticBuffer',{Math});
+ const sr=1000,len=1000,pcm=new Float32Array(len).fill(.5);
+ const mocked={sampleRate:sr,length:len,numberOfChannels:1,getChannelData:()=>pcm};
+ conditioner(mocked);
+ assert.equal(pcm[0],0,'sample starts at zero');
+ assert.equal(pcm[len-1],0,'sample ends at zero');
+ assert.ok(pcm[10]>0&&pcm[10]<.5,'attack fades naturally');
+ assert.ok(pcm[980]>0&&pcm[980]<.5,'tail fades naturally');
+ assert.equal(pcm[100],.5,'the middle of the actual recording is unchanged');
+ assert.match(code,/context\.state!=='running'/,'do not play in a suspended AudioContext');
+ assert.match(code,/app\.owners\.has\(m\)/,'resume request only triggers a still-held key');
+ assert.match(code,/activePianoVoices\.delete\(oldest\)/,'voice stealing bounds the released-tail budget');
+ assert.match(code,/soundOnDiagnostic\(m\)/,'clean sine mode permits speaker/audio-route A-B comparison');
+});
