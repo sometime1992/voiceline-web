@@ -34,6 +34,18 @@
   <div class="piano-area">
     <div class="piano-topline"><div class="octave-tools"><button type="button" id="octaveDown" aria-label="낮은 옥타브로 이동">−</button><span id="octaveLabel">C3 – B4</span><button type="button" id="octaveUp" aria-label="높은 옥타브로 이동">+</button></div><div class="legend"><span id="pianoSoundChip" class="piano-sound-chip" role="status">그랜드 피아노 음원 준비 중</span><span class="key-legend played"></span> 터치 <span class="key-legend detected"></span> 내 음정 <span class="key-legend target"></span> 목표</div></div>
     <div id="keyboard" class="keyboard" aria-label="터치하면 소리 나는 피아노 건반" role="group"></div>
+    <section id="vibratoOverlay" class="vibrato-overlay" aria-label="비브라토 실시간 음높이 분석" hidden>
+      <div class="vibrato-graph-pane">
+        <div class="vibrato-overlay-header"><strong>비브라토 · 음높이 변화</strong><span id="vibratoTargetLabel">기준음 C4 · 최근 3초</span></div>
+        <canvas id="vibratoGraph" aria-label="가로축은 시간, 세로축은 기준음 대비 센트 차이입니다. 기준 음정 선과 실시간 발성 곡선을 표시합니다."></canvas>
+      </div>
+      <div class="vibrato-metrics" aria-live="off">
+        <div class="vibrato-metric"><span>중심 음정</span><strong id="vibratoCenter">—</strong><small>기준음 대비</small></div>
+        <div class="vibrato-metric"><span>진폭</span><strong id="vibratoDepth">—</strong><small>±cent 추정</small></div>
+        <div class="vibrato-metric"><span>속도</span><strong id="vibratoRate">—</strong><small>Hz 추정</small></div>
+        <div class="vibrato-metric"><span>규칙성</span><strong id="vibratoRegularity">대기</strong><small id="vibratoGraphStatus">마이크를 켜세요</small></div>
+      </div>
+    </section>
   </div>
 </section>
 <div id="menuDialog" class="modal-backdrop" hidden>
