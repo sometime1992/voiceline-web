@@ -82,6 +82,19 @@ async function addEvent(title,detail,mode){
  try{await store('events','put',{id:id(),date:stamp(),timestamp:Date.now(),title,detail,mode});}
  catch(e){notify('기록 저장에 실패했습니다. 저장 공간을 확인해 주세요.');}
 }
+function targetKeyboardBase(midi){
+ // Two visible octaves, with the selected note near their centre.
+ // Supported piano starts are C1 (MIDI 24) through C6 (MIDI 84).
+ const target=clamp(Math.round(Number(midi)||60),24,107);
+ return clamp(Math.floor((target-11)/12)*12,24,84);
+}
+function focusVibratoReference(){
+ const next=targetKeyboardBase(app.vibratoRoot);
+ if(app.base!==next){
+  allKeysOff();app.base=next;drawKeys();
+ }else syncKeyColors();
+ setMessage('기준음 '+name(app.vibratoRoot)+' · '+koname(app.vibratoRoot)+' (민트색 건반)');
+}
 function drawKeys(){
  const kb=$('keyboard');kb.replaceChildren();
  const w=100/14;
@@ -118,6 +131,7 @@ function syncKeyColors(){
    key.classList.toggle('pressed',app.owners.has(m));
    key.classList.toggle('detected',app.mic&&detected===m);
    key.classList.toggle('target',target===m && !(app.mic&&detected===m));
+   key.classList.toggle('vibrato-reference',app.mode==='vibrato'&&app.vibratoRoot===m);
  }
 }
 // Centralized dynamics and sample-smooth envelopes prevent key-clicks and clipping.
@@ -423,7 +437,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  const sorted=[...app.notes].sort((a,b)=>a-b);midi=sorted[Math.floor(sorted.length/2)];
  app.detected=midi;app.currentMidi=midi;app.sessionSamples++;
  // Follow the measured singing range with the two-octave keyboard.
- if(app.owners.size===0&&(midi<app.base || midi>=app.base+24)){
+ if(app.mode!=='vibrato'&&app.owners.size===0&&(midi<app.base || midi>=app.base+24)){
   const next=clamp((Math.floor(midi/12)-1)*12,24,84);
   if(next!==app.base){app.base=next;drawKeys();}
  }
@@ -596,7 +610,12 @@ function modeControls(){
  } else if(app.mode==='vibrato'){
   c.innerHTML='<label>연습 기준음 <select id="vroot"></select></label><span class="control-note">내 목소리의 흔들림을 실시간으로 계산합니다.</span>';
   fillNotes($('vroot'),app.vibratoRoot);
-  $('vroot').onchange=e=>{app.vibratoRoot=Number(e.target.value);if(app.vibratoRoot<app.base||app.vibratoRoot>=app.base+24){app.base=clamp((Math.floor(app.vibratoRoot/12)-1)*12,24,84);drawKeys();}syncKeyColors();};
+  $('vroot').onchange=e=>{
+   const chosen=Number(e.target.value);
+   if(!Number.isInteger(chosen)||chosen<36||chosen>95)return;
+   app.vibratoRoot=chosen;
+   focusVibratoReference();
+  };
  } else if(app.mode==='record'){
   c.innerHTML='<span class="control-note">최대 10분 · 마이크 녹음 · 내장 저장 공간에 파일 보관</span><button type="button" id="recordList">저장된 녹음 보기</button>';
   $('recordList').onclick=showHistory;
@@ -607,8 +626,19 @@ function modeControls(){
  }
 }
 function fillNotes(sel,selected){
- for(let m=48;m<=83;m++){if(BLACK.has(m%12))continue;
-  const op=document.createElement('option');op.value=String(m);op.textContent=name(m)+' · '+koname(m);sel.append(op);
+ // Five complete octaves, including all sharps/flats on black keys.
+ // Previously only white notes 48..83 were offered, hiding many target pitches.
+ for(let octave=2;octave<=6;octave++){
+  const group=document.createElement('optgroup');
+  group.label=octave+' 옥타브(C'+octave+'–B'+octave+')';
+  for(let step=0;step<12;step++){
+   const m=(octave+1)*12+step;
+   const op=document.createElement('option');
+   op.value=String(m);
+   op.textContent=name(m)+' · '+koname(m);
+   group.append(op);
+  }
+  sel.append(group);
  }
  sel.value=String(selected);
 }
@@ -764,6 +794,7 @@ async function switchMode(mode){
   $('modeChip').textContent=MODES[mode][0];setTitle(MODES[mode][0]);setMessage(MODES[mode][1]);
   $('noteHint').textContent='건반을 누르거나 마이크를 시작하세요';
   clearNote();progress(0,'준비');modeControls();
+  if(mode==='vibrato')focusVibratoReference();
   $('mainButton').textContent=mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':'마이크 켜기';
   $('mainButton').classList.remove('recording');$('stopButton').hidden=true;
   syncKeyColors();
