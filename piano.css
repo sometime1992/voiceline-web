@@ -42,3 +42,93 @@
 @media(max-height:440px){.vibrato-overlay{height:clamp(88px,47%,155px);padding:5px 7px;gap:6px}.vibrato-metric{padding:2px 5px}}
 @media(min-width:1100px) and (min-height:600px){.vibrato-overlay{height:min(52%,280px);padding:13px 16px}.vibrato-metrics{gap:9px}.vibrato-metric{padding:9px 12px}}
 @media(max-width:680px){.vibrato-overlay{left:7px;right:7px;gap:5px;padding:5px}.vibrato-metrics{flex-basis:38%}.vibrato-overlay-header span{display:none}}
+
+/* iPhone/iPad pitch during recording: the same quiet glass treatment as vibrato. */
+.record-pitch-overlay{border-color:#ccb0ffad;background:rgba(17,19,40,.83)}
+#recordPitchGraph{display:block;flex:1;width:100%;height:100%;min-height:0}
+.record-pitch-overlay .vibrato-metric strong{color:#e1b4ff}
+
+/* Small landscape screens and larger iOS text sizes:
+   let the functional controls shrink rather than overlap or get clipped. */
+.toolbar,.toolbar-center,.info-strip,.exercise-panel,.exercise-heading,
+.exercise-controls,.piano-topline,.legend,.note-values,.main-actions{min-width:0}
+#modeChip{display:inline-block;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:32vw}
+.toolbar-center{flex:1;overflow:hidden}
+.exercise-heading{align-content:start;min-height:0}
+.exercise-heading span{min-width:0;overflow-wrap:anywhere;line-height:1.3}
+.note-values span{max-width:100%;overflow-wrap:anywhere}
+.exercise-controls{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.exercise-controls label{min-width:0}
+.main-button,.sub-button{white-space:normal;overflow-wrap:anywhere;line-height:1.15;text-align:center}
+.piano-topline{min-width:0}
+.piano-topline .legend{min-width:0;max-width:67%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.piano-topline .legend::-webkit-scrollbar{display:none}
+.piano-topline .octave-tools{min-width:0}
+
+@media (max-width:900px), (max-height:460px){
+ .toolbar{height:clamp(42px,9dvh,52px);gap:6px;padding-top:3px;padding-bottom:3px}
+ .brand{font-size:clamp(12px,2.35vw,16px);letter-spacing:.07em;flex:none}
+ .brand small{font-size:9px}
+ .toolbar-center{justify-content:flex-end;gap:5px}
+ #modeChip{max-width:26vw;font-size:11px;padding:4px 6px}
+ .toolbar-center .mic-toggle{min-height:33px;max-width:35vw;gap:5px;padding:3px 6px}
+ .icon-btn{width:39px;height:36px;flex:none}
+ .info-strip{
+   height:clamp(87px,24dvh,106px);min-height:0;
+   display:grid;grid-template-columns:minmax(0,28%) minmax(0,1fr) minmax(104px,19%);
+   align-items:stretch;gap:7px;padding:5px 7px;
+ }
+ .note-panel{width:auto;min-width:0;overflow:auto;padding:5px 7px;border-radius:9px}
+ .note-values{gap:2px 6px}
+ .note-values strong{font-size:clamp(20px,3.4vw,33px);line-height:1.06}
+ .note-values span{font-size:clamp(9px,1.15vw,11px)}
+ .exercise-panel{min-height:0;gap:2px;overflow:hidden;padding:2px 0}
+ .exercise-heading{gap:3px 6px;overflow:hidden}
+ .exercise-heading strong{font-size:clamp(11px,1.6vw,14px);line-height:1.2}
+ .exercise-heading span{font-size:clamp(9px,1.1vw,11px);max-height:2.6em;overflow:auto}
+ .exercise-controls{min-height:26px;gap:5px;max-height:35px}
+ .exercise-controls label{font-size:10px;gap:3px}
+ .exercise-controls select,.exercise-controls input{min-height:26px;max-width:110px;padding:2px 4px;font-size:11px}
+ .exercise-footer{font-size:10px;gap:5px}
+ .main-actions{width:auto;min-width:0;gap:5px}
+ .main-button{font-size:clamp(10px,1.25vw,12px);min-height:37px;padding:5px 4px}
+ .sub-button{font-size:10px;min-height:27px;padding:4px}
+ .piano-topline{height:29px;padding:0 2px;gap:4px}
+ .octave-tools{gap:5px;font-size:11px}
+ .octave-tools button{width:25px;height:24px;flex:none}
+ .vibrato-overlay{top:calc(29px + 5px);max-height:calc(100% - 37px)}
+ .vibrato-metrics{flex-basis:35%;gap:4px}
+ .vibrato-metric strong{font-size:clamp(12px,1.8vw,20px)}
+ .vibrato-metric small{font-size:9px}
+ .vibrato-overlay-header strong{font-size:clamp(10px,1.4vw,13px)}
+}
+@media (max-width:640px), (max-height:360px){
+ .toolbar{height:40px}
+ .brand{font-size:12px}
+ .brand small{display:none}
+ .toolbar-center{gap:4px}
+ #modeChip{max-width:22vw;padding:3px 4px}
+ .toolbar-center .mic-toggle{max-width:38vw;min-height:31px}
+ .toolbar-center .mic-toggle #micChip{font-size:10px}
+ .info-strip{height:clamp(76px,25dvh,91px);grid-template-columns:minmax(0,26%) minmax(0,1fr) minmax(88px,19%);gap:4px;padding:4px}
+ .note-panel{padding:4px}
+ .note-values strong{font-size:clamp(18px,3.25vw,25px)}
+ .note-values span{font-size:9px}
+ .exercise-heading strong{font-size:11px}
+ .exercise-heading span{display:none}
+ .exercise-controls{max-height:29px;min-height:25px}
+ .exercise-controls select{font-size:10px;max-width:90px}
+ .main-actions{gap:3px}
+ .main-button{min-height:32px;font-size:10px}
+ .sub-button{min-height:25px;font-size:10px}
+ .piano-topline{height:27px}
+ .vibrato-overlay{top:calc(27px + 4px);height:clamp(78px,46%,130px);max-height:calc(100% - 34px);padding:4px 5px;gap:4px}
+ .vibrato-graph-pane{gap:2px}
+ .vibrato-overlay-header{min-height:13px}
+ .vibrato-overlay-header strong{font-size:10px}
+ .vibrato-metrics{flex-basis:40%;gap:3px}
+ .vibrato-metric{padding:2px 4px}
+ .vibrato-metric span{font-size:9px}
+ .vibrato-metric strong{font-size:clamp(12px,2vw,16px)}
+ .vibrato-metric small{display:none}
+}
