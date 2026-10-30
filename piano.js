@@ -154,7 +154,35 @@ const acoustic={buffers:new Map(),pending:new Map(),failed:new Set(),preloadEpoc
 // Offline recordings contain a genuine hammer attack. Avoid amplifying that transient.
 // 28 samples checked against the prior beta4 APK: none showed digital full-scale clipping.
 // Keep conservative headroom for chords and fade each note smoothly.
-const SOFT_PIANO=Object.freeze({peakGain:0.25,attack:0.050,release:0.32,master:0.64,lowpass:4200,highpass:45,maxVoices:6});
+const SOFT_PIANO=Object.freeze({peakGain:0.25,attack:0.055,release:0.32,master:0.64,lowpass:4200,highpass:45,maxVoices:6});
+// Most Android finger touch events have no reliable force measurement.
+// Use press duration for the fade-out; optionally use real stylus force for attack dynamics.
+function smoothstep(x){
+ x=clamp(x,0,1);
+ return x*x*(3-2*x);
+}
+function attackDuration(pressure=0.7){
+ return clamp(0.068-(pressure*0.028),0.034,0.065);
+}
+function expressionFromInput(pressure=0.7){
+ // Regular finger taps receive a consistent velocity. Only supported pens vary.
+ return clamp(0.68+0.32*pressure,0.68,1);
+}
+function releaseDuration(heldSeconds){
+ // Fast taps finish quickly and quietly, while held notes get a natural damper tail.
+ // This depends on how long the note ACTUALLY sounded, never on guessed touch force.
+ return clamp(0.105+Math.max(0,heldSeconds)*0.35,0.105,0.40);
+}
+function attackValue(voice,at){
+ return voice.voiceGain*smoothstep((at-voice.started)/voice.attackDuration);
+}
+function pressureForEvent(e){
+ // On ordinary touchscreens PointerEvent.pressure is often a constant .5.
+ if(e?.pointerType==='pen'&&Number.isFinite(e.pressure)&&e.pressure>0){
+  return clamp(e.pressure,0.1,1);
+ }
+ return 0.7;
+}
 // Peaks measured from the 28 pinned, bundled Vel01 Ogg/Opus recordings.
 // Stabilize inter-note loudness without clipping or changing the gentle recorded timbre.
 const ACOUSTIC_PEAKS=new Map([[24,.1180],[27,.0847],[30,.2122],[33,.1387],[36,.1158],[39,.1492],[42,.1129],[45,.1609],[48,.1194],[51,.1520],[54,.2121],[57,.0152],[60,.0444],[63,.1500],[66,.0605],[69,.0283],[72,.0597],[75,.1282],[78,.0873],[81,.0256],[84,.0155],[87,.0308],[90,.1395],[93,.0811],[96,.1090],[99,.0444],[102,.0383],[105,.0705]]);
@@ -240,21 +268,29 @@ function releasePianoVoice(voice,forced=false){
  if(!app.ctx||voice.releasing)return;
  voice.releasing=true;
  const t=app.ctx.currentTime,volume=voice.gain.gain;
- // The held value is calculated from the attack function on old Android WebViews.
- // Skipping this step was making very short touches audibly snap.
+ const heldSeconds=Math.max(0,t-voice.started);
+ const duration=forced?0.065:releaseDuration(heldSeconds);
  if(typeof volume.cancelAndHoldAtTime==='function'){
   volume.cancelAndHoldAtTime(t);
  }else{
-  const elapsed=Math.max(0,t-voice.started);
-  const held=voice.voiceGain*Math.min(1,elapsed/SOFT_PIANO.attack);
+  // Preserve the correct instantaneous level for releases during the attack.
+  // An Android WebView may not implement cancelAndHoldAtTime.
+  const held=attackValue(voice,t);
   volume.cancelScheduledValues(t);
   volume.setValueAtTime(held,t);
  }
- const duration=forced?0.045:SOFT_PIANO.release;
+ // Several short ramp segments approximate a smoothstep fade without a hard cut.
+ // Finish at zero before the source node is stopped.
+ const startGain=voice.voiceGain*smoothstep(heldSeconds/voice.attackDuration);
+ // Use an exact held level for implementations without native cancelAndHold.
+ // For native holding, the envelope has not passed voiceGain on the sample path.
+ volume.linearRampToValueAtTime(startGain*.90,t+duration*.20);
+ volume.linearRampToValueAtTime(startGain*.50,t+duration*.50);
+ volume.linearRampToValueAtTime(startGain*.10,t+duration*.80);
  volume.linearRampToValueAtTime(0,t+duration);
- try{voice.source.stop(t+duration+0.016);}catch(_){}
+ try{voice.source.stop(t+duration+0.025);}catch(_){}
 }
-function sampledNoteOn(m){
+function sampledNoteOn(m,pressure=0.7){
  const anchor=nearestAcousticMidi(m),buffer=acoustic.buffers.get(anchor);
  if(!buffer)return false;
  const ac=ensureSynth();if(!ac)return false;
@@ -277,12 +313,17 @@ function sampledNoteOn(m){
  highpass.Q.setValueAtTime(0.707,t);
  lowpass.type='lowpass';lowpass.frequency.setValueAtTime(Math.max(SOFT_PIANO.lowpass,frequency(m)*3),t);
  lowpass.Q.setValueAtTime(0.707,t);
- // 34 ms rounded hammer attack, 240 ms smooth release; no instant volume jumps.
+ // Length-aware release and pressure-aware attack (stylus only).
+ // Rounded multi-point envelope avoids discontinuities at the note onset.
+ const attack=attackDuration(pressure);
+ const voiceGain=calibratedPianoGain(anchor)*expressionFromInput(pressure);
  gain.gain.setValueAtTime(0,t);
- const voiceGain=calibratedPianoGain(anchor);
- gain.gain.linearRampToValueAtTime(voiceGain,t+SOFT_PIANO.attack);
+ gain.gain.linearRampToValueAtTime(voiceGain*smoothstep(.25),t+attack*.25);
+ gain.gain.linearRampToValueAtTime(voiceGain*smoothstep(.50),t+attack*.50);
+ gain.gain.linearRampToValueAtTime(voiceGain*smoothstep(.75),t+attack*.75);
+ gain.gain.linearRampToValueAtTime(voiceGain,t+attack);
  source.connect(highpass);highpass.connect(lowpass);lowpass.connect(gain);gain.connect(app.synthMaster);
- const voice={type:'sample',source,gain,highpass,lowpass,started:t,voiceGain,releasing:false};
+ const voice={type:'sample',source,gain,highpass,lowpass,started:t,voiceGain,attackDuration:attack,releasing:false};
  source.onended=()=>{
   source.disconnect();highpass.disconnect();lowpass.disconnect();gain.disconnect();
   activePianoVoices.delete(voice);
@@ -328,7 +369,7 @@ function ensureSynth(){
 }
 // Diagnostics: a clean sine note shares the same speaker/AudioContext output.
 // If pops persist with this mode, they are not inside the original piano recording.
-function soundOnDiagnostic(m){
+function soundOnDiagnostic(m,pressure=0.7){
  const ac=ensureSynth();if(!ac)return;
  const t=ac.currentTime,oscillator=ac.createOscillator(),gain=ac.createGain();
  oscillator.type='sine';
@@ -353,7 +394,7 @@ function releaseDiagnostic(voice){
  p.linearRampToValueAtTime(0,t+0.24);
  try{voice.oscillator.stop(t+0.245);}catch(_){}
 }
-function soundOn(m){
+function soundOn(m,pressure=0.7){
  if(app.playing.has(m))return;
  const context=ensureSynth();
  if(!context)return;
@@ -361,12 +402,12 @@ function soundOn(m){
    // No note is scheduled inside a suspended AudioContext: starting in the middle
    // of its attack when resume() completes can produce an audible thump.
    context.resume().then(()=>{
-     if(app.ctx===context&&app.owners.has(m)&&!app.playing.has(m))soundOn(m);
+     if(app.ctx===context&&app.owners.has(m)&&!app.playing.has(m))soundOn(m,pressure);
    }).catch(()=>{});
    return;
  }
- if(app.audioDiagnosticTone){soundOnDiagnostic(m);return;}
- if(sampledNoteOn(m))return;
+ if(app.audioDiagnosticTone){soundOnDiagnostic(m,pressure);return;}
+ if(sampledNoteOn(m,pressure))return;
  // Only when a bundled recording is not ready/decodable, keep the older fallback.
  loadAcousticSample(nearestAcousticMidi(m));
  const ac=ensureSynth();if(!ac)return;
@@ -417,7 +458,7 @@ function keyAt(clientX,clientY){
  const key=elem?.closest?.('#keyboard [data-midi]');
  return key?Number(key.dataset.midi):null;
 }
-function pointerChange(pointerId,m){
+function pointerChange(pointerId,m,pressure=0.7){
  const old=app.owners.get('__pointer'+pointerId);
  if(old===m)return;
  if(old!==undefined){
@@ -427,7 +468,7 @@ function pointerChange(pointerId,m){
  app.owners.delete('__pointer'+pointerId);
  if(m!==null){
   let owners=app.owners.get(m);if(!owners){owners=new Set();app.owners.set(m,owners);}
-  if(owners.size===0)soundOn(m);
+  if(owners.size===0)soundOn(m,pressure);
   owners.add(pointerId);app.owners.set('__pointer'+pointerId,m);
   $('noteHint').textContent='누른 건반';
   if(!app.mic)showNote(m,frequency(m),0);
@@ -452,11 +493,11 @@ const kb=$('keyboard');
 kb.addEventListener('pointerdown',e=>{
  const m=keyAt(e.clientX,e.clientY);if(m===null)return;
  e.preventDefault();try{kb.setPointerCapture(e.pointerId);}catch(_){}
- pointerChange(e.pointerId,m);
+ pointerChange(e.pointerId,m,pressureForEvent(e));
 });
 kb.addEventListener('pointermove',e=>{
  if(!app.owners.has('__pointer'+e.pointerId))return;
- e.preventDefault();pointerChange(e.pointerId,keyAt(e.clientX,e.clientY));
+ e.preventDefault();pointerChange(e.pointerId,keyAt(e.clientX,e.clientY),pressureForEvent(e));
 });
 for(const ev of ['pointerup','pointercancel','lostpointercapture']){
  kb.addEventListener(ev,e=>pointerChange(e.pointerId,null));
