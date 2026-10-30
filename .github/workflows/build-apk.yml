@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - feature/landscape-piano-v2
+      - feature/tonejs-piano-engine
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,13 +18,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install published MIT Tone Piano engine and build dependencies
+        run: npm install --legacy-peer-deps --no-fund --no-audit
       - name: Test piano application
-        run: node --test tests/piano.test.cjs
-      - name: Bundle CC0 acoustic upright piano recordings into offline APK
-        run: node scripts/fetch-piano-samples.mjs
-      - name: Verify offline piano recordings
+        run: npm test
+      - name: Bundle Salamander Grand piano samples locally under CC BY 3.0
+        run: npm run piano:download
+      - name: Bundle published piano engine for Android WebView
+        run: npm run piano:bundle
+      - name: Verify complete offline piano package
         run: |
-          node -e "const fs=require('fs');const p='android-app/app/src/main/assets/www/samples/piano';const d=JSON.parse(fs.readFileSync(p+'/source.json'));if(d.files.length!==28||d.files.some(f=>fs.statSync(p+'/'+f).size<4096))process.exit(1);console.log('Offline acoustic piano validated:',d.files.length,'samples')"
+          node -e "const fs=require('fs');const p='android-app/app/src/main/assets/www/vendor/salamander';const d=JSON.parse(fs.readFileSync(p+'/CREDITS.json'));if(d.files.length!==28||d.files.some(f=>fs.statSync(p+'/'+f).size<10000)||fs.statSync('android-app/app/src/main/assets/www/vendor/tone-piano.js').size<10000)process.exit(1);console.log('Bundled grand piano:',d.files.length,'recordings')"
 
       - uses: actions/setup-java@v4
         with:
@@ -47,7 +52,7 @@ jobs:
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceLine-v2-beta10-short-tap-long-fade-APK
+          name: VoiceLine-v2-beta11-tone-piano-engine-APK
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
