@@ -43,3 +43,24 @@ test('Android bridge handles microphone independently of WebView',()=>{
  assert.match(code,/if\(window\.VoiceLineNative\?\.start\)return startNativeMic\(\)/);
  assert.match(code,/if\(app\.nativeMic\)/);
 });
+
+test('Keyboard synthesis ramps from silence and holds release gain without pops',()=>{
+ const start=code.indexOf('const SYNTH_ENV=');
+ const end=code.indexOf('function ensureSynth(){',start);
+ assert.ok(start>=0&&end>start,'exposed piano amplitude envelope');
+ const env=vm.runInNewContext(code.slice(start,end)+'\n({SYNTH_ENV,noteEnvelopeGain})',{Math});
+ const {SYNTH_ENV:e,noteEnvelopeGain}=env;
+ assert.equal(noteEnvelopeGain(5,5),0,'note starts silent');
+ assert.ok(noteEnvelopeGain(5,5+0.005)>0,'smooth attack after 5 ms');
+ assert.ok(noteEnvelopeGain(5,5+0.005)<noteEnvelopeGain(5,5+0.018),'no step at attack');
+ assert.ok(noteEnvelopeGain(5,5+0.050)>.025,'release of short tap preserves audible note level');
+ assert.ok(Math.abs(noteEnvelopeGain(5,5+e.attack)-e.peak)<1e-9);
+ assert.ok(Math.abs(noteEnvelopeGain(5,5+e.decay)-e.sustain)<1e-9);
+ assert.ok(e.release>=.14,'release longer than click-prone short fade');
+ assert.match(code,/volume\.cancelAndHoldAtTime\(t\)/,'preserve current automation value on release');
+ assert.match(code,/volume\.setValueAtTime\(held,t\)/,'fallback calculates held gain');
+ assert.match(code,/volume\.linearRampToValueAtTime\(0,t\+SYNTH_ENV\.release\)/);
+ assert.match(code,/g\.connect\(app\.synthMaster\)/,'notes go to shared mixer');
+ assert.match(code,/limiter\.connect\(ac\.destination\)/,'limiter sits before speaker output');
+ assert.doesNotMatch(code,/g\.connect\(ac\.destination\)/,'no note is wired direct to speakers');
+});
