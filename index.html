@@ -46,6 +46,18 @@
         <div class="vibrato-metric"><span>규칙성</span><strong id="vibratoRegularity">대기</strong><small id="vibratoGraphStatus">마이크를 켜세요</small></div>
       </div>
     </section>
+    <section id="recordPitchOverlay" class="vibrato-overlay record-pitch-overlay" aria-label="녹음 중 실시간 음높이 변화" hidden>
+      <div class="vibrato-graph-pane">
+        <div class="vibrato-overlay-header"><strong>녹음 · 실시간 음높이</strong><span id="recordPitchWindow">최근 6초</span></div>
+        <canvas id="recordPitchGraph" aria-label="시간에 따라 변하는 목소리의 높이를 음표와 음역으로 표시합니다."></canvas>
+      </div>
+      <div class="vibrato-metrics">
+        <div class="vibrato-metric"><span>현재 음정</span><strong id="recordCurrentPitch">—</strong><small>마이크 측정</small></div>
+        <div class="vibrato-metric"><span>현재 높이</span><strong id="recordCurrentHz">—</strong><small>Hz</small></div>
+        <div class="vibrato-metric"><span>최저 음</span><strong id="recordLowNote">—</strong><small>녹음 구간</small></div>
+        <div class="vibrato-metric"><span>최고 음</span><strong id="recordHighNote">—</strong><small id="recordPitchStatus">녹음 대기</small></div>
+      </div>
+    </section>
   </div>
 </section>
 <div id="menuDialog" class="modal-backdrop" hidden>
