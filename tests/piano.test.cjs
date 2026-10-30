@@ -99,7 +99,7 @@ test('Soft sampled piano keeps hammer attacks quiet and preserves chord headroom
  assert.match(code,/releasePianoVoice\(oldest,true\)/);
  assert.match(code,/sampledNoteOff\(voice\)\{releasePianoVoice\(voice\);\}/);
  assert.match(code,/volume\.cancelAndHoldAtTime\(t\)/);
- assert.match(code,/const held=voice\.voiceGain\*Math\.min\(1,elapsed\/SOFT_PIANO\.attack\)/,
+ assert.match(code,/const held=attackValue\(voice,t\)/,'release fallback calculates the attack-level at release');
    'held short-tap amplitude correctly preserved on older WebViews');
 });
 
@@ -165,4 +165,34 @@ test('28 gentle piano recordings have peak calibration and safe bounded loudness
   assert.ok(Number.isFinite(level)&&level>=.17&&level<=1.251,'gain bounds '+midi);
   assert.ok(level*peak*.64<.04,'per-voice sample output remains safe '+midi);
  }
+});
+
+test('Key fade-out adapts to held duration and smooth attack interpolates',()=>{
+ const start=code.indexOf('function smoothstep(');
+ const end=code.indexOf('// Peaks measured from',start);
+ assert.ok(start>=0&&end>start,'pure envelope helper definitions');
+ const helpers=vm.runInNewContext(code.slice(start,end)+'\n({smoothstep,attackDuration,releaseDuration,pressureForEvent,expressionFromInput,attackValue})',{
+  Math,Number,clamp:(v,a,b)=>Math.max(a,Math.min(b,v))
+ });
+ const {smoothstep,attackDuration,releaseDuration,pressureForEvent,expressionFromInput,attackValue}=helpers;
+ assert.equal(smoothstep(0),0);
+ assert.equal(smoothstep(1),1);
+ assert.ok(smoothstep(.25)>0&&smoothstep(.25)<.25);
+ assert.ok(Math.abs(smoothstep(.5)-.5)<1e-10);
+ assert.ok(releaseDuration(.03)<releaseDuration(.30),'short tap has shorter fade-out');
+ assert.ok(releaseDuration(.30)<releaseDuration(1.5),'held key has longer fade-out');
+ assert.ok(releaseDuration(2)<=.4,'maximum release is bounded');
+ assert.ok(releaseDuration(0)>=.10,'release never snaps off');
+ assert.ok(attackDuration(0.1)>attackDuration(.95),'stylus hard press has faster attack');
+ assert.equal(pressureForEvent({pointerType:'touch',pressure:.001}),.7,'touch force is ignored as unreliable');
+ assert.equal(pressureForEvent({pointerType:'touch',pressure:1}),.7,'touch force still ignored');
+ assert.ok(pressureForEvent({pointerType:'pen',pressure:.9})>.7,'stylus pressure is accepted');
+ assert.ok(expressionFromInput(.9)>expressionFromInput(.1),'real pen force varies note level');
+ const fake={voiceGain:.6,started:10,attackDuration:.06};
+ assert.equal(attackValue(fake,10),0,'attack starts at silence');
+ assert.ok(attackValue(fake,10.02)>0 && attackValue(fake,10.02)<.6);
+ assert.ok(Math.abs(attackValue(fake,10.06)-.6)<1e-9);
+ assert.match(code,/releaseDuration\(heldSeconds\)/);
+ assert.match(code,/gain\.gain\.linearRampToValueAtTime\(voiceGain\*smoothstep\(\.75\)/);
+ assert.match(code,/pressureForEvent\(e\)/);
 });
