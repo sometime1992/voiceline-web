@@ -209,20 +209,20 @@ function pitchYin(s,sr){
  if(win<256||hi<=lo)return null;
  const a=new Float32Array(hi+1);
  for(let tau=1;tau<=hi;tau++){let d=0;for(let j=0;j<win;j++){const v=s[j]-s[j+tau];d+=v*v;}a[tau]=d;}
- let running=0,best=-1;
+ let running=0,best=-1,minValue=1,minIndex=-1;
+ // Normalize the entire difference function before finding a threshold crossing.
+ // Normalizing only the first half biases detection toward an earlier, incorrect pitch.
  for(let tau=1;tau<=hi;tau++){
   running+=a[tau];a[tau]=running>0?a[tau]*tau/running:1;
-  if(tau>=lo&&best<0&&a[tau]<.15){best=tau;while(best<hi-1&&a[best+1]<a[best])best++;break;}
+  if(tau>=lo&&a[tau]<minValue){minValue=a[tau];minIndex=tau;}
  }
- if(best<0){
-  // Normalize remaining lags before searching a looser threshold.
-  for(let t=lo;t<=hi;t++){if(t<1||t>=hi)continue;}
-  let bestV=1;
-  for(let t=lo;t<=hi;t++){
-   if(t>1&&t<hi&&a[t]<bestV){bestV=a[t];best=t;}
+ for(let tau=lo;tau<hi;tau++){
+  if(a[tau]<.15){
+   while(tau+1<hi&&a[tau+1]<a[tau])tau++;
+   best=tau;break;
   }
-  if(best<0||bestV>.21)return null;
  }
+ if(best<0){if(minValue>.21)return null;best=minIndex;}
  if(best<=1||best>=hi)return null;
  const l=a[best-1],c=a[best],r=a[best+1],den=l-2*c+r;
  const shift=Math.abs(den)>1e-9?clamp((l-r)/(2*den),-1,1):0;
