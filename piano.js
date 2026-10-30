@@ -119,36 +119,89 @@ function syncKeyColors(){
    key.classList.toggle('target',target===m && !(app.mic&&detected===m));
  }
 }
+// Centralized dynamics and sample-smooth envelopes prevent key-clicks and clipping.
+// Do not connect individual notes directly to AudioContext.destination.
+const SYNTH_ENV=Object.freeze({attack:0.024,decay:0.24,peak:0.050,sustain:0.026,release:0.19});
+function noteEnvelopeGain(start,t){
+ const e=Math.max(0,t-start);
+ if(e<SYNTH_ENV.attack)return SYNTH_ENV.peak*e/SYNTH_ENV.attack;
+ if(e<SYNTH_ENV.decay){
+   const progress=(e-SYNTH_ENV.attack)/(SYNTH_ENV.decay-SYNTH_ENV.attack);
+   return SYNTH_ENV.peak*Math.pow(SYNTH_ENV.sustain/SYNTH_ENV.peak,progress);
+ }
+ return SYNTH_ENV.sustain;
+}
 function ensureSynth(){
  if(!audioCtor){notify('이 환경에서는 소리를 낼 수 없습니다.');return null;}
  try{
-  if(!app.ctx)app.ctx=new audioCtor();
+  if(!app.ctx||app.ctx.state==='closed'){
+    app.ctx=new audioCtor();
+    app.synthMaster=null;
+  }
+  if(!app.synthMaster){
+    const ac=app.ctx;
+    const master=ac.createGain();
+    master.gain.setValueAtTime(0.78,ac.currentTime);
+    if(typeof ac.createDynamicsCompressor==='function'){
+      const limiter=ac.createDynamicsCompressor();
+      limiter.threshold.setValueAtTime(-16,ac.currentTime);
+      limiter.knee.setValueAtTime(18,ac.currentTime);
+      limiter.ratio.setValueAtTime(3.5,ac.currentTime);
+      limiter.attack.setValueAtTime(0.006,ac.currentTime);
+      limiter.release.setValueAtTime(0.16,ac.currentTime);
+      master.connect(limiter);
+      limiter.connect(ac.destination);
+      app.synthLimiter=limiter;
+    }else{
+      master.connect(ac.destination);
+    }
+    app.synthMaster=master;
+  }
   if(app.ctx.state==='suspended')app.ctx.resume().catch(()=>{});
   return app.ctx;
- }catch(e){notify('오디오 장치를 시작할 수 없습니다.');return null;}
+ }catch(e){console.warn('Piano audio unavailable',e);notify('오디오 장치를 시작할 수 없습니다.');return null;}
 }
 function soundOn(m){
  const ac=ensureSynth();if(!ac||app.playing.has(m))return;
  const t=ac.currentTime;
- const oscillator=ac.createOscillator(),harm=ac.createOscillator(),g=ac.createGain(),g2=ac.createGain(),lowpass=ac.createBiquadFilter();
- oscillator.type='triangle';oscillator.frequency.value=frequency(m);
- harm.type='sine';harm.frequency.value=frequency(m)*2;
- lowpass.type='lowpass';lowpass.frequency.value=clamp(frequency(m)*7,1200,9000);
- g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.065,t+.016);
- g.gain.exponentialRampToValueAtTime(.039,t+.23);
- g2.gain.value=.19;
- oscillator.connect(lowpass);harm.connect(g2);g2.connect(lowpass);lowpass.connect(g);g.connect(ac.destination);
+ const freq=frequency(m);
+ const oscillator=ac.createOscillator(),harm=ac.createOscillator();
+ const g=ac.createGain(),g2=ac.createGain(),lowpass=ac.createBiquadFilter();
+ oscillator.type='triangle';oscillator.frequency.setValueAtTime(freq,t);
+ harm.type='sine';harm.frequency.setValueAtTime(freq*2,t);
+ g2.gain.setValueAtTime(0.13,t);
+ lowpass.type='lowpass';lowpass.frequency.setValueAtTime(clamp(freq*4.5,950,5500),t);
+ lowpass.Q.setValueAtTime(0.65,t);
+ // Start at exactly zero amplitude: no discontinuity even with oscillator phase offsets.
+ g.gain.setValueAtTime(0,t);
+ g.gain.linearRampToValueAtTime(SYNTH_ENV.peak,t+SYNTH_ENV.attack);
+ g.gain.exponentialRampToValueAtTime(SYNTH_ENV.sustain,t+SYNTH_ENV.decay);
+ oscillator.connect(lowpass);harm.connect(g2);g2.connect(lowpass);
+ lowpass.connect(g);g.connect(app.synthMaster);
  oscillator.start(t);harm.start(t);
- app.playing.set(m,{oscillator,harm,g,g2,lowpass});
+ app.playing.set(m,{oscillator,harm,g,g2,lowpass,started:t});
 }
 function soundOff(m){
  const p=app.playing.get(m);if(!p||!app.ctx)return;
  app.playing.delete(m);
- const t=app.ctx.currentTime;
- p.g.gain.cancelScheduledValues(t);p.g.gain.setValueAtTime(Math.max(.0001,p.g.gain.value),t);
- p.g.gain.exponentialRampToValueAtTime(.0001,t+.19);
- p.oscillator.stop(t+.21);p.harm.stop(t+.21);
- p.oscillator.onended=()=>{p.oscillator.disconnect();p.harm.disconnect();p.g2.disconnect();p.lowpass.disconnect();p.g.disconnect();};
+ const t=app.ctx.currentTime,volume=p.g.gain;
+ // AudioParam.value is NOT the current value of a pending automation.
+ // Holding the scheduled instantaneous gain avoids a step to near-silence
+ // on short taps, glissandos, repeated notes and pointer cancellation.
+ if(typeof volume.cancelAndHoldAtTime==='function'){
+   volume.cancelAndHoldAtTime(t);
+ }else{
+   const held=noteEnvelopeGain(p.started,t);
+   volume.cancelScheduledValues(t);
+   volume.setValueAtTime(held,t);
+ }
+ volume.linearRampToValueAtTime(0,t+SYNTH_ENV.release);
+ p.oscillator.stop(t+SYNTH_ENV.release+0.008);
+ p.harm.stop(t+SYNTH_ENV.release+0.008);
+ p.oscillator.onended=()=>{
+   p.oscillator.disconnect();p.harm.disconnect();
+   p.g2.disconnect();p.lowpass.disconnect();p.g.disconnect();
+ };
 }
 function keyAt(clientX,clientY){
  const elem=document.elementFromPoint(clientX,clientY);
@@ -465,9 +518,11 @@ function updateExercise(t){
 function playReference(m){
  const ac=ensureSynth();if(!ac)return;
  const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
- o.type='sine';o.frequency.value=frequency(m);
- g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.045,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+.24);
- o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.25);
+ o.type='sine';o.frequency.setValueAtTime(frequency(m),t);
+ g.gain.setValueAtTime(0,t);
+ g.gain.linearRampToValueAtTime(0.038,t+0.026);
+ g.gain.linearRampToValueAtTime(0,t+0.28);
+ o.connect(g);g.connect(app.synthMaster);o.start(t);o.stop(t+0.288);
  o.onended=()=>{o.disconnect();g.disconnect();};
 }
 function finishExercise(completed){
