@@ -43,3 +43,11 @@ The mobile APK now carries natural acoustic piano recordings **offline**, based 
 Local Android Studio builds: Run `node scripts/fetch-piano-samples.mjs` **once** from the repository root before building. GitHub Actions automatically downloads the pinned CC0 source recordings and packages them in the APK. After installation, piano playback uses **no network**.
 
 This testing APK is installed alongside the prior beta to avoid signing conflicts and accidental erasure of existing local recordings. Records are private to each app ID.
+
+## v2.0.0-beta5 — reduced acoustic piano pops (Android)
+
+The actual included acoustic Opus recordings were decoded and measured: none of the 28 samples had full-scale clipping (largest sample peak about 0.62). The preceding app played the original hammer transient with a very short 6ms ramp and 0.76 sample gain, before the 0.78 master and heavy compressor, which can sound percussive or overdriven on small phone speakers.
+
+Soft piano now defaults to a 34ms note attack, 240ms note release, sub-bass/high-frequency filtering, 0.24 sample gain and 0.68 master gain, plus a safety-only compressor for loud peaks. The polyphony budget prioritizes newly touched notes. The existing Android native microphone support, on-device WAV recording and pitch tracking remain unchanged.
+
+The testing package suffix is `.softpiano` and appears as **보이스라인 부드러운 피아노** so it can be tested without uninstalling other versions. Separate package IDs do not share locally saved data.
