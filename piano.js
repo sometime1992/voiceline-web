@@ -570,6 +570,13 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden){allKeysOff();if(app.record)stopRecording().then(stopMic);else if(app.mic){stopMic();if(app.exercise)finishExercise(false);if(app.vibratoStart)finishVibrato();}}
 });
 drawKeys();modeControls();progress(0,'건반 연주 준비');
+if('serviceWorker' in navigator){
+  if(location.hostname==='appassets.androidplatform.net'){
+    navigator.serviceWorker.getRegistrations().then(regs=>Promise.all(regs.map(reg=>reg.unregister()))).catch(()=>{});
+  }else if(location.protocol==='https:' || location.hostname==='localhost'){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+}
 if(screen.orientation?.lock){screen.orientation.lock('landscape').catch(()=>{});}
 window.VoiceLinePiano={name,frequency,pitchYin};
 })();
