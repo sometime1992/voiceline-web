@@ -3,7 +3,7 @@
  * No custom oscillator/sample-envelopes are needed for normal keyboard play.
  * Local Salamander Grand recordings (CC BY 3.0) are bundled into the APK.
  */
-import { Piano } from '@tonejs/piano';
+import { Piano } from '@tonejs/piano/build/piano/Piano.js';
 import * as Tone from 'tone';
 
 let piano=null;
