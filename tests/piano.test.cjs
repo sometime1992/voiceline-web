@@ -48,7 +48,7 @@ test('Keyboard synthesis ramps from silence and holds release gain without pops'
  const start=code.indexOf('const SYNTH_ENV=');
  const end=code.indexOf('function ensureSynth(){',start);
  assert.ok(start>=0&&end>start,'exposed piano amplitude envelope');
- const env=vm.runInNewContext(code.slice(start,end)+'\n({SYNTH_ENV,noteEnvelopeGain})',{Math});
+ const env=vm.runInNewContext(code.slice(start,end)+'\n({SYNTH_ENV,noteEnvelopeGain})',{Math,window:{addEventListener(){}}});
  const {SYNTH_ENV:e,noteEnvelopeGain}=env;
  assert.equal(noteEnvelopeGain(5,5),0,'note starts silent');
  assert.ok(noteEnvelopeGain(5,5+0.005)>0,'smooth attack after 5 ms');
