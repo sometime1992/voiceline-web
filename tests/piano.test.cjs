@@ -205,7 +205,7 @@ test('Published Tone Piano engine replaces handmade note playback inside Android
  const pkg=JSON.parse(readFileSync(path.join(root,'package.json'),'utf8'));
  const fetcher=readFileSync(path.join(root,'scripts/fetch-salamander-samples.mjs'),'utf8');
  const workflow=readFileSync(path.join(root,'.github/workflows/build-apk.yml'),'utf8');
- assert.equal(pkg.dependencies['@tonejs/piano'],'0.2.0');
+ assert.equal(pkg.dependencies['@tonejs/piano'],'0.2.1');
  assert.ok(pkg.dependencies.tone);
  assert.match(entry,/import \{ Piano \} from '@tonejs\/piano'/);
  assert.match(entry,/piano\.keyDown\(\{midi,velocity:/);
