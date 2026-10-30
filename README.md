@@ -116,3 +116,13 @@ The beta13 Android debug package uses `.rapid13` and installs independently to p
 - Help now explains that audible piano playback can be picked up by the active mic and cause inaccurate sung pitch, vibrato and pitch exercise recognition. Earphones or pausing piano output during singing are recommended.
 - Mobile landscape header mic button is sized for touch and 150% font growth. No new app permission and no network access are added.
 - Debug application ID suffix `.mic14` keeps earlier tester's recordings intact.
+
+## v2.0.0-beta15 — landscape vibrato overlay
+
+- Vibrato mode now presents a translucent live pitch-versus-time chart **over** the piano keyboard with `pointer-events:none`, retaining black/white key multitouch and the highlighted reference key.
+- The center line is the selected target pitch (0 cent); the purple trace shows microphone-detected pitch in cents with a rolling three-second window, including gaps when sound is absent.
+- Four metrics: median center vs target (cent), robust vibrato half-span (±cent), detected cycle frequency (Hz), and period regularity (qualitative). These are signal-derived approximations, not clinical vocal assessments.
+- Pitch changes used in the plot are unsmoothed; the app's previous 3-frame median remains for stable note labels. Vibrato rate is only reported when enough cycles are observed, avoiding a false positive on a steady note.
+- Includes both native Android AudioRecord and browser fallback; canvas DPR and redraw rate are bounded for mobile performance.
+- The chart is visible only in vibrato mode. Previous main screen, recordings, gesture handling, piano engine, microphone switch and offline storage remain intact.
+- New Android package `.vib15` installs alongside earlier beta APKs without touching their stored recordings.
