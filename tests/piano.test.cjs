@@ -355,3 +355,40 @@ test('Mic toggle OFF safely ends recording and ON does not auto-record',async()=
  assert.equal(elements.mainButton.textContent,'마이크 끄기');
  assert.equal(elements.stopButton.hidden,false);
 });
+
+test('Vibrato overlay keeps the piano playable and displays live pitch metrics',()=>{
+ const css=readFileSync(path.join(root,'piano.css'),'utf8');
+ for(const id of ['vibratoOverlay','vibratoGraph','vibratoTargetLabel','vibratoCenter','vibratoDepth','vibratoRate','vibratoRegularity','vibratoGraphStatus'])
+  assert.match(html,new RegExp('id="'+id+'"'),'missing '+id);
+ assert.match(html,/id="vibratoOverlay"[^>]+hidden/,'graph is hidden outside vibrato mode');
+ assert.match(css,/\.vibrato-overlay\{[\s\S]*?pointer-events:none/,'overlay passes gestures through to keyboard');
+ assert.match(css,/\.vibrato-overlay\{[\s\S]*?rgba\(/,'translucent overlay');
+ assert.match(code,/function syncVibratoOverlay\(\)/);
+ assert.match(code,/el\.hidden=app\.mode!=='vibrato'/);
+ assert.match(code,/rawVibratoMidi=midi/,'use raw pitch, not median-smoothed note label');
+ assert.match(code,/renderVibratoOverlay\(t\)/,'live analysis repaints graph');
+ assert.match(code,/기준음\(0cent\)/,'help describes pitch reference line');
+});
+test('Vibrato analysis estimates 5Hz and +/- 25 cents from a clean sine pitch track',()=>{
+ const start=code.indexOf('const VIBRATO_WINDOW_MS=');
+ const end=code.indexOf('function syncVibratoOverlay()',start);
+ assert.ok(start>0&&end>start);
+ const analysis=vm.runInNewContext(code.slice(start,end)+'\nanalyzeVibrato',{Math,Number,Array,clamp:(x,a,b)=>Math.max(a,Math.min(b,x))});
+ const samples=[];
+ for(let i=0;i<90;i++){
+  const tm=i*32;
+  samples.push({t:tm,midi:60+.25*Math.sin(2*Math.PI*5*tm/1000)+.045});
+ }
+ const got=analysis(samples,60);
+ assert.ok(got,'2.8 seconds of real-like pitch data is enough for analysis');
+ assert.ok(Math.abs(got.rate-5)<0.35,'estimated rate '+got.rate);
+ assert.ok(Math.abs(got.depthCents-23)<5,'estimated depth '+got.depthCents);
+ assert.ok(Math.abs(got.centerOffsetCents-4.5)<7,'estimated center offset '+got.centerOffsetCents);
+ assert.equal(got.regularity,'일정');
+ assert.equal(analysis(samples.slice(0,10),60),null,'brief fragments do not report bogus vibrato');
+ const steady=Array.from({length:90},(_,i)=>({t:i*32,midi:60+.03}));
+ const plain=analysis(steady,60);
+ assert.ok(plain&&plain.rate===null,'steady pitch must not report fake vibrato frequency');
+ const wrongKey=Array.from({length:90},(_,i)=>({t:i*32,midi:63+.25*Math.sin(2*Math.PI*5*i*32/1000)}));
+ assert.equal(analysis(wrongKey,60),null,'a note several semitones off target is not valid vibrato');
+});
