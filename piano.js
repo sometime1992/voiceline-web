@@ -252,7 +252,7 @@ async function startMic(){
   app.mic=true;app.lastAnalyze=0;app.notes=[];app.sessionStart=performance.now();
   app.sessionLow=null;app.sessionHigh=null;app.sessionSamples=0;
   micStatus('● 마이크 켜짐');
-  stream.getTracks().forEach(track=>track.addEventListener('ended',()=>{if(app.mic){notify('마이크 연결이 종료되었습니다.');stopMic();}}));
+  stream.getTracks().forEach(track=>track.addEventListener('ended',()=>{if(app.mic){notify('마이크 연결이 종료되었습니다.');if(app.record)stopRecording().then(stopMic);else stopMic();}}));
   app.frame=requestAnimationFrame(tick);
   return true;
  }catch(e){
@@ -274,11 +274,11 @@ function stopMic(){
 }
 function tick(t){
  if(!app.mic)return;
- if(t-app.lastAnalyze>70){updateDetection(t);app.lastAnalyze=t;}
+ if(t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){updateDetection(t);app.lastAnalyze=t;}
  if(app.exercise?.active)updateExercise(t);
  if(app.mode==='vibrato'&&app.vibratoStart)progress(clamp((t-app.vibratoStart)/15000,0,1),'비브라토 '+Math.floor((t-app.vibratoStart)/1000)+'초');
  if(app.record)progress(clamp((t-app.recordStart)/(10*60*1000),0,1),'녹음 '+Math.floor((t-app.recordStart)/1000)+'초');
- if(app.record&&t-app.recordStart>=10*60*1000){notify('녹음은 10분 단위로 저장됩니다.');stopRecording();}
+ if(app.record&&t-app.recordStart>=10*60*1000){notify('녹음은 최대 10분으로 저장됩니다.');stopRecording().then(()=>{stopMic();$('stopButton').hidden=true;});}
  app.frame=requestAnimationFrame(tick);
 }
 function vibratoStatus(){
@@ -377,6 +377,7 @@ function finishExercise(completed){
 function startRecording(){
  if(!app.stream||!app.micCtx)throw new Error('마이크가 연결되지 않았습니다.');
  app.recordStart=performance.now();
+ try{navigator.storage?.persist?.().catch(()=>{});}catch(_){}
  const types=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
  if(window.MediaRecorder){
   let mime='';
