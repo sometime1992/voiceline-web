@@ -156,8 +156,8 @@ test('28 gentle piano recordings have peak calibration and safe bounded loudness
  const end=code.indexOf('const activePianoVoices=',start);
  assert.ok(start>=0&&end>start,'peak metadata exists');
  const env={Map,SOFT_PIANO:{peakGain:0.25},clamp:(v,a,b)=>Math.max(a,Math.min(b,v))};
- const gain=vm.runInNewContext(code.slice(start,end)+'\ncalibratedPianoGain',env);
- const peaks=vm.runInNewContext(code.slice(start,end)+'\nACOUSTIC_PEAKS',env);
+ const result=vm.runInNewContext(code.slice(start,end)+'\n({gain:calibratedPianoGain,peaks:ACOUSTIC_PEAKS})',env);
+ const {gain,peaks}=result;
  assert.equal(peaks.size,28,'calibrate all recorded pitch anchors');
  for(let midi=24;midi<=105;midi+=3){
   assert.ok(peaks.has(midi),'missing '+midi);
