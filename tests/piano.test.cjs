@@ -100,7 +100,6 @@ test('Soft sampled piano keeps hammer attacks quiet and preserves chord headroom
  assert.match(code,/sampledNoteOff\(voice\)\{releasePianoVoice\(voice\);\}/);
  assert.match(code,/volume\.cancelAndHoldAtTime\(t\)/);
  assert.match(code,/const held=attackValue\(voice,t\)/,'release fallback calculates the attack-level at release');
-   'held short-tap amplitude correctly preserved on older WebViews');
 });
 
 test('Vibrato reference can select all twelve notes in C2-B6 and auto-centers',()=>{
