@@ -16,3 +16,29 @@
 .toolbar-center .mic-toggle.active #micToggleAction{background:#e98f9361;color:#ffe7e8;border-color:#ffbbbb70}
 .toolbar-center .mic-toggle:disabled{opacity:.65;cursor:progress}
 @media(max-width:680px){.toolbar{gap:6px;padding-left:8px;padding-right:8px}.toolbar-center{gap:5px}.toolbar-center .mic-toggle{gap:4px;padding:3px 5px;max-width:33vw}.toolbar-center .mic-toggle #micToggleAction{padding:2px 4px}}
+
+/* Beta15: the graph floats over the actual keyboard and never steals gestures.
+   Keep its footprint small on landscape phones, larger on Android tablets. */
+.piano-area{position:relative}
+.vibrato-overlay{
+ position:absolute;left:clamp(10px,2vw,26px);right:clamp(10px,2vw,26px);
+ top:calc(33px + 7px);height:clamp(95px,48%,255px);
+ z-index:8;display:flex;gap:8px;min-height:0;padding:8px 10px;
+ background:rgba(16,19,36,.80);border:1px solid #8dd8d5a8;
+ border-radius:15px;box-shadow:0 7px 32px #08091888,0 0 0 1px #fff1 inset;
+ -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);
+ color:#f5fbff;pointer-events:none;overflow:hidden;user-select:none;
+}
+.vibrato-graph-pane{flex:1 1 70%;min-width:0;min-height:0;display:flex;flex-direction:column;gap:4px}
+.vibrato-overlay-header{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:16px;white-space:nowrap}
+.vibrato-overlay-header strong{font-size:clamp(10px,1.22vw,14px);font-weight:850;white-space:nowrap}
+.vibrato-overlay-header span{font-size:clamp(9px,1vw,12px);color:#bbd8d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vibratoGraph{display:block;flex:1;width:100%;height:100%;min-height:0}
+.vibrato-metrics{flex:0 0 clamp(168px,28%,255px);min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:5px}
+.vibrato-metric{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:1px;min-width:0;min-height:0;padding:4px 6px;border-radius:9px;background:#171b32bd;border:1px solid #a4e6da33;overflow:hidden}
+.vibrato-metric span{font-size:clamp(9px,1vw,11px);color:#bad2d4;white-space:nowrap}
+.vibrato-metric strong{font-size:clamp(14px,1.9vw,23px);color:#8cfce5;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vibrato-metric small{font-size:clamp(8px,.86vw,10px);color:#c3c3da;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-height:440px){.vibrato-overlay{height:clamp(88px,47%,155px);padding:5px 7px;gap:6px}.vibrato-metric{padding:2px 5px}}
+@media(min-width:1100px) and (min-height:600px){.vibrato-overlay{height:min(52%,280px);padding:13px 16px}.vibrato-metrics{gap:9px}.vibrato-metric{padding:9px 12px}}
+@media(max-width:680px){.vibrato-overlay{left:7px;right:7px;gap:5px;padding:5px}.vibrato-metrics{flex-basis:38%}.vibrato-overlay-header span{display:none}}
