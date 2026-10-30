@@ -17,7 +17,8 @@ const MODES={
 const app={
   mode:'piano',base:48,playing:new Map(),owners:new Map(),ctx:null,
   stream:null,micCtx:null,source:null,analyser:null,buffer:null,frame:0,
-  mic:false,busy:false,currentMidi:null,detected:null,lastAnalyze:0,notes:[],stats:[],
+  mic:false,nativeMic:false,nativeStartResolve:null,nativeStartTimeout:0,nativeSampleRate:44100,
+  micError:'',busy:false,currentMidi:null,detected:null,lastAnalyze:0,notes:[],stats:[],
   sessionStart:0,sessionLow:null,sessionHigh:null,sessionSamples:0,record:null,
   exercise:null,exercisePattern:'scale',exerciseRoot:60,exerciseSpeed:1800,
   vibratoRoot:60,vibratoStart:0,vibratoSamples:[],vibratoLast:null,recordStart:0,
@@ -230,10 +231,10 @@ function pitchYin(s,sr){
  if(!Number.isFinite(hz)||hz<65||hz>1900)return null;
  return {hz,rms};
 }
-function updateDetection(t){
- if(!app.analyser||!app.micCtx)return;
- app.analyser.getFloatTimeDomainData(app.buffer);
- const p=pitchYin(app.buffer,app.micCtx.sampleRate);
+function updateDetection(t,nativeSamples=null,nativeRate=0){
+ if(!nativeSamples&&(!app.analyser||!app.micCtx))return;
+ if(!nativeSamples)app.analyser.getFloatTimeDomainData(app.buffer);
+ const p=nativeSamples?pitchYin(nativeSamples,nativeRate):pitchYin(app.buffer,app.micCtx.sampleRate);
  if(!p){
   app.detected=null;
   if(app.mode==='pitch'||app.mode==='record'){$('noteHint').textContent='소리를 감지하는 중…';clearNote();}
@@ -264,8 +265,81 @@ function updateDetection(t){
  }
  syncKeyColors();
 }
+// For the Android-only APK, use AudioRecord directly instead of relying on WebView getUserMedia.
+// This also avoids a WebView second-stage permission denial on some device versions.
+window.VoiceLineNativeAudio = {
+ onState(state,detail){
+   if(state==='permission'){micStatus('마이크 권한 요청 중…');return;}
+   if(state==='started'){
+     app.nativeMic=true;
+     app.mic=true;
+     app.micError='';
+     app.lastAnalyze=0;
+     app.notes=[];
+     app.sessionStart=performance.now();
+     app.sessionLow=null;app.sessionHigh=null;app.sessionSamples=0;
+     micStatus('● 마이크 켜짐 (Android)');
+     if(!app.frame)app.frame=requestAnimationFrame(tick);
+     completeNativeStart(true);
+   }else if(state==='denied'||state==='error'){
+     app.micError=state+': '+detail;
+     micStatus(state==='denied'?'마이크 권한 거부':'마이크 연결 실패');
+     notify(detail||'안드로이드 마이크 시작 실패');
+     completeNativeStart(false);
+     if(app.mic)stopMic();
+   }
+ },
+ onAudioChunk(encoded,sampleRate){
+   if(!app.mic||!app.nativeMic)return;
+   // Raw PCM16 comes only from the installed native AudioRecord bridge.
+   const bytes=atob(encoded);
+   const samples=new Float32Array(Math.floor(bytes.length/2));
+   for(let i=0;i<samples.length;i++){
+     let v=bytes.charCodeAt(i*2)|(bytes.charCodeAt(i*2+1)<<8);
+     if(v>=32768)v-=65536;
+     samples[i]=v/32768;
+   }
+   app.nativeSampleRate=sampleRate;
+   if(app.record?.type==='native')app.record.chunks.push(samples);
+   const t=performance.now();
+   if(t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){
+     updateDetection(t,samples,sampleRate);
+     app.lastAnalyze=t;
+   }
+ }
+};
+function completeNativeStart(ok){
+ const cb=app.nativeStartResolve;
+ app.nativeStartResolve=null;
+ if(app.nativeStartTimeout)clearTimeout(app.nativeStartTimeout);
+ app.nativeStartTimeout=0;
+ if(cb)cb(ok);
+}
+async function startNativeMic(){
+ micStatus('안드로이드 마이크 연결 중…');
+ return await new Promise(resolve=>{
+   app.nativeStartResolve=resolve;
+   app.nativeStartTimeout=setTimeout(()=>{
+     app.micError='Android microphone startup timed out';
+     app.nativeStartResolve=null;
+     app.nativeStartTimeout=0;
+     try{window.VoiceLineNative.stop();}catch(_){}
+     micStatus('마이크 연결 시간 초과');
+     notify('마이크가 응답하지 않습니다. 앱의 마이크 권한을 확인하세요.');
+     resolve(false);
+   },12000);
+   try{window.VoiceLineNative.start();}
+   catch(e){
+     app.micError='Native bridge failed: '+String(e);
+     micStatus('마이크 연결 실패');
+     notify('안드로이드 마이크 요청 오류: '+String(e));
+     completeNativeStart(false);
+   }
+ });
+}
 async function startMic(){
  if(app.mic)return true;
+ if(window.VoiceLineNative?.start)return startNativeMic();
  if(!navigator.mediaDevices?.getUserMedia||!audioCtor){notify('마이크를 사용할 수 없습니다. 앱 권한 또는 HTTPS 환경을 확인하세요.');return false;}
  micStatus('마이크 권한 요청 중');
  let stream=null,ac=null;
@@ -285,14 +359,19 @@ async function startMic(){
  }catch(e){
   if(stream)stream.getTracks().forEach(t=>t.stop());
   if(ac)ac.close().catch(()=>{});
-  micStatus('마이크 연결 실패');
+  app.micError=(e?.name||'Error')+': '+(e?.message||'unknown');
+  micStatus('마이크 연결 실패 · '+(e?.name||'오류'));
   const msg=e?.name==='NotAllowedError'?'마이크 권한이 차단되었습니다. 기기 설정에서 허용해 주세요.':'마이크를 열 수 없습니다. 다른 앱의 마이크 사용 여부를 확인해 주세요.';
   notify(msg);return false;
  }
 }
 function stopMic(){
- if(!app.mic)return;
- app.mic=false;cancelAnimationFrame(app.frame);
+ if(!app.mic){completeNativeStart(false);return;}
+ const wasNative=app.nativeMic;
+ app.mic=false;
+ app.nativeMic=false;
+ cancelAnimationFrame(app.frame);app.frame=0;
+ if(wasNative)try{window.VoiceLineNative?.stop?.();}catch(_){};
  app.stream?.getTracks().forEach(t=>t.stop());
  app.source?.disconnect();app.analyser?.disconnect();
  app.micCtx?.close().catch(()=>{});
@@ -301,7 +380,7 @@ function stopMic(){
 }
 function tick(t){
  if(!app.mic)return;
- if(t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){updateDetection(t);app.lastAnalyze=t;}
+ if(!app.nativeMic&&t-app.lastAnalyze>(app.mode==='vibrato'?35:70)){updateDetection(t);app.lastAnalyze=t;}
  if(app.exercise?.active)updateExercise(t);
  if(app.mode==='vibrato'&&app.vibratoStart)progress(clamp((t-app.vibratoStart)/15000,0,1),'비브라토 '+Math.floor((t-app.vibratoStart)/1000)+'초');
  if(app.record)progress(clamp((t-app.recordStart)/(10*60*1000),0,1),'녹음 '+Math.floor((t-app.recordStart)/1000)+'초');
@@ -402,8 +481,14 @@ function finishExercise(completed){
  syncKeyColors();
 }
 function startRecording(){
- if(!app.stream||!app.micCtx)throw new Error('마이크가 연결되지 않았습니다.');
+ if(!app.mic)throw new Error('마이크가 연결되지 않았습니다.');
  app.recordStart=performance.now();
+ if(app.nativeMic){
+   // Store WAV directly as an IndexedDB blob; no media server or external permission.
+   app.record={type:'native',targetRate:app.nativeSampleRate,chunks:[]};
+   return;
+ }
+ if(!app.stream||!app.micCtx)throw new Error('Web microphone stream unavailable');
  try{navigator.storage?.persist?.().catch(()=>{});}catch(_){}
  const types=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
  if(window.MediaRecorder){
@@ -450,6 +535,7 @@ async function stopRecording(){
  let blob;
  try{
   if(r.type==='media'){if(r.mr.state!=='inactive')r.mr.stop();blob=await r.complete;}
+  else if(r.type==='native')blob=wavBlob(r.chunks,r.targetRate);
   else{r.processor.onaudioprocess=null;app.source?.disconnect(r.processor);r.processor.disconnect();r.silent.disconnect();blob=wavBlob(r.chunks,r.targetRate);}
   if(!blob||blob.size<128)throw new Error('녹음 데이터 없음');
   await store('recordings','put',{id:id(),date:stamp(),timestamp:Date.now(),duration:elapsed,blob,mime:blob.type,size:blob.size,title:'목소리 녹음'});
@@ -607,4 +693,12 @@ if('serviceWorker' in navigator){
 }
 if(screen.orientation?.lock){screen.orientation.lock('landscape').catch(()=>{});}
 window.VoiceLinePiano={name,frequency,pitchYin};
+window.VoiceLineMicrophoneDiagnostics=()=>({
+ nativeAvailable:!!window.VoiceLineNative?.start,
+ nativeStatus:window.VoiceLineNative?.diagnostics?.()||'Not installed',
+ webMediaSupported:!!navigator.mediaDevices?.getUserMedia,
+ secureContext:!!window.isSecureContext,
+ micRunning:app.mic,
+ lastError:app.micError||'none'
+});
 })();
