@@ -94,3 +94,15 @@ The optional piano keybed click, string harmonics click and pedal noises are dis
 
 ## v2.0.0-beta12
 - Complete on-device attribution in the help menu for the MIT piano runtime and CC BY 3.0 Salamander recordings.
+
+## v2.0.0-beta13 — rapid-tap and note-click fix
+
+- Diagnosed `@tonejs/piano`'s internal Tone.Sampler attack as **0 seconds** (instant PCM onset).
+- Keep the published grand-piano engine and installed acoustic recordings, but set its existing Tone.Sampler `attack` option to **18ms** after loading (pinned library version); the normal release remains the library's approximately 400ms.
+- `keyDown` triggers **synchronously** when the sample library and audio context are ready, avoiding a promise microtask on each touch.
+- Notes shorter than **90ms** get a protected minimum sounding time. Fast re-press of the same MIDI key cancels its old scheduled key-up, releases the previous note, and starts the new note, preventing a stale callback from cutting a fresh note.
+- Stop/cancel clears all pending key releases. The diagnostic sine comparison now correctly bypasses Tone Piano.
+- A regression test drives 12ms, 16ms rapid taps and validates ordering/cleanup without a real speaker.
+- No change to keyboard layout, pitch sensing, vibrato reference, recording, or on-device stored history.
+
+The beta13 Android debug package uses `.rapid13` and installs independently to protect previous beta installations and their saved data. Acoustic-sample license credit remains in the app's help menu.
