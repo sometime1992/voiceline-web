@@ -108,6 +108,7 @@ function drawKeys(){
  }
  $('octaveLabel').textContent=name(app.base)+' – '+name(app.base+23);
  syncKeyColors();
+ preloadAcousticPiano(app.base);
 }
 function syncKeyColors(){
  const detected=app.detected===null?null:Math.round(app.detected);
@@ -131,6 +132,89 @@ function noteEnvelopeGain(start,t){
  }
  return SYNTH_ENV.sustain;
 }
+
+// Acoustic piano recordings bundled from Meta Open Sound (CC0 1.0).
+// The Android APK includes all OGG files. Never stream samples from a server.
+const ACOUSTIC_SAMPLE_MIDI=Array.from({length:28},(_,i)=>24+3*i);
+const acoustic={buffers:new Map(),pending:new Map(),failed:new Set(),preloadEpoch:0};
+function nearestAcousticMidi(midi){
+ return clamp(24+3*Math.round((clamp(midi,24,107)-24)/3),24,105);
+}
+function acousticFilename(midi){
+ const keys=['C','Cs','D','Ds','E','F','Fs','G','Gs','A','As','B'];
+ return 'INSPiano_Vel03_'+keys[midi%12]+(Math.floor(midi/12)-1)+'_01.ogg';
+}
+async function loadAcousticSample(anchor){
+ if(acoustic.buffers.has(anchor))return acoustic.buffers.get(anchor);
+ if(acoustic.failed.has(anchor))return null;
+ if(acoustic.pending.has(anchor))return acoustic.pending.get(anchor);
+ const task=(async()=>{
+   try{
+     const address='./samples/piano/'+acousticFilename(anchor);
+     const response=await fetch(address);
+     if(!response.ok)throw Error('Bundled piano sample '+anchor+' missing: '+response.status);
+     const bytes=await response.arrayBuffer();
+     const ac=ensureSynth();
+     if(!ac)throw Error('AudioContext not supported');
+     const buffer=await ac.decodeAudioData(bytes);
+     if(!buffer||buffer.duration<0.1)throw Error('Empty piano recording '+anchor);
+     acoustic.buffers.set(anchor,buffer);
+     updateAcousticStatus();
+     return buffer;
+   }catch(err){
+     acoustic.failed.add(anchor);
+     console.warn('Acoustic piano sample unavailable; using synthesized fallback',anchor,err);
+     updateAcousticStatus();
+     return null;
+   }finally{acoustic.pending.delete(anchor);}
+ })();
+ acoustic.pending.set(anchor,task);
+ return task;
+}
+function preloadAcousticPiano(base){
+ // Only decode and retain the visible keyboard range; adjacent octaves load on shift.
+ const anchors=[...new Set(Array.from({length:24},(_,i)=>nearestAcousticMidi(base+i)))];
+ const epoch=++acoustic.preloadEpoch;
+ Promise.all(anchors.map(loadAcousticSample)).then(()=>{
+   if(epoch===acoustic.preloadEpoch)updateAcousticStatus(anchors);
+ });
+}
+function updateAcousticStatus(anchors=null){
+ const badge=$('pianoSoundChip');
+ if(!badge)return;
+ const requested=anchors||[...new Set(Array.from({length:24},(_,i)=>nearestAcousticMidi(app.base+i)))];
+ const ready=requested.filter(m=>acoustic.buffers.has(m)).length;
+ const errors=requested.some(m=>acoustic.failed.has(m));
+ badge.textContent=errors?'피아노 음원 일부 미지원':ready===requested.length?'● 실제 피아노 음원':'피아노 음원 '+ready+'/'+requested.length;
+ badge.classList.toggle('ready',ready===requested.length);
+}
+function sampledNoteOn(m){
+ const anchor=nearestAcousticMidi(m),buffer=acoustic.buffers.get(anchor);
+ if(!buffer)return false;
+ const ac=ensureSynth();if(!ac)return false;
+ const t=ac.currentTime,source=ac.createBufferSource(),gain=ac.createGain();
+ source.buffer=buffer;
+ source.playbackRate.setValueAtTime(Math.pow(2,(m-anchor)/12),t);
+ // Preserve the recording's real hammer/string attack instead of synthetic harmonics.
+ gain.gain.setValueAtTime(0,t);
+ gain.gain.linearRampToValueAtTime(0.76,t+0.006);
+ source.connect(gain);gain.connect(app.synthMaster);
+ source.start(t);
+ const voice={type:'sample',source,gain,started:t};
+ source.onended=()=>{source.disconnect();gain.disconnect();if(app.playing.get(m)===voice)app.playing.delete(m);};
+ app.playing.set(m,voice);
+ return true;
+}
+function sampledNoteOff(voice){
+ const ac=app.ctx;if(!ac)return;
+ const t=ac.currentTime,volume=voice.gain.gain;
+ // Never jump volume at key-off, including very short taps.
+ if(typeof volume.cancelAndHoldAtTime==='function')volume.cancelAndHoldAtTime(t);
+ else{volume.cancelScheduledValues(t);volume.setValueAtTime(Math.min(0.76,0.76*Math.max(0,(t-voice.started)/0.006)),t);}
+ volume.linearRampToValueAtTime(0,t+0.14);
+ try{voice.source.stop(t+0.145);}catch(_){}
+}
+
 function ensureSynth(){
  if(!audioCtor){notify('이 환경에서는 소리를 낼 수 없습니다.');return null;}
  try{
@@ -162,7 +246,11 @@ function ensureSynth(){
  }catch(e){console.warn('Piano audio unavailable',e);notify('오디오 장치를 시작할 수 없습니다.');return null;}
 }
 function soundOn(m){
- const ac=ensureSynth();if(!ac||app.playing.has(m))return;
+ if(app.playing.has(m))return;
+ if(sampledNoteOn(m))return;
+ // Only when a bundled recording is not ready/decodable, keep the older fallback.
+ loadAcousticSample(nearestAcousticMidi(m));
+ const ac=ensureSynth();if(!ac)return;
  const t=ac.currentTime;
  const freq=frequency(m);
  const oscillator=ac.createOscillator(),harm=ac.createOscillator();
@@ -184,6 +272,7 @@ function soundOn(m){
 function soundOff(m){
  const p=app.playing.get(m);if(!p||!app.ctx)return;
  app.playing.delete(m);
+ if(p.type==='sample'){sampledNoteOff(p);return;}
  const t=app.ctx.currentTime,volume=p.g.gain;
  // AudioParam.value is NOT the current value of a pending automation.
  // Holding the scheduled instantaneous gain avoids a step to near-silence
@@ -517,13 +606,25 @@ function updateExercise(t){
 }
 function playReference(m){
  const ac=ensureSynth();if(!ac)return;
- const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
- o.type='sine';o.frequency.setValueAtTime(frequency(m),t);
- g.gain.setValueAtTime(0,t);
- g.gain.linearRampToValueAtTime(0.038,t+0.026);
- g.gain.linearRampToValueAtTime(0,t+0.28);
- o.connect(g);g.connect(app.synthMaster);o.start(t);o.stop(t+0.288);
- o.onended=()=>{o.disconnect();g.disconnect();};
+ const t=ac.currentTime,g=ac.createGain();
+ const anchor=nearestAcousticMidi(m),sample=acoustic.buffers.get(anchor);
+ if(sample){
+   const s=ac.createBufferSource();
+   s.buffer=sample;s.playbackRate.setValueAtTime(Math.pow(2,(m-anchor)/12),t);
+   g.gain.setValueAtTime(0,t);
+   g.gain.linearRampToValueAtTime(0.38,t+0.008);
+   g.gain.linearRampToValueAtTime(0,t+0.32);
+   s.connect(g);g.connect(app.synthMaster);s.start(t);s.stop(t+0.328);
+   s.onended=()=>{s.disconnect();g.disconnect();};
+ }else{
+   loadAcousticSample(anchor);
+   // Fallback for an unavailable sample only.
+   const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(frequency(m),t);
+   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.038,t+0.026);
+   g.gain.linearRampToValueAtTime(0,t+0.28);
+   o.connect(g);g.connect(app.synthMaster);o.start(t);o.stop(t+0.288);
+   o.onended=()=>{o.disconnect();g.disconnect();};
+ }
 }
 function finishExercise(completed){
  const e=app.exercise;if(!e)return;
