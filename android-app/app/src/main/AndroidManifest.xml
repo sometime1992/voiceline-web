@@ -3,7 +3,10 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <application android:allowBackup="false" android:label="보이스라인" android:theme="@style/AppTheme" android:usesCleartextTraffic="false">
-        <activity android:name=".MainActivity" android:configChanges="orientation|keyboardHidden|screenSize" android:exported="true">
+        <activity android:name=".MainActivity"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
