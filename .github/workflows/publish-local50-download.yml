@@ -1,0 +1,89 @@
+name: VoiceLine Local50 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local50-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local50-ci
+      SOURCE_RUN_ID: '41218708256'
+      SOURCE_COMMIT: 2186f7a1c72820ec92ba089f5d000247381141a0
+      APK_SHA256: 27fa2aa246cd80526641f8f1693eb24a4515d2df980c767a82a8205e863bb554
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local50-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local50-CI.apk'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ['APK_SHA256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local50-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 1, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## 보이스라인 Local50 테스트 APK
+
+          아래 Assets에서 APK 또는 ZIP을 받아 기존 앱에 업데이트 설치하세요.
+
+          - 가로모드 건반 바로 위 오른쪽에 그래프 숨기기 / 그래프 보기 버튼 추가
+          - 전환해도 건반 크기와 위치 유지
+          - 마지막 선택 기억, 세로모드에서는 그래프 표시
+          - 숨긴 중에도 음정 감지·녹음·채점과 준비 카운트·목표음·훈련 단계 유지
+          - 청음 듣기 중 정답 숨김, 호흡·워밍업 안내 유지
+          - 숨긴 그래프의 캔버스 갱신을 중단하고 다시 켜면 수집 중인 데이터 표시
+          - 자동 검사 269개와 화면 배치 63건, 실제 그래프·녹음 저장·회전·설정 저장 검사 통과
+          - 기존 앱과 같은 서명 및 내장 파일 검증 완료
+
+          기존 CI45~49 앱의 녹음·연습 기록을 유지합니다. 기존 앱에 업데이트 설치하세요.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local50-CI.apk dist/VoiceLine-Local50-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local50 CI45 테스트 APK' --notes-file release-notes.md dist/VoiceLine-Local50-CI.apk dist/VoiceLine-Local50-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local50-CI.apk VoiceLine-Local50-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
