@@ -12,7 +12,7 @@ function fixture(){
   base:48,keyboardNotes:24,owners:new Map(),notes:[],sessionSamples:0,layoutReady:false};
  const window={devicePixelRatio:3,innerWidth:844,innerHeight:390},document={body:{classList:{toggle(){}}},documentElement:{}};
  const context={app,$,window,document,Math,Number,Set,Map,Float32Array,performance:{now:()=>clock},
-  releaseHeldKeys(){},drawKeys(){},targetKeyboardBase:()=>48,updateMicToggle(){},
+  releaseHeldKeys(){},drawKeys(){},targetKeyboardBase:()=>48,updateMicToggle(){},syncGraphVisibility(){},landscapeGraphHidden:()=>false,
   renderVibratoOverlay(){},renderRecordPitchOverlay(){},renderTrainingOverlay(){},updatePracticeScrollHint(){},
   showNote(){},clearNote(){},syncKeyColors(){},store(){throw Error('graph wrote a recording');},
   pitchYin:()=>context.nextPitch};

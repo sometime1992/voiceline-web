@@ -214,7 +214,7 @@ test('The guide UI displays countdown, start and first-note hints, then clears t
  const s=session({pattern:'down'}),end=s.start+s.phraseMs,nodes=new Map(),app={training:s,trainingLastDraw:0};
  const $=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:'',dataset:{},getBoundingClientRect:()=>({width:0,height:0})});return nodes.get(id);};
  const render=vm.runInNewContext(chunk('function renderGuideTraining(','function rememberFullRecordingPitch(')+'\nrenderGuideTraining',{
-  app,$,window:{VoiceLineGuideTraining:guide},...labels,guideOptions:()=>s.settings,Math,Number
+  app,$,window:{VoiceLineGuideTraining:guide},...labels,guideOptions:()=>s.settings,Math,Number,landscapeGraphHidden:()=>false
  });
  render(end,true);assert.equal($('guideStartCue').hidden,false);assert.equal($('guideStartCount').textContent,'3');
  assert.match($('guideStartText').textContent,/첫 음 G4 · 2옥 솔/);assert.match($('guidePhaseTitle').textContent,/준비/);
@@ -230,7 +230,7 @@ test('Every slide pattern shows solfege and Korean octave for its goal, live voi
   const s=session({pattern,root:61}),answer=s.start+s.phraseMs+s.handoffMs,t=answer+400,nodes=new Map();
   const app={training:s,trainingLastDraw:0},$=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:'',dataset:{},getBoundingClientRect:()=>({width:0,height:0})});return nodes.get(id);};
   const render=vm.runInNewContext(chunk('function renderGuideTraining(','function rememberFullRecordingPitch(')+'\nrenderGuideTraining',{
-   app,$,window:{VoiceLineGuideTraining:guide},...labels,guideOptions:()=>s.settings,Math,Number
+   app,$,window:{VoiceLineGuideTraining:guide},...labels,guideOptions:()=>s.settings,Math,Number,landscapeGraphHidden:()=>false
   });
   const p=guide.position(s,t);guide.receive(s,t-50,p.midi);guide.receive(s,t,p.midi);render(t,true);
   assert.equal($('guideTargetLabel').textContent,'목표 '+labels.noteLabel(p.midi));

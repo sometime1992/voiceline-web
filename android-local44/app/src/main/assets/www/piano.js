@@ -46,6 +46,10 @@ function readMicSensitivity(){
  return 'sensitive';
 }
 const PIANO_VOLUME_KEY='voiceline-piano-volume-v1';
+const LANDSCAPE_GRAPH_KEY='voiceline-landscape-graph-hidden-v1';
+function readLandscapeGraphHidden(){
+ try{return localStorage.getItem(LANDSCAPE_GRAPH_KEY)==='1';}catch(_){return false;}
+}
 function readPianoVolume(){
  try{
   const stored=localStorage.getItem(PIANO_VOLUME_KEY);
@@ -56,6 +60,7 @@ function readPianoVolume(){
 const app={
   mode:'piano',base:48,keyboardNotes:24,playing:new Map(),owners:new Map(),ctx:null,pianoVolume:readPianoVolume(),micSensitivity:readMicSensitivity(),
   layoutPortrait:false,layoutOrientation:null,layoutWidth:0,layoutHeight:0,layoutFrame:0,layoutReady:false,
+  landscapeGraphHidden:readLandscapeGraphHidden(),graphStatusLast:0,
   stream:null,micCtx:null,source:null,analyser:null,buffer:null,frame:0,
   mic:false,nativeMic:false,nativeStartResolve:null,nativeStartTimeout:0,nativeSampleRate:0,
   micGeneration:0,nativeRequestId:null,micStartPromise:null,micCancelResolve:null,backgrounded:false,
@@ -266,6 +271,7 @@ function updateMicToggle(){
  button.setAttribute('aria-pressed',String(active));
  button.setAttribute('aria-label',active?'마이크 끄기':'마이크 켜기');
  button.title=active?'마이크 끄기: 녹음·비브라토·음정 연습 중이라면 먼저 정상 종료합니다.':'마이크 켜기: 피아노 소리가 함께 인식될 수 있습니다.';
+ updateGraphHiddenStatus(performance.now(),true);
 }
 // Independent of Android system media volume. The Tone Piano branch exposes
 // a smooth strings-only dB control; the old WebAudio fallback uses master gain.
@@ -1029,6 +1035,7 @@ function tick(t){
  if(app.mode==='record')renderRecordPitchOverlay(t);
  if(app.mode==='piano'||app.mode==='pitch')renderPitchGraphOverlay(t);
  if(app.record)progress(1,'녹음 '+recordTime(t-app.recordStart)+' · 한 파일');
+ updateGraphHiddenStatus(t);
  if(app.mic||app.training?.active)app.frame=requestAnimationFrame(tick);else app.frame=0;
 }
 // The graph is in musical cents, NOT waveform amplitude. Show the actual
@@ -1233,6 +1240,7 @@ function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=fal
 }
 function renderRecordPitchOverlay(now=performance.now(),force=false){
  const el=$('recordPitchOverlay');if(!el||el.hidden||app.mode!=='record')return;
+ if(landscapeGraphHidden())return;
  if(!force&&now-app.recordPitchLast<80)return;
  app.recordPitchLast=now;
  const graph=drawLivePitchGraph($('recordPitchGraph'),app.recordPitchSamples,app.recordPitchFrozenAt??now);
@@ -1272,6 +1280,7 @@ function syncPitchGraphOverlay(reset=false){
 }
 function renderPitchGraphOverlay(now=performance.now(),force=false){
  const el=$('pitchGraphOverlay');if(!el||el.hidden||!['piano','pitch'].includes(app.mode))return;
+ if(landscapeGraphHidden())return;
  if(!force&&now-app.pitchGraphLast<40)return;
  app.pitchGraphLast=now;
  const practice=app.mode==='practice';
@@ -1298,6 +1307,7 @@ function syncVibratoOverlay(){
 function renderVibratoOverlay(now=performance.now(),force=false){
  const el=$('vibratoOverlay');
  if(!el||el.hidden||app.mode!=='vibrato')return;
+ if(landscapeGraphHidden())return;
  if(!force&&now-app.vibratoOverlayLast<55)return;
  app.vibratoOverlayLast=now;
  const canvas=$('vibratoGraph'),rect=canvas.getBoundingClientRect();
@@ -1398,6 +1408,7 @@ function lockPracticeControls(locked){
 }
 function modeControls(){
  $('app').dataset.mode=app.mode;
+ syncGraphVisibility();
  $('recordStorageInfo').hidden=app.mode!=='record';if(app.mode==='record')void updateRecordingStorage();
  const c=$('exerciseControls');c.replaceChildren();
  c.scrollLeft=0;
@@ -1414,6 +1425,7 @@ function modeControls(){
    if(!Number.isInteger(chosen)||chosen<PITCH_RANGE.minMidi||chosen>PITCH_RANGE.maxMidi)return;
    app.vibratoRoot=chosen;
    focusVibratoReference();
+   updateGraphHiddenStatus(performance.now(),true);
   };
  } else if(app.mode==='record'){
   c.innerHTML='<span class="control-note">시작부터 중지까지 한 파일 · 무음 포함</span><button type="button" id="recordList">녹음 기록 보기</button>';
@@ -1988,6 +2000,7 @@ function syncTrainingOverlay(){
 function renderTrainingOverlay(now=performance.now(),force=false){
  if(app.mode==='practice'||app.mode==='guideVoice'){renderGuideTraining(now,force);return;}
  const el=$('trainingOverlay');if(!el||el.hidden)return;
+ if(landscapeGraphHidden()&&app.mode!=='warmupVoice')return;
  if(!force&&now-app.trainingLastDraw<100)return;
  app.trainingLastDraw=now;
  const a=app.training;
@@ -2164,7 +2177,7 @@ function renderGuideTraining(t=performance.now(),force=false){
  $('guideLiveHint').textContent=recent?(Math.abs(cents)<=a.tolerance?'목표에 가깝습니다':cents>0?'조금 낮춰보세요':'조금 높여보세요'):phase==='listen'?'듣기 · 채점 제외':'목소리 대기';
  $('guideAccuracy').textContent=m.accuracy===null?'—':m.accuracy+'%';$('guideTolerance').textContent='목표 ±'+a.tolerance+'cent';
  $('guideCoverage').textContent=m.coverage+'%';$('guideCoverageHint').textContent='유효 발성 '+(a.voicedMs/1000).toFixed(1)+'초';
- api.draw($('guidePhraseGraph'),a,now,noteLabel);
+ if(!landscapeGraphHidden())api.draw($('guidePhraseGraph'),a,now,noteLabel);
 }
 function rememberFullRecordingPitch(t,midi){
  if(!app.record)return;
@@ -3164,6 +3177,69 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden)window.VoiceLineLifecycle.onPause();else window.VoiceLineLifecycle.onResume();
 });
 applyPianoVolume(app.pianoVolume,false);
+// A landscape view preference never changes capture, scoring or activity clocks.
+function landscapeGraphHidden(){return !app.layoutPortrait&&app.landscapeGraphHidden===true;}
+function graphPanelId(){
+ if(app.mode==='pitch')return 'pitchGraphOverlay';
+ if(app.mode==='record')return 'recordPitchOverlay';
+ if(app.mode==='vibrato')return 'vibratoOverlay';
+ if(app.mode==='practice'||app.mode==='guideVoice')return 'guideVoicePanel';
+ if(['sustainVoice','earVoice','dynamicVoice'].includes(app.mode))return 'trainingOverlay';
+ return null;
+}
+function graphHiddenSummary(now){
+ const a=app.training;
+ if(app.mode==='practice'||app.mode==='guideVoice'){
+  const api=window.VoiceLineGuideTraining;
+  if(!a?.active||a.mode!=='guideVoice'||!api)return '목표 '+noteLabel(guideOptions().root)+' · 연습 시작 대기';
+  const p=api.position(a,now),cue=api.startCue(a,now);
+  const phase=cue.visible?(cue.starting?'지금 시작!':cue.count+'초 뒤 시작'):
+   ({ready:'가이드 준비',listen:'먼저 듣기',handoff:'따라 부르기 준비',answer:'따라 부르기',rest:'잠깐 쉬세요',done:'연습 완료'}[p.phase]||'음정 연습');
+  return phase+' · 목표 '+noteLabel(p.midi);
+ }
+ if(app.mode==='vibrato')return '기준 '+noteLabel(app.vibratoRoot)+' · '+(app.mic?'측정 중':'시작 대기');
+ if(app.mode==='record')return app.record?'녹음 중 · 음정 측정 유지':app.recordSaving?'녹음 저장 중':'녹음 시작 대기';
+ if(['sustainVoice','earVoice','dynamicVoice'].includes(app.mode)){
+  if(!a?.active)return '훈련 시작 대기';
+  if(now<a.start)return Math.ceil((a.start-now)/1000)+'초 준비';
+  const phase=trainingPhase(a,Math.max(0,now-a.start));
+  // Keep the hidden answer hidden during the listening portion of ear training.
+  if(app.mode==='earVoice'&&phase==='listen')return '기준음 듣기 · 곧 따라 부르세요';
+  const target=Number.isFinite(a.target)?a.target:a.root;
+  return (app.mode==='dynamicVoice'?phase+' · 목표 ':'목표 ')+noteLabel(target);
+ }
+ return app.mic?'음정 측정 중 · 보라색 건반 확인':'마이크를 켜면 측정합니다';
+}
+function updateGraphHiddenStatus(now=performance.now(),force=false){
+ const status=$('graphHiddenStatus');if(!status||status.hidden)return;
+ if(!force&&now-app.graphStatusLast<100)return;
+ app.graphStatusLast=now;
+ const text=graphHiddenSummary(now);
+ if(status.textContent!==text)status.textContent=text;
+ status.title=text;
+}
+function syncGraphVisibility(){
+ const button=$('graphToggle'),status=$('graphHiddenStatus');if(!button||!status)return;
+ const panel=graphPanelId(),available=!app.layoutPortrait&&Boolean(panel),hidden=available&&landscapeGraphHidden();
+ $('app').classList.toggle('landscape-graph-hidden',hidden);
+ button.hidden=!available;
+ button.textContent=hidden?'그래프 보기':'그래프 숨기기';
+ button.setAttribute('aria-expanded',String(!hidden));
+ button.setAttribute('aria-controls',panel||'pitchGraphOverlay');
+ status.hidden=!hidden;
+ updateGraphHiddenStatus(performance.now(),true);
+}
+function toggleLandscapeGraph(){
+ if(app.layoutPortrait||!graphPanelId())return;
+ app.landscapeGraphHidden=!app.landscapeGraphHidden;
+ try{localStorage.setItem(LANDSCAPE_GRAPH_KEY,app.landscapeGraphHidden?'1':'0');}catch(_){/* This session still works. */}
+ syncGraphVisibility();
+ if(!landscapeGraphHidden()){
+  const now=performance.now();
+  renderPitchGraphOverlay(now,true);renderVibratoOverlay(now,true);renderRecordPitchOverlay(now,true);renderTrainingOverlay(now,true);
+ }
+}
+$('graphToggle')?.addEventListener('click',toggleLandscapeGraph);
 // Resize only the view. Recording, scoring clocks and metronome scheduling stay intact.
 function applyResponsiveLayout(force=false){
  const width=Number(window.innerWidth||document.documentElement?.clientWidth)||0;
@@ -3185,6 +3261,7 @@ function applyResponsiveLayout(force=false){
   drawKeys();
  }
  app.layoutReady=true;
+ syncGraphVisibility();
  updateMicToggle();
  const notice=$('micNotice');
  if(notice&&!notice.hidden)$('micNoticeTitle').textContent=portrait?(app.mic?'마이크 켜짐':'마이크 꺼짐'):(app.mic?'마이크가 켜졌습니다':'마이크가 꺼졌습니다');

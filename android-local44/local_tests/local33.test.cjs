@@ -90,7 +90,7 @@ test('Local33 12 minutes elapsed does not silently stop or start a new recording
  const tick=run(chunk('function recordTime(milliseconds){','async function stopRecording(){')+
   chunk('function tick(t){','const VIBRATO_WINDOW_MS=')+'\ntick',{
   app,renderRecordPitchOverlay(){},progress:(value,text)=>label=text,safeStopOnBackground:()=>stopped++,
-  requestAnimationFrame:()=>++frames
+  requestAnimationFrame:()=>++frames,updateGraphHiddenStatus(){}
  });
  tick(12*60*1000);assert.equal(stopped,0);assert.equal(app.record,record);assert.equal(frames,1);assert.match(label,/12:00.*한 파일/);
 });

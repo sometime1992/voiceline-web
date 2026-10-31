@@ -86,6 +86,24 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
     }
     assert.equal(g.stopVisible,false,label+' duplicated stop action visible');
     assert.equal(g.scroll,false,label+' page scrolls');
+    const toggle=page.locator('#graphToggle'),eligible=!portrait&&!['piano','warmupVoice'].includes(mode);
+    assert.equal(await toggle.isVisible(),eligible,label+' graph action availability');
+    if(eligible){
+     const buttonBefore=await toggle.boundingBox();
+     assert.equal(await toggle.textContent(),'그래프 숨기기');await toggle.click();await frames(page);
+     const hidden=await geometry(page);assert.equal(hidden.panels,0,label+' hidden graph still covers keys');
+     assert.deepEqual(hidden.keyboard,g.keyboard,label+' hiding resized or moved keys');
+     assert.equal(await page.locator('#graphHiddenStatus').isVisible(),true,label+' essential instruction missing');
+     assert.ok((await page.locator('#graphHiddenStatus').textContent()).length>0);
+     assert.equal(await toggle.textContent(),'그래프 보기');assert.equal(await toggle.getAttribute('aria-expanded'),'false');
+     assert.deepEqual(await toggle.boundingBox(),buttonBefore,label+' graph button moved');
+     const accessible=await toggle.evaluate(button=>{const r=button.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=document.querySelector('#keyboard').getBoundingClientRect().top;});
+     assert.equal(accessible,true,label+' graph action overlaps keys or leaves screen');
+     if(viewport.width===844&&['practice','dynamicVoice'].includes(mode))await page.screenshot({path:path.join(output,'landscape-hidden-'+mode+'.png')});
+     await toggle.click();await frames(page);assert.deepEqual((await geometry(page)).keyboard,g.keyboard,label+' showing resized keys');
+     assert.equal(await toggle.getAttribute('aria-expanded'),'true');
+     assert.equal((await geometry(page)).panels,1,label+' restored graph missing');
+    }
     report.push({viewport,mode,...g});
     if(!portrait&&viewport.width===844&&['piano','practice'].includes(mode))await page.screenshot({path:path.join(output,'landscape-'+mode+'.png')});
    }
@@ -125,9 +143,21 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
   assert.equal(await page.evaluate(()=>window.__micRequest),request,'rotation restarted microphone');
   const landscape=await geometry(page);assert.equal(landscape.panelPosition,'absolute');
   await page.screenshot({path:path.join(output,'landscape-practice.png')});
+  await page.locator('#graphToggle').click();await frames(page);await sendTone(page,293.664768);
+  assert.equal(await page.evaluate(()=>window.__micRequest),request,'hiding restarted practice microphone');
+  assert.equal(await page.locator('#guideVoicePanel').isVisible(),false);
+  assert.match(await page.locator('#graphHiddenStatus').textContent(),/목표/);
+  assert.notEqual(await page.locator('#guideAccuracy').textContent(),'—','hidden practice stopped scoring');
   await page.setViewportSize(viewports[0]);await frames(page);const portrait=await geometry(page);
   assert.equal(await page.evaluate(()=>window.__micRequest),request,'return to portrait restarted microphone');
-  assert.ok(portrait.panel.bottom<=portrait.keyboard.y-3,'portrait graph row lost');await stop();
+  assert.ok(portrait.panel.bottom<=portrait.keyboard.y-3,'portrait graph row lost');
+  assert.equal(await page.locator('#graphToggle').isVisible(),false,'portrait displays landscape graph action');
+  await page.setViewportSize(viewports[5]);await frames(page);
+  assert.equal(await page.locator('#guideVoicePanel').isVisible(),false,'landscape forgot hidden preference on rotation');
+  assert.equal(await page.evaluate(()=>window.__micRequest),request,'second rotation restarted capture');
+  await page.locator('#graphToggle').click();await frames(page);
+  assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5,'restoring erased hidden voice history');
+  await page.setViewportSize(viewports[0]);await frames(page);await stop();
   await settings({guideListenFirst:'on',guideNoteSeconds:'1.2',guideRounds:'1'});
   await page.locator('#guidePattern').selectOption('triad');await page.locator('#mainButton').click();await phase('listen');
   await sendTone(page,261.625565);assert.equal(await page.locator('#guideAccuracy').textContent(),'—','listening was scored');
@@ -143,7 +173,15 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
    await choose(page,mode);await page.locator('#mainButton').click();
    await page.waitForFunction(()=>/중단|중지/.test(document.querySelector('#mainButton').textContent));
    assert.equal(await page.locator('#stopButton').isVisible(),false,mode+' duplicated stop action');
-   if(mode==='record')await sendTone(page,261.625565);
+   if(mode==='record'){
+    await page.setViewportSize(viewports[3]);await frames(page);const recordingRequest=await page.evaluate(()=>window.__micRequest);
+    await sendTone(page,261.625565);await page.locator('#graphToggle').click();await sendTone(page,293.664768);
+    assert.equal(await page.evaluate(()=>window.__micRequest),recordingRequest,'hidden graph restarted recording');
+    await page.setViewportSize(viewports[0]);await frames(page);await sendTone(page,329.627557);
+    assert.equal(await page.locator('#recordPitchOverlay').isVisible(),true,'portrait recording graph stayed hidden');
+    await page.setViewportSize(viewports[3]);await frames(page);assert.equal(await page.locator('#recordPitchOverlay').isVisible(),false);
+    await page.locator('#graphToggle').click();await page.setViewportSize(viewports[0]);await frames(page);
+   }
    await page.locator('#mainButton').click();await page.waitForFunction(()=>/시작/.test(document.querySelector('#mainButton').textContent)&&!document.querySelector('#mainButton').disabled);
    if(mode==='record')await page.waitForFunction(()=>document.querySelector('#exerciseProgress').textContent.includes('녹음 1개 저장됨'));
    if(await page.locator('#trainingResultDialog').isVisible())await page.locator('#trainingResultClose').click();
@@ -162,10 +200,31 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
   await page.waitForFunction(()=>document.querySelector('#micToggle').getAttribute('aria-pressed')==='true');
   const current=await page.evaluate(()=>window.__micRequest);await page.waitForTimeout(1100);
   assert.equal(await page.evaluate(()=>window.__micRequest),current);assert.equal(await page.locator('#mainButton').textContent(),'마이크 끄기');await page.locator('#mainButton').click();
-  await choose(page,'metronome');assert.equal(await page.locator('#keyboard').isVisible(),false);assert.equal(await page.locator('#metronomePanel').isVisible(),true);
+  // Hidden pitch measurement still collects voice, redraws on demand and persists across reload.
+  await page.setViewportSize(viewports[3]);await frames(page);await choose(page,'pitch');await page.locator('#mainButton').click();
+  await page.waitForFunction(()=>document.querySelector('#micToggle').getAttribute('aria-pressed')==='true');
+  await sendTone(page,261.625565);await page.locator('#graphToggle').click();await frames(page);
+  const frozenPixels=await page.locator('#pitchGraph').evaluate(c=>c.toDataURL());
+  const pitchRequest=await page.evaluate(()=>window.__micRequest);await sendTone(page,220);
+  assert.equal(await page.locator('#noteName').textContent(),'A3','hidden pitch graph stopped detecting notes');
+  assert.equal(await page.locator('#pitchGraph').evaluate(c=>c.toDataURL()),frozenPixels,'hidden canvas keeps drawing');
+  assert.equal(await page.evaluate(()=>window.__micRequest),pitchRequest);
+  await page.locator('#graphToggle').click();assert.ok((await graphPixels(page)).voice>5,'restored pitch graph lost samples');
+  await page.locator('#mainButton').click();await page.locator('#graphToggle').click();await page.reload();await page.waitForSelector('#keyboard .white-key');
+  await choose(page,'pitch');assert.equal(await page.locator('#graphToggle').textContent(),'그래프 보기','reload forgot preference');
+  assert.equal(await page.locator('#pitchGraphOverlay').isVisible(),false);
+  for(const size of [{width:568,height:320},{width:640,height:360}]){
+   await page.setViewportSize(size);await frames(page);const before=await geometry(page);
+   const box=await page.locator('#graphToggle').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=size.width,'narrow landscape toggle clipped');
+   await page.locator('#graphToggle').click();await frames(page);assert.deepEqual((await geometry(page)).keyboard,before.keyboard);
+   await page.locator('#graphToggle').click();
+  }
+  await page.setViewportSize(viewports[3]);await frames(page);await choose(page,'warmupVoice');
+  assert.equal(await page.locator('#trainingOverlay').isVisible(),true,'hidden graph removed breathing instructions');assert.equal(await page.locator('#graphToggle').isVisible(),false);
+  await choose(page,'metronome');assert.equal(await page.locator('#keyboard').isVisible(),false);assert.equal(await page.locator('#metronomePanel').isVisible(),true);assert.equal(await page.locator('#graphToggle').isVisible(),false);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
-  console.log('PASS: '+report.length+' mode/viewport layouts, unified step/slide practice, optional listening, real graph pixels, both orientations, single start/stop/cancel and recording save.');
+  console.log('PASS: '+report.length+' mode/viewport layouts; graph toggles, stable piano geometry, hidden detection/scoring/recording, rotation, persistence and narrow screens; unified practice, real pixels, single start/stop/cancel and recording save.');
  }catch(error){fs.writeFileSync(path.join(output,'failure.txt'),error.stack+'\n'+errors.join('\n'));fs.writeFileSync(path.join(output,'partial-geometry.json'),JSON.stringify(report,null,2));if(browser){const pages=browser.contexts().flatMap(c=>c.pages());if(pages[0])await pages[0].screenshot({path:path.join(output,'failure.png')}).catch(()=>{});}throw error;}
  finally{await browser?.close();server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

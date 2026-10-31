@@ -16,6 +16,15 @@ body.portrait-layout .app.guide-mode .piano-area{padding:3px 8px max(7px,env(saf
 body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
 /* Start/stop is one action. Pending microphone capture can be cancelled there. */
 #stopButton{display:none!important}
+/* Keep the graph action outside the floating panel, at the far right above keys.
+   Both labels reserve identical space, so toggling cannot move or resize keys. */
+.graph-toggle{flex:none;min-width:99px;height:27px;min-height:27px;padding:3px 8px;border:1px solid #8ee8d475;border-radius:8px;background:#263c40;color:#b4ffe9;font-size:11px;font-weight:750;line-height:1.15;white-space:nowrap;touch-action:manipulation}
+.graph-toggle[aria-expanded=false]{border-color:#d0bcff8c;background:#353047;color:#e9dcff}
+.graph-toggle:focus-visible{outline:2px solid #e4d6ff;outline-offset:2px}
+.graph-hidden-status{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:#b7f6e7;font-variant-numeric:tabular-nums}
+body:not(.portrait-layout) .app.landscape-graph-hidden .vibrato-overlay:not(.warmup-mode),
+body:not(.portrait-layout) .app.landscape-graph-hidden .piano-topline .legend{display:none}
+@media(max-width:790px){body:not(.portrait-layout) .piano-topline:has(.graph-toggle:not([hidden])) .piano-sound-chip{display:none}}
 .practice-graph-overlay{background:rgba(17,19,40,.82);border-color:#a48fdbb0;pointer-events:none}
 .app.practice-mode #exerciseControls{gap:6px}
 .app.practice-mode #exerciseControls label{min-width:0}
