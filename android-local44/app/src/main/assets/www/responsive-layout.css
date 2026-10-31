@@ -37,6 +37,12 @@ body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
 .dynamic-legend>span:nth-child(2):before{background:#d4a6ff}
 .dynamic-legend small{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:inherit;color:#aaa8bf}
 .dynamic-mode .vibrato-graph-pane{gap:3px}
+.dynamic-mode .vibrato-overlay-header{display:none}
+.dynamic-cue-setting{display:flex;align-items:center;gap:4px;min-width:0}
+.dynamic-cue-setting>label{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+.dynamic-cue-setting select{min-width:0}
+.exercise-controls #dynamicCuePreview{flex:none;min-width:30px;padding:3px 5px}
+.dynamic-cue-setting #dynamicCueVolume{min-width:0;max-width:105px}
 .dynamic-mode #trainingMetric1,.dynamic-mode #trainingMetric2{font-size:clamp(15px,1.7vw,22px)}
 .dynamic-mode #trainingMetric3{font-size:clamp(11px,1.3vw,15px)}
 @media(orientation:landscape) and (max-height:440px){
@@ -49,6 +55,10 @@ body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
  body:not(.portrait-layout) .dynamic-legend{gap:6px}
  body:not(.portrait-layout) .dynamic-legend small{display:none}
 }
+body.portrait-layout .dynamic-mode .vibrato-metrics{flex:0 0 43px;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:3px}
+body.portrait-layout .dynamic-mode .vibrato-metric{padding:3px 4px;gap:2px}
+body.portrait-layout .dynamic-mode .vibrato-metric>span{font-size:8px;white-space:nowrap}
+body.portrait-layout .dynamic-mode .vibrato-metric>strong{font-size:14px}
 body:not(.portrait-layout) .app.landscape-graph-hidden .vibrato-overlay:not(.warmup-mode),
 body:not(.portrait-layout) .app.landscape-graph-hidden .piano-topline .legend{display:none}
 @media(max-width:790px){body:not(.portrait-layout) .piano-topline:has(.graph-toggle:not([hidden])) .piano-sound-chip{display:none}}

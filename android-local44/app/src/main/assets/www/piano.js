@@ -1802,12 +1802,13 @@ function renderTrainingControls(c){
  if(app.mode==='sustainVoice')trainingSelect(c,'trainingDuration','유지 시간',[[5,'5초'],[8,'8초'],[12,'12초']],v.sustainSeconds,'sustainSeconds');
  if(app.mode==='earVoice')trainingSelect(c,'trainingCount','들을 음',[[3,'3개'],[4,'4개'],[5,'5개']],v.earCount,'earCount');
  if(app.mode==='dynamicVoice'){
+  const group=document.createElement('div');group.className='dynamic-cue-setting';
   const label=document.createElement('label');label.className='practice-setting';label.textContent='안내음 ';
   const select=document.createElement('select');select.id='dynamicCueVolume';select.setAttribute('aria-label','안내음 크기');
   for(const [value,text]of [[0,'끄기'],[45,'작게'],[70,'보통'],[100,'크게']]){const option=document.createElement('option');option.value=String(value);option.textContent=text;select.append(option);}
   select.value=String(dynamicCueVolume(v));select.disabled=Boolean(app.training?.active);
-  select.onchange=()=>{v.dynamicCueVolume=Number(select.value);v.dynamicCues=v.dynamicCueVolume>0;saveTrainingSettings();};label.append(select);c.append(label);
-  const preview=document.createElement('button');preview.id='dynamicCuePreview';preview.type='button';preview.textContent='안내음 듣기';preview.disabled=Boolean(app.training?.active);preview.onclick=previewDynamicCue;c.append(preview);
+  select.onchange=()=>{v.dynamicCueVolume=Number(select.value);v.dynamicCues=v.dynamicCueVolume>0;saveTrainingSettings();};label.append(select);group.append(label);
+  const preview=document.createElement('button');preview.id='dynamicCuePreview';preview.type='button';preview.textContent='▶';preview.title='안내음 미리 듣기';preview.setAttribute('aria-label','안내음 미리 듣기');preview.disabled=Boolean(app.training?.active);preview.onclick=previewDynamicCue;group.append(preview);c.append(group);
  }
  if(app.mode==='warmupVoice'){trainingSelect(c,'trainingRounds','진행 횟수',[[1,'1세트'],[2,'2세트'],[3,'3세트']],v.rounds,'rounds');const options=document.createElement('button');options.id='warmupSettingsOpen';options.type='button';options.textContent='시간·안내음';options.setAttribute('aria-haspopup','dialog');options.setAttribute('aria-controls','warmupSettingsDialog');options.onclick=()=>openWarmupSettings(options);c.append(options);}
  const hint=document.createElement('span');hint.className='control-note training-control-hint';
