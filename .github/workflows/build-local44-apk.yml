@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      VOICELINE_CI_KEYSTORE: ${{ runner.temp }}/voiceline-signing/debug.keystore
+      VOICELINE_CI_KEYSTORE: ${{ github.workspace }}/.ci-signing/debug.keystore
     steps:
       - uses: actions/checkout@v7
         with:
