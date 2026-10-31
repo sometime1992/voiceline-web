@@ -1,0 +1,90 @@
+name: VoiceLine Local51 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local51-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local51-ci
+      SOURCE_RUN_ID: '41223852023'
+      SOURCE_COMMIT: 626a2f53f1af287e181f4aae2161294c2a3d3fb9
+      APK_SHA256: a8da0e043966036881b0de52e03a207b51dd00d666b681904899f970247ce190
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local51-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local51-CI.apk'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ['APK_SHA256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local51-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 1, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## 보이스라인 Local51 테스트 APK
+
+          아래 Assets에서 APK 또는 ZIP을 받아 기존 앱에 업데이트 설치하세요.
+
+          - 발성 강약 조절: 약 → 중 → 강 → 약의 12초 목표선·범위와 내 목소리를 함께 표시
+          - 첫 약 단계로 개인 기준을 자동 설정하고 이후 고정
+          - 현재 단계·남은 시간·다음 단계·크게/작게 안내와 동일한 기준으로 채점
+          - 안내음 길이·음색·음량 개선, 별도 크기 선택과 미리 듣기
+          - 안내음은 기준 설정과 채점에서 제외, 각 단계 목표 범위 참여 확인
+          - 그래프 숨김·회전 중 측정과 단계 안내 유지, 완료 그래프 보존
+          - 작은 세로·가로 화면에서도 건반 크기를 유지하며 그래프 공간 확보
+          - 자동 검사 280개, 화면 배치 63건과 전체 12초 입력 훈련·회전·숨김·완료 결과 검사 통과
+          - APK 서명과 모든 내장 파일 검증 완료
+
+          기존 CI45~50 앱의 녹음·연습 기록을 유지합니다. 기존 앱에 업데이트 설치하세요.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local51-CI.apk dist/VoiceLine-Local51-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local51 CI45 테스트 APK' --notes-file release-notes.md dist/VoiceLine-Local51-CI.apk dist/VoiceLine-Local51-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local51-CI.apk VoiceLine-Local51-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
