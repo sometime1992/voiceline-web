@@ -1,0 +1,9 @@
+{
+  "name": "voiceline-local44-offline-android",
+  "version": "2.0.0-local44",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 --test-timeout=60000 local_tests/*.test.cjs"
+  }
+}
