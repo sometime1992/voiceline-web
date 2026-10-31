@@ -81,7 +81,8 @@ async function graphPixels(page){return page.locator('#pitchGraph').evaluate(can
       else{
        assert.equal(g.panels,1,label+' live graph missing');assert.ok(g.canvas.height>=24,label+' graph canvas too small');
        assert.equal(g.panelPosition,'absolute',label+' graph must float over the full-height keyboard');
-       assert.ok(g.panel.bottom<=g.keyboard.bottom+1,label+' graph extends outside keyboard');
+       const lowerEdge=mode==='warmupVoice'?g.area.bottom:g.keyboard.bottom;
+       assert.ok(g.panel.bottom<=lowerEdge+1,label+' panel extends outside its original area');
       }
      }
     }
