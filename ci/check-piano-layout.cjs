@@ -186,6 +186,55 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
    if(mode==='record')await page.waitForFunction(()=>document.querySelector('#exerciseProgress').textContent.includes('녹음 1개 저장됨'));
    if(await page.locator('#trainingResultDialog').isVisible())await page.locator('#trainingResultClose').click();
   }
+  // One complete dynamics exercise: real native PCM -> personal reference,
+  // shaded target bands -> score, including hidden capture and rotation.
+  await page.setViewportSize(viewports[0]);await frames(page);await choose(page,'dynamicVoice');
+  assert.equal(await page.locator('#dynamicReadout').isVisible(),true);
+  assert.equal(await page.locator('#dynamicCueVolume').inputValue(),'70');
+  await page.locator('#dynamicCueVolume').selectOption('100');await page.locator('#dynamicCuePreview').click();await page.waitForTimeout(200);
+  assert.equal(await page.locator('#micToggle').getAttribute('aria-pressed'),'false','preview started capture');
+  await page.locator('#dynamicCueVolume').selectOption('70');await page.locator('#mainButton').click();
+  await page.waitForFunction(()=>document.querySelector('#trainingOverlay').dataset.dynamicPhase==='soft',{},{timeout:6000});
+  assert.equal(await page.locator('#dynamicCueVolume').isDisabled(),true);
+  const dynamicRequest=await page.evaluate(()=>{
+   const start=performance.now(),request=window.__micRequest;
+   const send=()=>{
+    if(window.__micRequest!==request)return;
+    const step=Math.min(3,Math.max(0,Math.floor((performance.now()-start)/3000))),amplitude=.08*[1,1.8,3.24,1][step];
+    const pcm=new Int16Array(4096);for(let i=0;i<pcm.length;i++)pcm[i]=Math.round(amplitude*32767*Math.sin(2*Math.PI*261.625565*i/44100));
+    let raw='';for(const b of new Uint8Array(pcm.buffer))raw+=String.fromCharCode(b);
+    window.VoiceLineNativeAudio.onAudioChunk(btoa(raw),44100,request);
+   };
+   send();window.__dynamicSignal=setInterval(send,40);return request;
+  });
+  await page.waitForFunction(()=>document.querySelector('#trainingMetric3').textContent==='고정됨',{},{timeout:6000});
+  assert.ok((await graphPixels(page,'trainingGraph')).voice>5,'dynamics voice missing');
+  assert.ok((await graphPixels(page,'trainingGraph')).goal>5,'dynamics goal missing');
+  await page.screenshot({path:path.join(output,'portrait-dynamics-targets.png')});
+  await page.setViewportSize(viewports[3]);await frames(page);const dynamicKeyboard=(await geometry(page)).keyboard;
+  await page.locator('#graphToggle').click();await frames(page);
+  assert.equal(await page.locator('#trainingOverlay').isVisible(),false);
+  assert.deepEqual((await geometry(page)).keyboard,dynamicKeyboard);
+  await page.waitForFunction(()=>document.querySelector('#graphHiddenStatus').textContent.includes('강하게'),{},{timeout:5000});
+  assert.match(await page.locator('#graphHiddenStatus').textContent(),/강하게 [123]초/,'hidden phase/countdown stopped');
+  assert.equal(await page.evaluate(()=>window.__micRequest),dynamicRequest,'hidden dynamics restarted capture');
+  await page.screenshot({path:path.join(output,'landscape-dynamics-hidden-live.png')});
+  await page.setViewportSize(viewports[0]);await frames(page);await page.waitForTimeout(250);
+  assert.equal(await page.locator('#trainingOverlay').isVisible(),true);assert.equal(await page.locator('#trainingMetric3').textContent(),'고정됨');
+  assert.equal(await page.evaluate(()=>window.__micRequest),dynamicRequest,'dynamics rotation restarted capture');
+  await page.setViewportSize(viewports[3]);await frames(page);await page.locator('#graphToggle').click();await frames(page);
+  await page.screenshot({path:path.join(output,'landscape-dynamics-targets.png')});
+  await page.waitForFunction(()=>!document.querySelector('#trainingResultDialog').hidden,{},{timeout:10000});
+  await page.evaluate(()=>clearInterval(window.__dynamicSignal));
+  assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공','actual target pattern failed');
+  assert.match(await page.locator('#trainingResultReason').textContent(),/목표 범위.*단계별 목표 충족/);
+  await page.locator('#trainingResultClose').click();assert.equal(await page.locator('#dynamicCurrent').textContent(),'훈련 완료');
+  assert.ok((await graphPixels(page,'trainingGraph')).voice>5,'completed dynamics graph was cleared');
+  assert.ok((await graphPixels(page,'trainingGraph')).goal>5,'completed dynamics target was cleared');
+  await page.screenshot({path:path.join(output,'landscape-dynamics-result.png')});
+  await page.locator('#dynamicCueVolume').selectOption('45');await page.reload();await page.waitForSelector('#keyboard .white-key');
+  await choose(page,'dynamicVoice');assert.equal(await page.locator('#dynamicCueVolume').inputValue(),'45','cue volume not restored');
+  await page.locator('#dynamicCueVolume').selectOption('70');
   const stored=await page.evaluate(()=>new Promise((resolve,reject)=>{
    const request=indexedDB.open('voiceline-local-v2',4);request.onerror=()=>reject(request.error);
    request.onsuccess=()=>{const db=request.result,tx=db.transaction(['events','recordings']),events=tx.objectStore('events').getAll(),recordings=tx.objectStore('recordings').getAll();tx.oncomplete=()=>{db.close();resolve({events:events.result.map(e=>({mode:e.mode,title:e.title})),recordings:recordings.result.length});};};
@@ -224,7 +273,7 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
   await choose(page,'metronome');assert.equal(await page.locator('#keyboard').isVisible(),false);assert.equal(await page.locator('#metronomePanel').isVisible(),true);assert.equal(await page.locator('#graphToggle').isVisible(),false);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
-  console.log('PASS: '+report.length+' mode/viewport layouts; graph toggles, stable piano geometry, hidden detection/scoring/recording, rotation, persistence and narrow screens; unified practice, real pixels, single start/stop/cancel and recording save.');
+  console.log('PASS: '+report.length+' mode/viewport layouts; full dynamics reference/target/voice exercise and score, stronger independent cue volume, hidden phase/countdown, rotation and retained result; graph toggles, unified practice, real pixels, single start/stop/cancel and recording save.');
  }catch(error){fs.writeFileSync(path.join(output,'failure.txt'),error.stack+'\n'+errors.join('\n'));fs.writeFileSync(path.join(output,'partial-geometry.json'),JSON.stringify(report,null,2));if(browser){const pages=browser.contexts().flatMap(c=>c.pages());if(pages[0])await pages[0].screenshot({path:path.join(output,'failure.png')}).catch(()=>{});}throw error;}
  finally{await browser?.close();server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

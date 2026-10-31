@@ -10,7 +10,7 @@ function fixture(stored=null){
  const context={app,$,localStorage:{getItem:()=>stored,setItem:(k,v)=>saved.set(k,v)},performance:{now:()=>1000},window:{},Math,Number,Boolean,String,
   noteLabel:m=>'C4 · 2옥 도 ('+m+')',guideOptions:()=>({root:60}),trainingPhase:()=> 'listen',
   renderPitchGraphOverlay:()=>draws.push('pitch'),renderVibratoOverlay:()=>draws.push('vibrato'),renderRecordPitchOverlay:()=>draws.push('record'),renderTrainingOverlay:()=>draws.push('training')};
- const api=vm.runInNewContext(chunk("const LANDSCAPE_GRAPH_KEY=",'function readPianoVolume(')+chunk('function landscapeGraphHidden(){',"$('graphToggle')?.addEventListener")+'\n({readLandscapeGraphHidden,landscapeGraphHidden,syncGraphVisibility,toggleLandscapeGraph,graphHiddenSummary})',context);
+ const api=vm.runInNewContext(chunk("const LANDSCAPE_GRAPH_KEY=",'function readPianoVolume(')+chunk('const DYNAMIC_STEPS=','function updateDynamicGuide(')+chunk('function landscapeGraphHidden(){',"$('graphToggle')?.addEventListener")+'\n({readLandscapeGraphHidden,landscapeGraphHidden,syncGraphVisibility,toggleLandscapeGraph,graphHiddenSummary})',context);
  return {...api,app,$,saved,draws,context};
 }
 test('A hidden landscape graph preserves the recording, microphone, piano pointers and scoring history',()=>{
@@ -43,5 +43,5 @@ test('Compact instructions retain solfege and preparation cues without revealing
  h.app.training={mode:'guideVoice',active:true};h.context.window.VoiceLineGuideTraining={position:()=>({phase:'handoff',midi:60}),startCue:()=>({visible:true,count:2})};
  assert.match(h.graphHiddenSummary(1000),/2초 뒤 시작 · 목표 C4 · 2옥 도/);
  h.app.mode='earVoice';h.app.training={active:true,start:0,root:60,target:null};assert.doesNotMatch(h.graphHiddenSummary(1000),/C4|도|목표/);
- h.app.mode='dynamicVoice';h.app.training.start=3000;assert.equal(h.graphHiddenSummary(1000),'2초 준비');
+ h.app.mode='dynamicVoice';h.app.training.start=3000;assert.match(h.graphHiddenSummary(1000),/시작 준비 2초/);
 });

@@ -1,4 +1,4 @@
-name: VoiceLine Local50 APK
+name: VoiceLine Local51 APK
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Test recording, training, metronome and adaptive layout
+      - name: Test recording, dynamics calibration, training and adaptive layout
         timeout-minutes: 3
         working-directory: android-local44
         shell: bash
@@ -43,7 +43,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local50-Test-Report
+          name: VoiceLine-Local51-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -62,7 +62,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local50-Layout-Report
+          name: VoiceLine-Local51-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -100,7 +100,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local50-APKs
+          name: VoiceLine-Local51-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0

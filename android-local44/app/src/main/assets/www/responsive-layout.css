@@ -22,6 +22,33 @@ body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
 .graph-toggle[aria-expanded=false]{border-color:#d0bcff8c;background:#353047;color:#e9dcff}
 .graph-toggle:focus-visible{outline:2px solid #e4d6ff;outline-offset:2px}
 .graph-hidden-status{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:#b7f6e7;font-variant-numeric:tabular-nums}
+.dynamic-readout{display:flex;flex-direction:column;gap:3px;flex:none;min-width:0}
+.dynamic-current-row,.dynamic-detail-row{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0}
+.dynamic-current-row strong{font-size:clamp(16px,1.9vw,23px);line-height:1.15;color:#b9ffe7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.dynamic-current-row #dynamicCount{flex:none;font-size:18px;line-height:1.1;font-weight:850;color:#ffdb8f;font-variant-numeric:tabular-nums}
+.dynamic-detail-row{font-size:10px;line-height:1.25;color:#cdc7df}
+.dynamic-detail-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dynamicFeedback{flex:1}
+#dynamicFeedback[data-match=near]{color:#9bf7d2;font-weight:750}
+#dynamicFeedback[data-match=low],#dynamicFeedback[data-match=high],#dynamicFeedback[data-match=pitch],#dynamicFeedback[data-match=missing]{color:#ffdc99}
+#dynamicNext{max-width:48%;text-align:right}
+.dynamic-legend{display:flex;align-items:center;gap:10px;min-width:0;flex:none;min-height:12px;font-size:9px;line-height:1.2;color:#d7d0e3;white-space:nowrap}
+.dynamic-legend>span:before{content:'';display:inline-block;width:12px;height:3px;background:#69ecd0;margin-right:4px;vertical-align:middle}
+.dynamic-legend>span:nth-child(2):before{background:#d4a6ff}
+.dynamic-legend small{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:inherit;color:#aaa8bf}
+.dynamic-mode .vibrato-graph-pane{gap:3px}
+.dynamic-mode #trainingMetric1,.dynamic-mode #trainingMetric2{font-size:clamp(15px,1.7vw,22px)}
+.dynamic-mode #trainingMetric3{font-size:clamp(11px,1.3vw,15px)}
+@media(orientation:landscape) and (max-height:440px){
+ body:not(.portrait-layout) .dynamic-readout{gap:1px}
+ body:not(.portrait-layout) .dynamic-current-row strong{font-size:16px}
+ body:not(.portrait-layout) .dynamic-current-row #dynamicCount{font-size:16px}
+ body:not(.portrait-layout) .dynamic-detail-row{font-size:9px;line-height:1.1}
+ body:not(.portrait-layout) .dynamic-mode .vibrato-overlay-header strong{font-size:10px}
+ body:not(.portrait-layout) .dynamic-mode .vibrato-overlay-header .dynamic-phase-plan>span{min-width:17px;padding:1px 3px;height:15px}
+ body:not(.portrait-layout) .dynamic-legend{gap:6px}
+ body:not(.portrait-layout) .dynamic-legend small{display:none}
+}
 body:not(.portrait-layout) .app.landscape-graph-hidden .vibrato-overlay:not(.warmup-mode),
 body:not(.portrait-layout) .app.landscape-graph-hidden .piano-topline .legend{display:none}
 @media(max-width:790px){body:not(.portrait-layout) .piano-topline:has(.graph-toggle:not([hidden])) .piano-sound-chip{display:none}}

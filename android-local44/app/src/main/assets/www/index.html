@@ -16,6 +16,7 @@
 <script src="metronome.js" defer></script>
 <script src="recording-tools.js" defer></script>
 <script src="guide-training.js" defer></script>
+<script src="dynamic-training.js" defer></script>
 <script src="piano.js" defer></script>
 </head>
 <body>
@@ -121,12 +122,13 @@
     <section id="trainingOverlay" class="vibrato-overlay training-overlay" aria-label="보컬 훈련 실시간 분석" hidden>
       <div class="vibrato-graph-pane"><div class="vibrato-overlay-header"><strong id="trainingTitle">보컬 훈련</strong><span id="trainingInfo">훈련 시작을 누르세요</span><div id="dynamicGuide" class="dynamic-phase-plan" aria-label="약 3초, 중간 3초, 강 3초, 다시 약 3초" hidden><span data-dynamic-step="soft">약</span><span data-dynamic-step="medium">중</span><span data-dynamic-step="strong">강</span><span data-dynamic-step="softAgain">약</span></div></div>
         <span id="dynamicAnnouncement" class="warmup-announcement" role="status" aria-live="polite" hidden></span>
+        <div id="dynamicReadout" class="dynamic-readout" hidden><div class="dynamic-current-row"><strong id="dynamicCurrent">약하게 시작하세요</strong><span id="dynamicCount">3초씩</span></div><div class="dynamic-detail-row"><span id="dynamicFeedback">첫 약 단계에서 내 소리 기준을 잡아요</span><span id="dynamicNext">약 → 중 → 강 → 약</span></div></div>
         <div id="warmupGuide" class="warmup-guide" hidden aria-label="호흡과 허밍 단계 안내">
          <div class="warmup-current"><div class="warmup-current-copy"><strong id="warmupPhaseTitle">호흡과 허밍 준비</strong><span id="warmupPhaseHint">허밍은 내쉬기를 마친 다음에 시작합니다.</span></div><div class="warmup-time" aria-label="현재 단계 남은 시간"><strong id="warmupSeconds">—</strong><span>초</span></div></div>
          <span id="warmupNext" class="warmup-next">다음 단계를 안내합니다.</span>
          <ol class="warmup-steps" aria-label="한 세트의 순서"><li data-warmup-step="inhale">들이쉬기 <b>4초</b></li><li data-warmup-step="exhale">내쉬기 <b>6초</b></li><li data-warmup-step="hum">허밍 <b>6초</b></li><li data-warmup-step="rest">쉬기 <b>3초</b></li></ol>
          <span id="warmupAnnouncement" class="warmup-announcement" role="status" aria-live="polite"></span>
-        </div><canvas id="trainingGraph" aria-label="최근 음정 또는 상대적 음량 그래프"></canvas>
+        </div><canvas id="trainingGraph" aria-label="음정 또는 상대적인 소리 크기의 목표와 내 목소리 그래프"></canvas><div id="dynamicLegend" class="dynamic-legend" hidden><span>목표·범위</span><span>내 목소리</span><small>상대 소리 크기 · 12초</small></div>
       </div>
       <div class="vibrato-metrics">
         <div class="vibrato-metric"><span id="trainingMetricLabel1">현재 측정</span><strong id="trainingMetric1">—</strong></div>
@@ -166,7 +168,7 @@
    <button data-screen="history" class="menu-tile"><span class="tile-icon">▤</span><span><strong>나의 기록</strong><small>측정 기록과 녹음 재생·삭제</small></span></button>
    <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
   </div>
-  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local50</span></p>
+  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local51</span></p>
  </section>
 </div>
 <div id="recordToolsDialog" class="modal-backdrop record-tools-backdrop" hidden>
