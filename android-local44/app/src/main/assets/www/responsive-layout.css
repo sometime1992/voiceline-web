@@ -1,20 +1,17 @@
-/* Every piano screen uses the same viewport-based keyboard height. Its
-   bottom edge stays fixed while the graph absorbs differences in controls. */
-:root{--keyboard-height:clamp(76px,25dvh,170px)}
-.app:not(.metronome-mode) .piano-area{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) var(--keyboard-height);gap:6px;overflow:hidden}
-.app:not(.metronome-mode) .piano-topline{grid-row:1;grid-column:1}
-.app:not(.metronome-mode) .keyboard{grid-row:3;grid-column:1;align-self:stretch;min-height:0}
-.app:not(.metronome-mode) .vibrato-overlay,.app:not(.metronome-mode) .guide-voice-panel{grid-row:2;grid-column:1;position:static;inset:auto;height:auto;max-height:none;min-height:0;box-shadow:none}
+/* Portrait keeps the unified keyboard. Landscape uses the earlier full-height
+   keyboard and floating graphs from piano.css and guide-training.css. */
+body.portrait-layout .app:not(.metronome-mode) .piano-area{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) var(--keyboard-height);gap:6px;overflow:hidden}
+body.portrait-layout .app:not(.metronome-mode) .piano-topline{grid-row:1;grid-column:1}
+body.portrait-layout .app:not(.metronome-mode) .keyboard{grid-row:3;grid-column:1;align-self:stretch;min-height:0}
+body.portrait-layout .app:not(.metronome-mode) .vibrato-overlay,body.portrait-layout .app:not(.metronome-mode) .guide-voice-panel{grid-row:2;grid-column:1;position:static;inset:auto;height:auto;max-height:none;min-height:0;box-shadow:none}
 .pitch-practice-legend{display:flex;gap:12px;flex:none;font-size:10px;color:#d2cce8;white-space:nowrap;overflow:hidden}
 .pitch-practice-legend span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .pitch-practice-legend span:before{content:"";display:inline-block;width:12px;height:3px;margin-right:5px;vertical-align:middle;background:#69ecd0}
 .pitch-practice-legend span:last-child:before{background:#d4a6ff}
-@media(max-height:460px) and (min-aspect-ratio:1/1){
- .guide-scoreboard>div{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:3px 6px;gap:4px;align-items:center}
- .guide-scoreboard small{display:none}
- .guide-scoreboard span{font-size:9px}
- .guide-scoreboard strong{font-size:17px}
-}
+body:not(.portrait-layout) .app[data-mode=piano] #pitchGraphOverlay{display:none}
+body.portrait-layout .app.guide-mode .piano-topline{display:grid}
+body.portrait-layout .app.guide-mode #keyboard{display:block}
+body.portrait-layout .app.guide-mode .piano-area{padding:3px 8px max(7px,env(safe-area-inset-bottom))}
 /* Portrait shares the same controls, audio and data. Only their placement changes. */
 body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
 body.portrait-layout .toolbar{height:46px;gap:5px;padding:4px 8px;grid-template-columns:auto minmax(0,1fr) auto auto}

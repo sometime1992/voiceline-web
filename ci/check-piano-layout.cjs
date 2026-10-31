@@ -21,8 +21,11 @@ async function choose(page,mode){
 }
 async function geometry(page){return page.evaluate(()=>{
  const box=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom};};
- const panels=[...document.querySelectorAll('.vibrato-overlay,.guide-voice-panel')].filter(e=>!e.hidden);
- return {keyboard:box(document.querySelector('#keyboard')),panel:panels.length===1?box(panels[0]):null,
+ const visible=e=>!e.hidden&&getComputedStyle(e).display!=='none';
+ const panels=[...document.querySelectorAll('.vibrato-overlay,.guide-voice-panel')].filter(visible);
+ const keyboard=document.querySelector('#keyboard'),area=document.querySelector('.piano-area');
+ return {keyboard:box(keyboard),keyboardVisible:visible(keyboard),area:box(area),areaDisplay:getComputedStyle(area).display,
+  panelPosition:panels.length===1?getComputedStyle(panels[0]).position:null,panel:panels.length===1?box(panels[0]):null,
   canvas:panels.length===1?box(panels[0].classList.contains('warmup-mode')?panels[0].querySelector('.warmup-guide'):panels[0].querySelector('canvas')):null,panels:panels.length,
   scroll:document.documentElement.scrollHeight>innerHeight+1||document.documentElement.scrollWidth>innerWidth+1};
  });}
@@ -55,24 +58,49 @@ async function graphPixels(page){return page.locator('#pitchGraph').evaluate(can
    await page.setViewportSize(viewport);await frames(page);let baseline;
    for(const mode of modes){
     await choose(page,mode);const g=await geometry(page),label=viewport.width+'x'+viewport.height+' '+mode;
-    baseline??=g.keyboard;
-    assert.ok(Math.abs(g.keyboard.height-baseline.height)<1,label+' keyboard height changed');
-    assert.ok(Math.abs(g.keyboard.y-baseline.y)<1,label+' keyboard moved');
-    assert.ok(g.keyboard.height>=76&&g.keyboard.bottom<=viewport.height,label+' keyboard clipped');
-    assert.equal(g.panels,1,label+' must show exactly one graph');assert.ok(g.canvas.height>=24,label+' graph canvas too small');
-    assert.ok(g.panel.bottom<=g.keyboard.y-3,label+' graph overlaps keyboard');assert.equal(g.scroll,false,label+' page scrolls');
+    const portrait=viewport.height>=viewport.width;
+    if(portrait){
+     baseline??=g.keyboard;
+     assert.ok(Math.abs(g.keyboard.height-baseline.height)<1,label+' portrait keyboard height changed');
+     assert.ok(Math.abs(g.keyboard.y-baseline.y)<1,label+' portrait keyboard moved');
+     assert.equal(g.keyboardVisible,true,label+' portrait keyboard hidden');
+     assert.ok(g.keyboard.height>=96&&g.keyboard.bottom<=viewport.height,label+' keyboard clipped');
+     assert.equal(g.panels,1,label+' must show exactly one graph');assert.ok(g.canvas.height>=24,label+' graph canvas too small');
+     assert.ok(g.panel.bottom<=g.keyboard.y-3,label+' portrait graph overlaps keyboard');
+    }else{
+     assert.equal(g.areaDisplay,'flex',label+' previous landscape layout was not restored');
+     if(mode==='guideVoice'){
+      assert.equal(g.keyboardVisible,false,label+' previous full-screen slide panel must hide keyboard');
+      assert.equal(g.panels,1);assert.ok(g.canvas.height>=24,label+' slide graph too small');
+      assert.ok(g.panel.height>=g.area.height-20,label+' slide panel no longer fills its area');
+     }else{
+      assert.equal(g.keyboardVisible,true,label+' keyboard hidden');
+      assert.ok(g.keyboard.height>viewport.height*.25+20,label+' keyboard still uses the reduced height');
+      assert.ok(g.keyboard.bottom<=viewport.height,label+' keyboard clipped');
+      if(mode==='piano')assert.equal(g.panels,0,label+' idle piano must keep the previous plain keyboard');
+      else{
+       assert.equal(g.panels,1,label+' live graph missing');assert.ok(g.canvas.height>=24,label+' graph canvas too small');
+       assert.equal(g.panelPosition,'absolute',label+' graph must float over the full-height keyboard');
+       assert.ok(g.panel.bottom<=g.keyboard.bottom+1,label+' graph extends outside keyboard');
+      }
+     }
+    }
+    assert.equal(g.scroll,false,label+' page scrolls');
     report.push({viewport,mode,...g});
+    if(!portrait&&viewport.width===844&&['piano','guideVoice'].includes(mode))await page.screenshot({path:path.join(output,'landscape-'+mode+'.png')});
    }
   }
-  await page.setViewportSize(viewports[0]);
-  for(const button of ['#mainButton','#micToggle']){
+  for(const viewport of [viewports[3],viewports[0]]){
+   await page.setViewportSize(viewport);const direction=viewport.width>viewport.height?'landscape':'portrait';
+   for(const button of ['#mainButton','#micToggle']){
    await choose(page,'piano');const before=await geometry(page);await page.locator(button).click();
    await page.waitForFunction(()=>document.querySelector('#app').dataset.mode==='pitch');await frames(page);
    assert.equal(await page.locator('#pitchGraphOverlay').isVisible(),true,button+' left graph hidden');
    const after=await geometry(page);assert.ok(Math.abs(before.keyboard.height-after.keyboard.height)<1);assert.ok(Math.abs(before.keyboard.y-after.keyboard.y)<1);
    await sendTone(page,261.625565);assert.ok((await graphPixels(page)).voice>5,button+' did not draw detected voice');
-   await page.screenshot({path:path.join(output,button==='#mainButton'?'portrait-microphone-on.png':'portrait-header-microphone-on.png')});
+   await page.screenshot({path:path.join(output,direction+(button==='#mainButton'?'-microphone-on.png':'-header-microphone-on.png'))});
    await page.locator('#micToggle').click();await frames(page);const stopped=await geometry(page);assert.equal(stopped.keyboard.height,after.keyboard.height);
+   }
   }
   await choose(page,'practice');await page.locator('#mainButton').click();
   await page.waitForFunction(()=>document.querySelector('#pitchGraphTarget').textContent.includes('C4')&&document.querySelector('#exerciseProgress').textContent.includes('음')&&!document.querySelector('#exerciseProgress').textContent.includes('준비'),null,{timeout:8000});
@@ -81,11 +109,15 @@ async function graphPixels(page){return page.locator('#pitchGraph').evaluate(can
   const request=await page.evaluate(()=>window.__micRequest);await page.setViewportSize(viewports[3]);await frames(page);await sendTone(page,293.664768);
   assert.equal(await page.evaluate(()=>window.__micRequest),request,'rotation restarted microphone');assert.equal(await page.locator('#pitchGraphOverlay').isVisible(),true);
   await page.screenshot({path:path.join(output,'landscape-practice.png')});
+  const landscape=await geometry(page);assert.equal(landscape.panelPosition,'absolute');
+  await page.setViewportSize(viewports[0]);await frames(page);const portrait=await geometry(page);
+  assert.equal(await page.evaluate(()=>window.__micRequest),request,'return to portrait restarted microphone');
+  assert.ok(portrait.panel.bottom<=portrait.keyboard.y-3,'return to portrait lost separate graph row');
   await page.locator('#stopButton').click();
   await choose(page,'metronome');assert.equal(await page.locator('#keyboard').isVisible(),false);assert.equal(await page.locator('#metronomePanel').isVisible(),true);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
-  console.log('PASS: '+report.length+' mode/viewport layouts, both microphone entry points, real pitch/target pixels, stop and rotation.');
+  console.log('PASS: '+report.length+' mode/viewport layouts, restored landscape, preserved portrait, both microphone entry points in both directions, real pitch/target pixels, stop and rotation.');
  }catch(error){fs.writeFileSync(path.join(output,'failure.txt'),error.stack+'\n'+errors.join('\n'));if(browser){const pages=browser.contexts().flatMap(c=>c.pages());if(pages[0])await pages[0].screenshot({path:path.join(output,'failure.png')}).catch(()=>{});}throw error;}
  finally{await browser?.close();server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
