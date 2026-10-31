@@ -5,7 +5,7 @@ on:
     branches: [build/android-apk]
     paths:
       - android-local44/**
-      - ci/verify-local44-apks.py
+      - ci/**
       - .github/workflows/build-local44-apk.yml
   workflow_dispatch:
 
@@ -20,6 +20,8 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      VOICELINE_CI_KEYSTORE: ${{ runner.temp }}/voiceline-signing/debug.keystore
     steps:
       - uses: actions/checkout@v7
         with:
@@ -58,11 +60,22 @@ jobs:
       - name: Restore CI debug signing key
         uses: actions/cache@v6
         with:
-          path: ~/.android/debug.keystore
-          key: voiceline-local44-debug-signing-v1
-      - name: Build normal and separately installable CI APKs
+          path: ${{ env.VOICELINE_CI_KEYSTORE }}
+          key: voiceline-ci45-debug-signing-v1
+      - name: Prepare explicit CI signing key
+        shell: bash
+        run: |
+          if [ ! -s "$VOICELINE_CI_KEYSTORE" ]; then
+            if [ -f ci/android-debug-cert.sha256 ]; then
+              echo '::error::The CI signing key cache is missing. Restore the existing key before building an update.'
+              exit 1
+            fi
+            mkdir -p "$(dirname "$VOICELINE_CI_KEYSTORE")"
+            keytool -genkeypair -keystore "$VOICELINE_CI_KEYSTORE" -alias androiddebugkey -storepass android -keypass android -dname 'CN=Android Debug,O=Android,C=US' -keyalg RSA -keysize 2048 -validity 10000
+          fi
+      - name: Build separately installable CI APK
         working-directory: android-local44
-        run: gradle --no-daemon :app:assembleDebug :app:assembleCiDebug
+        run: gradle --no-daemon :app:assembleCiDebug
       - name: Verify signatures, package IDs, version and every offline asset
         run: python3 ci/verify-local44-apks.py
       - name: Upload APKs and verification report

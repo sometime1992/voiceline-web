@@ -21,15 +21,13 @@ report = [
     "Original Local44 source ZIP SHA-256: "
     "2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1",
     "Local45 adds adjustable microphone sensitivity and faster pitch analysis to Local44.",
-    "Normal APK: same application ID as the PC-built Local44. Updating requires the same signing key.",
-    "CI APK: separate application and separate storage; keeps the existing app and recordings intact.",
+    "CI45 APK: separate application and separate storage; keeps earlier PC/CI installations and recordings intact.",
     "Do not uninstall an existing app to resolve a signature mismatch.",
-    "Debug signing keys are cached on the build branch; cache eviction can change future signatures.",
+    "CI45 signing uses an explicit cached key. Once pinned, a missing or different key blocks future builds.",
     "",
 ]
 variants = [
-    ("debug", "com.voiceline.app.local18", "2.0.0-local45", "VoiceLine-Local45.apk"),
-    ("ciDebug", "com.voiceline.app.local18.ci", "2.0.0-local45-ci", "VoiceLine-Local45-CI.apk"),
+    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local45-ci", "VoiceLine-Local45-CI.apk"),
 ]
 certificates = []
 for variant, app_id, version, filename in variants:
@@ -47,6 +45,9 @@ for variant, app_id, version, filename in variants:
     ], text=True)
     digest = re.search(r"Signer #1 certificate SHA-256 digest: (\w+)", cert)
     assert digest, cert
+    pinned = root / "ci/android-debug-cert.sha256"
+    if pinned.exists():
+        assert digest.group(1).lower() == pinned.read_text().strip().lower(), "CI signing certificate changed"
     certificates.append(digest.group(1))
     with zipfile.ZipFile(apk) as archive:
         assert archive.testzip() is None
