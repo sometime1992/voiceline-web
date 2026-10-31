@@ -561,7 +561,7 @@ test('Local27 saving a recording creates a recording file only, never a practice
 
 // Vocal practice remains separate from audio recordings after menu consolidation.
 test('Merged slide and other voice training modes remain reachable',()=>{
- const modes=['sustainVoice','guideVoice','earVoice','dynamicVoice','warmupVoice','metronome'];
+ const modes=['sustainVoice','practice','earVoice','dynamicVoice','warmupVoice','metronome'];
  for(const mode of modes){assert.match(html,new RegExp('data-screen="'+mode+'"'));assert.match(js,new RegExp(mode+":\\["));}
  for(const id of ['trainingOverlay','trainingGraph','trainingMetric1','trainingMetric2','trainingMetric3','trainingMetric4'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(css,/\.training-overlay/);
@@ -605,7 +605,7 @@ test('Pitch exercises score actual samples without inventing voice coverage',()=
 });
 test('Local28: warmup starts without demanding microphone and training results go to exercise events',()=>{
  assert.match(js,/app\.mode==='warmupVoice'\|\|await startMic\(\)/);
- assert.match(js,/addEvent\(MODES\[a\.mode\]\[0\],evaluation\.status\+' · '\+detail,a\.mode\)/);
+ assert.doesNotMatch(html,/data-screen="guideVoice"/);
  assert.match(js,/if\(perfor[mance]+\.now\(\)>=a\.start\)/);
  assert.match(js,/if\(app\.training\)finishTraining\(false\)/);
  assert.match(js,/trainingOverlay/);

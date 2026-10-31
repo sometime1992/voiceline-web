@@ -1,6 +1,6 @@
 # Local46 APK build
 
-This directory contains the complete Local48 Android project, including its
+This directory contains the complete Local49 Android project, including its
 offline piano engine, samples, and regression tests. The Local44 baseline source archive
 is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 `2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1`.
@@ -8,11 +8,11 @@ is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 Pushing changes to `build/android-apk` runs `.github/workflows/build-local44-apk.yml`.
 The workflow runs the tests, builds the CI45 APK, verifies their signatures
 and package metadata, and compares every bundled asset to the source bytes.
-Download the `VoiceLine-Local48-APKs` artifact from the completed run.
+Download the `VoiceLine-Local49-APKs` artifact from the completed run.
 
 | APK | Application ID | Installation |
 | --- | --- | --- |
-| VoiceLine-Local48-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46/47 installation and preserves its recordings and practice history. |
+| VoiceLine-Local49-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46/47/48 installation and preserves its recordings and practice history. |
 
 Do not uninstall an existing app to work around a signature mismatch: its local
 recordings and history may be lost. This CI build does not import recordings
@@ -23,7 +23,7 @@ Local44 CI keys were not retained, so CI45 has its own application ID and keeps
 those earlier installations intact. A durable release signing key is required
 before distributing long-term updates.
 
-The build uses version code 63 and target Android 35 with Android 26 minimum.
+The build uses version code 64 and target Android 35 with Android 26 minimum.
 It preserves the portrait keyboard geometry and restores the earlier landscape UI.
 
 ## Local45 sensitivity update
@@ -76,3 +76,16 @@ practice targets/voice graphs, labels and microphone fixes remain available.
 The browser regression checks both layouts and both microphone entry points
 in both directions, including returning to portrait during active practice.
 Version code is 63; the application ID and pinned CI45 signing key are retained.
+
+## Local49 unified practice and graph readability
+
+The single practice menu offers step/interval patterns or continuous slides,
+with optional listening before the response. A shared engine retains all
+unique patterns, migrates previous settings without deleting history, and
+keeps unlimited direct practice bounded in memory.
+Landscape preserves the full-height keyboard with a centered translucent
+graph capped at 680 CSS pixels and 76% of the available width. A following
+six-second window and note-based vertical range avoid a flattened full-width
+plot. Portrait retains its separate graph row and fixed keyboard height.
+The primary action handles start, stop, recording save and microphone cancel;
+the duplicate secondary stop action is hidden from both display and focus.

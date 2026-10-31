@@ -394,7 +394,7 @@ test('Local32 quick recording stop without any PCM does not leave an empty recov
  const h=pcmHarness();Object.assign(h.app,{mic:true,nativeMic:true,nativeSampleRate:44100});h.startRecording();
  assert.equal(await h.stopRecording(),false);assert.ok(!h.app.failedRecording);assert.equal(h.sessions.size,0);
 });
-test('Application boot, all eleven modes and the merged slide controls execute together',async()=>{
+test('Application boot and unified practice controls execute with every existing mode alias',async()=>{
  const $=nodes(),tables={events:new Map(),recordings:new Map(),recordParts:new Map(),recordSessions:new Map(),recordFileDeletes:new Map()};
  const db={transaction(kind){const tx={objectStore(){return Object.fromEntries(['getAll','get','put','delete','count'].map(method=>[method,item=>{
   const req={};queueMicrotask(()=>{
@@ -418,17 +418,17 @@ test('Application boot, all eleven modes and the merged slide controls execute t
  await turn();assert.equal($('keyboard').children.length,24);
  window.__local32Test.showHelp();
  const help=$('infoBody').children.map(node=>node.textContent).join('\n');
- assert.match(help,/피아노 건반/);assert.match(help,/음역 슬라이드/);assert.match(help,/호흡/);
+ assert.match(help,/피아노 건반/);assert.match(help,/음정 연습/);assert.match(help,/호흡/);
  assert.doesNotMatch(help,/건반 소리 진단|소리 테스트|마이크 연결 상태 확인|마이크 상태 진단/);
  assert.equal(window.VoiceLineMicrophoneDiagnostics,undefined);
  window.__local32Test.modalClose('infoDialog');
  for(const mode of ['piano','pitch','record','vibrato','practice','sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice','metronome']){
-  await window.__local32Test.switchMode(mode);assert.equal(window.__local32Test.app.mode,mode);
+  await window.__local32Test.switchMode(mode);assert.equal(window.__local32Test.app.mode,mode==='guideVoice'?'practice':mode);
   if(mode==='guideVoice'){
    assert.equal($('guideVoicePanel').hidden,false);assert.equal($('trainingOverlay').hidden,true);
-   const select=$('exerciseControls').children[0].children[0];
-   assert.deepEqual(select.children.map(group=>group.label),['음계·도약','단계별 왕복','연속 슬라이드']);
-   assert.equal(select.children.flatMap(group=>group.children).length,18);
+   const kind=$('exerciseControls').children[0].children[0],select=$('exerciseControls').children[1].children[0];
+   assert.deepEqual(kind.children.map(option=>option.value),['steps','smooth']);
+   assert.equal(select.children.length,18);
    const button=$('exerciseControls').children.find(child=>child.id==='guideSettingsOpen');assert.ok(button);
    button.onclick();assert.equal($('guideSettingsDialog').hidden,false);assert.match($('guidePlanInfo').textContent,/음역.*C4 · 2옥 도/);
    $('guideRoot').value='48';$('guideRounds').value='2';$('guideShift').value='-1';$('guideBpm').value='60';$('guideSound').value='vowel';$('guideNoteSeconds').value='2';
@@ -440,8 +440,8 @@ test('Application boot, all eleven modes and the merged slide controls execute t
   window.__local32Test.showModeGuide(mode);assert.match($('infoTitle').textContent,/설명/);assert.equal($('infoDialog').hidden,false);
   window.__local32Test.modalClose('infoDialog');assert.equal($('infoDialog').hidden,true);
  }
- await window.__local32Test.switchMode('glideVoice');assert.equal(window.__local32Test.app.mode,'guideVoice');
- assert.equal($('modeTitle').textContent,'음역 슬라이드');
+ await window.__local32Test.switchMode('glideVoice');assert.equal(window.__local32Test.app.mode,'practice');
+ assert.equal($('modeTitle').textContent,'음정 연습');
  await window.__local32Test.switchMode('metronome');
  assert.ok(window.__local32Test.app.metronome);
  $('metroSettingsOpen').events.click();assert.equal($('metroRhythmPanel').hidden,false);assert.equal($('metroPresetsPanel').hidden,true);
@@ -471,7 +471,7 @@ test('Application boot, all eleven modes and the merged slide controls execute t
  window.innerWidth=844;window.innerHeight=390;window.__local32Test.applyResponsiveLayout();assert.equal($('micChip').textContent,'마이크 꺼짐 (Android)');
  window.innerWidth=390;window.innerHeight=780;window.__local32Test.applyResponsiveLayout();
  for(const mode of ['piano','pitch','record','vibrato','practice','sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice','metronome']){
-  await window.__local32Test.switchMode(mode);assert.equal($('app').dataset.mode,mode);assert.equal($('keyboard').children.length,12);
+  await window.__local32Test.switchMode(mode);assert.equal($('app').dataset.mode,mode==='guideVoice'?'practice':mode);assert.equal($('keyboard').children.length,12);
   window.__local32Test.showModeGuide(mode);assert.equal($('infoDialog').hidden,false);window.__local32Test.modalClose('infoDialog');
  }
  window.innerWidth=844;window.innerHeight=390;window.__local32Test.applyResponsiveLayout();
@@ -489,4 +489,11 @@ test('Local32 recording deletion also removes recovery data and waits for one tr
  assert.equal(settled,false);assert.deepEqual(tableNames,['recordParts','recordSessions','recordings','recordingsMeta','recordFileDeletes']);
  assert.deepEqual(deleted,[['recordSessions','record-id'],['recordings','record-id'],['recordingsMeta','record-id']]);
  transaction.oncomplete();await pending;assert.equal(settled,true);
+});
+
+test('A pending microphone can be cancelled from the primary action without a second stop button',async()=>{
+ const h=micHarness();h.$('mainButton').textContent='연습 시작';h.$('mainButton').disabled=true;
+ const pending=h.startMic();assert.equal(h.$('mainButton').textContent,'연결 취소');assert.equal(h.$('mainButton').disabled,false);
+ assert.equal(h.$('stopButton').hidden,true);h.cancelMicStart();assert.equal(await pending,false);
+ assert.equal(h.$('mainButton').textContent,'연습 시작');assert.equal(h.app.mic,false);
 });

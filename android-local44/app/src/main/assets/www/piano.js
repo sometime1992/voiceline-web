@@ -25,8 +25,8 @@ const MODES={
   metronome:['메트로놈','박자표, 빠르기와 박별 강세를 직접 설정하세요. 마이크 없이 사용할 수 있습니다.'],
   record:['녹음하기','녹음 파일은 기기 내부에만 저장됩니다.'],
   vibrato:['비브라토 연습','편안하게 한 음을 유지하면 흔들림 속도와 폭을 추정합니다.'],
-  practice:['음정 연습하기','민트색 목표음을 따라 부르고 그래프의 보라색 목소리와 비교하세요.'],
-  guideVoice:['음역 슬라이드','가이드 듣기 → 준비 → 따라 부르기 · 음계·단계별·연속 패턴을 선택하세요.'],
+  practice:['음정 연습','음계·도약 또는 연속 슬라이드를 선택하고 목표 음정을 따라 부르세요.'],
+  guideVoice:['음정 연습','가이드 듣기 → 준비 → 따라 부르기 · 음계·단계별·연속 패턴을 선택하세요.'],
   sustainVoice:['발성 유지 훈련','선택한 음을 편안하게 지속하며 음정의 안정도를 확인하세요.'],
   earVoice:['청음·따라 부르기','피아노 기준음을 듣고 따라 불러보세요.'],
   dynamicVoice:['발성 강약 조절','같은 음을 유지하며 소리의 상대적 강약을 바꿔보세요.'],
@@ -803,7 +803,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  const p=nativeSamples?pitchYin(nativeSamples,nativeRate,app.mode==='record',app.micSensitivity):
    pitchYin(app.buffer,app.micCtx.sampleRate,app.mode==='record',app.micSensitivity);
  if(!p){
-  if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')rememberPitchGraphPoint(t,null);
+  if(app.mode==='piano'||app.mode==='pitch')rememberPitchGraphPoint(t,null);
   if(app.exercise?.active)receiveExerciseSample(t,null);
   if(app.training?.active)receiveTrainingSample(t,null,rms);
   if(app.mode==='vibrato'){rememberVibratoPoint(t,null);renderVibratoOverlay(t);}
@@ -819,7 +819,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  if(app.lastTrustedPitchAt&&t-app.lastTrustedPitchAt<(app.mode==='record'?150:220)&&
     Math.abs(midi-app.lastTrustedPitch)>13&&
     (app.mode!=='record'||p.confidence<.86)){
-  if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')rememberPitchGraphPoint(t,null);
+  if(app.mode==='piano'||app.mode==='pitch')rememberPitchGraphPoint(t,null);
   if(app.training?.active)receiveTrainingSample(t,null,rms);
   if(app.exercise?.active)receiveExerciseSample(t,null);
   if(app.mode==='record'&&app.record){
@@ -842,7 +842,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  app.sessionHigh=Math.max(app.sessionHigh??midi,midi);
  $('noteHint').textContent='실시간 음정';
  showNote(midi,p.hz,(midi-Math.round(midi))*100);
- if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')rememberPitchGraphPoint(t,midi);
+ if(app.mode==='piano'||app.mode==='pitch')rememberPitchGraphPoint(t,midi);
  if(app.mode==='vibrato'){
   // Use unsmoothed pitch for vibrato depth; the 3-frame median above is for
   // stable note names and would otherwise flatten fast vocal oscillations.
@@ -985,15 +985,18 @@ async function startMic(){
  const cancelled=new Promise(resolve=>{app.micCancelResolve=resolve;});
  const task=Promise.race([window.VoiceLineNative?.start?startNativeMic(token):startWebMic(token),cancelled]);
  app.micStartPromise=task;
- $('stopButton').hidden=false;$('stopButton').textContent='취소';updateMicToggle();
+ const main=$('mainButton'),before=main?.textContent;
+ if(main){main.textContent='연결 취소';main.disabled=false;}
+ $('stopButton').hidden=true;updateMicToggle();
  try{
   const ok=Boolean(await task)&&micRequestCurrent(token)&&app.mic;
-  if(ok&&(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice'))resetPitchGraph(performance.now());
+  if(ok&&(app.mode==='piano'||app.mode==='pitch'))resetPitchGraph(performance.now());
   return ok;
  }
  finally{
   if(app.micStartPromise===task){app.micStartPromise=null;app.micCancelResolve=null;}
-  $('stopButton').textContent='종료';if(!app.mic&&!app.training)$('stopButton').hidden=true;
+  if(main?.textContent==='연결 취소')main.textContent=before;
+  $('stopButton').textContent='종료';$('stopButton').hidden=true;
   updateMicToggle();
  }
 }
@@ -1005,7 +1008,7 @@ function stopMic(){
  app.micCtx?.close().catch(()=>{});
  app.stream=null;app.source=null;app.analyser=null;app.micCtx=null;app.buffer=null;
  app.detected=null;app.notes=[];micStatus('마이크 꺼짐');syncKeyColors();
- if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice'){app.pitchGraphFrozenAt=performance.now();renderPitchGraphOverlay(app.pitchGraphFrozenAt,true);}
+ if(app.mode==='piano'||app.mode==='pitch'){app.pitchGraphFrozenAt=performance.now();renderPitchGraphOverlay(app.pitchGraphFrozenAt,true);}
 }
 async function stopAfterMicError(detail){
  app.micError=String(detail||'마이크 오류');
@@ -1024,7 +1027,7 @@ function tick(t){
   if(app.vibratoStart)progress(clamp(app.vibratoProgress/4,0,1),'주기 '+app.vibratoProgress+'/4 · '+Math.floor((t-app.vibratoStart)/1000)+'초');
  }
  if(app.mode==='record')renderRecordPitchOverlay(t);
- if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')renderPitchGraphOverlay(t);
+ if(app.mode==='piano'||app.mode==='pitch')renderPitchGraphOverlay(t);
  if(app.record)progress(1,'녹음 '+recordTime(t-app.recordStart)+' · 한 파일');
  if(app.mic||app.training?.active)app.frame=requestAnimationFrame(tick);else app.frame=0;
 }
@@ -1171,8 +1174,8 @@ function recordPitchBounds(points){
  const high=Math.min(107,Math.ceil(Math.max(...values))+2);
  // Do not stretch normal speech to fill the whole graph.
  const center=(high+low)/2;
- return {low:Math.max(24,Math.floor(center-Math.max(5,(high-low)/2))),
-         high:Math.min(107,Math.ceil(center+Math.max(5,(high-low)/2)))};
+ return {low:Math.max(24,Math.floor(center-Math.max(3,(high-low)/2))),
+         high:Math.min(107,Math.ceil(center+Math.max(3,(high-low)/2)))};
 }
 function syncRecordPitchOverlay(){
  const el=$('recordPitchOverlay');if(!el)return;
@@ -1252,7 +1255,7 @@ function resetPitchGraph(now=performance.now()){
  renderPitchGraphOverlay(now,true);
 }
 function rememberPitchGraphPoint(t,midi){
- if(!['piano','pitch','practice'].includes(app.mode)||!app.mic||!Number.isFinite(t))return;
+ if(!['piano','pitch'].includes(app.mode)||!app.mic||!Number.isFinite(t))return;
  const points=app.pitchGraphSamples;
  const point={t,midi:Number.isFinite(midi)?midi:null};
  if(app.mode==='practice'){
@@ -1264,11 +1267,11 @@ function rememberPitchGraphPoint(t,midi){
 }
 function syncPitchGraphOverlay(reset=false){
  const el=$('pitchGraphOverlay');if(!el)return;
- el.hidden=!['piano','pitch','practice'].includes(app.mode);
+ el.hidden=!['piano','pitch'].includes(app.mode);
  if(!el.hidden){if(reset)resetPitchGraph();else renderPitchGraphOverlay(performance.now(),true);}
 }
 function renderPitchGraphOverlay(now=performance.now(),force=false){
- const el=$('pitchGraphOverlay');if(!el||el.hidden||!['piano','pitch','practice'].includes(app.mode))return;
+ const el=$('pitchGraphOverlay');if(!el||el.hidden||!['piano','pitch'].includes(app.mode))return;
  if(!force&&now-app.pitchGraphLast<40)return;
  app.pitchGraphLast=now;
  const practice=app.mode==='practice';
@@ -1399,32 +1402,7 @@ function modeControls(){
  const c=$('exerciseControls');c.replaceChildren();
  c.scrollLeft=0;
  if(app.mode==='practice'){
-  // Render selects with DOM APIs: labels cannot inject markup and pattern
-  // names are always shown in the native Android accessibility tree.
-  const addSelect=(id,title,options,value,change)=>{
-   const label=document.createElement('label');label.className='practice-setting';
-   label.textContent=title+' ';
-   const select=document.createElement('select');select.id=id;
-   select.setAttribute('aria-label',title);
-   for(const entry of options){
-    const o=document.createElement('option');o.value=String(entry.value);
-    o.textContent=entry.label;select.append(o);
-   }
-   select.value=String(value);select.onchange=()=>{change(select.value);savePracticeOptions();};
-   select.disabled=Boolean(app.exercise);label.append(select);c.append(label);
-   return select;
-  };
-  addSelect('pattern','패턴',Object.entries(EXERCISE_PATTERNS).map(([value,p])=>({value,label:p.label})),
-   app.exercisePattern,v=>app.exercisePattern=v);
-  addSelect('repeatCount','반복',EXERCISE_REPEAT_OPTIONS,app.exerciseRepeats,
-   v=>app.exerciseRepeats=Number(v));
-  const rootLabel=document.createElement('label');rootLabel.className='practice-setting';
-  rootLabel.textContent='시작음 ';
-  const root=document.createElement('select');root.id='root';root.setAttribute('aria-label','연습 시작음');
-  fillNotes(root,app.exerciseRoot);root.onchange=()=>{app.exerciseRoot=Number(root.value);savePracticeOptions();renderPitchGraphOverlay(performance.now(),true);};
-  root.disabled=Boolean(app.exercise);rootLabel.append(root);c.append(rootLabel);
-  addSelect('tempo','음 길이',[{value:2800,label:'천천히'},{value:1800,label:'보통'},{value:1200,label:'빠르게'}],
-   app.exerciseSpeed,v=>app.exerciseSpeed=Number(v));
+  renderGuideControls(c);
  } else if(TRAINING_MODES.has(app.mode)){
   renderTrainingControls(c);
  } else if(app.mode==='vibrato'){
@@ -1599,7 +1577,7 @@ function finishExercise(completed){
 }
 // Voice training modes share microphone and drawing, but keep separate exercise
 // definitions and avoid inventing clinical breath or absolute-volume scores.
-const TRAINING_MODES=new Set(['sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice']);
+const TRAINING_MODES=new Set(['practice','sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice']);
 // One source of timing for the visual guide and its scheduled transition sounds.
 const WARMUP_CYCLE_MS=19000;
 const WARMUP_STEPS=Object.freeze([
@@ -1781,7 +1759,7 @@ function trainingSelect(c,id,title,options,value,convert){
  label.append(select);c.append(label);
 }
 function renderTrainingControls(c){
- if(app.mode==='guideVoice'){renderGuideControls(c);return;}
+ if(app.mode==='practice'||app.mode==='guideVoice'){renderGuideControls(c);return;}
  const v=app.trainingSettings,notes=Array.from({length:37},(_,i)=>[48+i,noteLabel(48+i)]);
  if(['sustainVoice','earVoice','dynamicVoice'].includes(app.mode))
   trainingSelect(c,'trainingRoot','기준음',notes,v.root,'root');
@@ -1798,7 +1776,7 @@ function renderTrainingControls(c){
  c.append(hint);
 }
 function trainingDuration(mode,settings){
- if(mode==='guideVoice')return window.VoiceLineGuideTraining.plan(settings.guide).duration;
+ if(mode==='practice'||mode==='guideVoice')return window.VoiceLineGuideTraining.plan(settings.guide||app.guideSettings).duration;
  if(mode==='sustainVoice')return settings.sustainSeconds*1000;
  if(mode==='earVoice')return settings.earCount*4700;
  if(mode==='dynamicVoice')return 12000;
@@ -1824,7 +1802,7 @@ function trainingPhase(session,ms){
  return 'sing';
 }
 function newTrainingSession(mode,t,settings=app.trainingSettings){
- if(mode==='guideVoice')return window.VoiceLineGuideTraining.create(settings.guide||app.guideSettings,t);
+ if(mode==='practice'||mode==='guideVoice')return window.VoiceLineGuideTraining.create(settings.guide||app.guideSettings,t);
  const root=clamp(Math.round(Number(settings.root)||60),48,84);
  const duration=trainingDuration(mode,settings),warmup=warmupTimeline(settings.warmup);
  const earDirection=root+12>PITCH_RANGE.maxMidi?-1:1;
@@ -1843,7 +1821,7 @@ function startTraining(t){
  if(session.mode==='guideVoice'&&!startGuideSound(session,t)){stopMic();return;}
  app.training=session;hideTrainingResult();
  if(session.mode==='warmupVoice'||session.mode==='dynamicVoice')scheduleTrainingCues(session);
- $('mainButton').textContent='훈련 중단';$('stopButton').hidden=false;
+ $('mainButton').textContent=app.mode==='practice'?'연습 중단':'훈련 중단';$('stopButton').hidden=true;
  for(const el of $('exerciseControls').querySelectorAll('select,button'))el.disabled=true;
  setMessage('잠시 준비 · 편안하게 시작하세요. 무리하거나 통증이 느껴지면 중단하세요.');
  progress(0,'준비 중');syncTrainingOverlay();
@@ -1965,7 +1943,7 @@ function showTrainingResult(a,completed,detail){
  const result=trainingEvaluation(a,completed);
  $('trainingResultStatus').textContent=result.status;
  $('trainingResultStatus').className='training-result-status '+result.kind;
- $('trainingResultTitle').textContent=MODES[a.mode]?.[0]||'보컬 훈련';
+ $('trainingResultTitle').textContent=(a.mode==='guideVoice'?MODES.practice?.[0]:MODES[a.mode]?.[0])||'음정 연습';
  $('trainingResultMetrics').textContent=detail;
  $('trainingResultRule').textContent=result.rule;
  $('trainingResultReason').textContent=result.reason;
@@ -1991,24 +1969,24 @@ function finishTraining(completed){
  const detail=trainingSummary(a,completed)+(completed?'':' · 중단');
  const evaluation=trainingEvaluation(a,completed);
  // Save only if the exercise actually started; warmup is guidance, not a measured breath test.
- if(performance.now()>=a.start) addEvent(MODES[a.mode][0],evaluation.status+' · '+detail,a.mode);
+ if(performance.now()>=a.start){const mode=a.mode==='guideVoice'?'practice':a.mode;addEvent(MODES[mode]?.[0]||'음정 연습',evaluation.status+' · '+detail,mode);}
  setMessage(evaluation.status+' · '+detail);progress(completed?1:0,evaluation.status);
  if(performance.now()>=a.start)showTrainingResult(a,completed,detail);
- $('mainButton').textContent='훈련 시작';$('stopButton').hidden=true;
+ $('mainButton').textContent=app.mode==='practice'?'연습 시작':'훈련 시작';$('stopButton').hidden=true;
  if(app.mic)stopMic();
  else if(app.frame){cancelAnimationFrame(app.frame);app.frame=0;}
  syncKeyColors();renderTrainingOverlay(performance.now(),true);
 }
 function syncTrainingOverlay(){
  const el=$('trainingOverlay');if(!el)return;
- const guide=app.mode==='guideVoice';
- $('app').classList.toggle('guide-mode',guide);$('guideVoicePanel').hidden=!guide;
+ const guide=app.mode==='practice'||app.mode==='guideVoice';
+ $('app').classList.toggle('guide-mode',false);$('app').classList.toggle('practice-mode',guide);$('guideVoicePanel').hidden=!guide;
  el.hidden=!TRAINING_MODES.has(app.mode)||guide;
  el.classList.toggle('warmup-mode',app.mode==='warmupVoice');
  if(!el.hidden||guide)renderTrainingOverlay(performance.now(),true);
 }
 function renderTrainingOverlay(now=performance.now(),force=false){
- if(app.mode==='guideVoice'){renderGuideTraining(now,force);return;}
+ if(app.mode==='practice'||app.mode==='guideVoice'){renderGuideTraining(now,force);return;}
  const el=$('trainingOverlay');if(!el||el.hidden)return;
  if(!force&&now-app.trainingLastDraw<100)return;
  app.trainingLastDraw=now;
@@ -2073,76 +2051,68 @@ function renderTrainingOverlay(now=performance.now(),force=false){
 }
 function guideOptions(){
  if(!app.guideSettings){
-  let saved=null,legacy=null;
-  try{saved=JSON.parse(localStorage.getItem('voiceline-guide-v1')||'null');}catch(_){}
-  try{legacy=JSON.parse(localStorage.getItem('voiceline-training-v1')||'null');}catch(_){}
-  const api=window.VoiceLineGuideTraining;
-  app.guideSettings=api.restore(saved,legacy);
-  if(!saved||!Object.hasOwn(api.PATTERNS,saved.pattern)){
-   try{localStorage.setItem('voiceline-guide-v1',JSON.stringify(app.guideSettings));}catch(_){}
-  }
+  const read=key=>{try{return JSON.parse(localStorage.getItem(key)||'null');}catch(_){return null;}};
+  const saved=read('voiceline-unified-practice-v1');
+  app.guideSettings=window.VoiceLineGuideTraining.migratePractice(saved,read('voiceline-practice-v1'),read('voiceline-guide-v1'),read('voiceline-training-v1'));
+  if(!saved||!Object.hasOwn(window.VoiceLineGuideTraining.PATTERNS,saved.pattern))try{localStorage.setItem('voiceline-unified-practice-v1',JSON.stringify(app.guideSettings));}catch(_){}
  }
  return app.guideSettings;
 }
 function saveGuideOptions(value){
  const next=window.VoiceLineGuideTraining.normalize(value);
- try{localStorage.setItem('voiceline-guide-v1',JSON.stringify(next));}
+ try{localStorage.setItem('voiceline-unified-practice-v1',JSON.stringify(next));}
  catch(_){notify('설정을 보관하지 못했습니다. 이번 연습에는 적용합니다.');}
  app.guideSettings=next;app.guideLastResult=null;app.guidePreview=null;
  return next;
 }
 function renderGuideControls(c){
  const api=window.VoiceLineGuideTraining,options=guideOptions();
+ const smooth=Boolean(api.PATTERNS[options.pattern].smooth);
+ app.practicePatternByKind??={};app.practicePatternByKind[smooth?'smooth':'steps']=options.pattern;
+ const kindLabel=document.createElement('label');kindLabel.className='practice-setting';kindLabel.textContent='종류 ';
+ const kind=document.createElement('select');kind.id='guideKind';kind.setAttribute('aria-label','음정 연습 종류');
+ for(const [value,text]of [['steps','음계·도약'],['smooth','연속 슬라이드']]){const o=document.createElement('option');o.value=value;o.textContent=text;kind.append(o);}
+ kind.value=smooth?'smooth':'steps';kind.disabled=Boolean(app.training?.active);
+ kind.onchange=()=>{saveGuideOptions({...guideOptions(),pattern:app.practicePatternByKind[kind.value]||(kind.value==='smooth'?'smooth5':'five')});modeControls();renderGuideTraining(performance.now(),true);};
+ kindLabel.append(kind);c.append(kindLabel);
  const label=document.createElement('label');label.className='practice-setting';label.textContent='패턴 ';
- const select=document.createElement('select');select.id='guidePattern';select.setAttribute('aria-label','음역 슬라이드 패턴');
- const groups={};
- for(const [id,pattern] of Object.entries(api.PATTERNS)){
-  const group=pattern.smooth?'연속 슬라이드':pattern.span?'단계별 왕복':'음계·도약';
-  if(!groups[group]){groups[group]=document.createElement('optgroup');groups[group].label=group;select.append(groups[group]);}
-  const o=document.createElement('option');o.value=id;o.textContent=pattern.label;groups[group].append(o);
- }
+ const select=document.createElement('select');select.id='guidePattern';select.setAttribute('aria-label','음정 연습 패턴');
+ for(const [id,pattern]of Object.entries(api.PATTERNS))if(Boolean(pattern.smooth)===smooth){const o=document.createElement('option');o.value=id;o.textContent=pattern.label;select.append(o);}
  select.value=options.pattern;select.disabled=Boolean(app.training?.active);
- select.onchange=()=>{saveGuideOptions({...guideOptions(),pattern:select.value});renderGuideTraining(performance.now(),true);};
+ select.onchange=()=>{app.practicePatternByKind[smooth?'smooth':'steps']=select.value;saveGuideOptions({...guideOptions(),pattern:select.value});renderGuideTraining(performance.now(),true);};
  label.append(select);c.append(label);
  const button=document.createElement('button');button.id='guideSettingsOpen';button.type='button';button.textContent='연습 설정';
- button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-controls','guideSettingsDialog');
- button.disabled=Boolean(app.training?.active);button.onclick=()=>openGuideSettings(button);c.append(button);
+ button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-controls','guideSettingsDialog');button.disabled=Boolean(app.training?.active);button.onclick=()=>openGuideSettings(button);c.append(button);
 }
 function guideSettingsFromForm(){
  const pattern=guideOptions().pattern,smooth=window.VoiceLineGuideTraining.PATTERNS[pattern].smooth;
- return {pattern:guideOptions().pattern,root:Number($('guideRoot').value),bpm:Number($('guideBpm').value),
-  noteSeconds:Number($('guideNoteSeconds').value),
-  rounds:Number($('guideRounds').value),shift:Number($('guideShift').value),sound:$('guideSound').value,
+ return {pattern,root:Number($('guideRoot').value),bpm:Number($('guideBpm').value),noteSeconds:Number($('guideNoteSeconds').value),
+  rounds:Number($('guideRounds').value),shift:Number($('guideShift').value),sound:$('guideSound').value,listenFirst:$('guideListenFirst').value==='on',
   tolerance:smooth?guideOptions().tolerance:Number($('guideToleranceSelect').value),volume:Number($('guideVolume').value)};
 }
 function updateGuidePlan(){
  const p=window.VoiceLineGuideTraining.plan(guideSettingsFromForm());
  const steps=p.roots.flatMap(root=>p.pattern.steps.map(offset=>root+offset));
  $('guideNoteSeconds').disabled=p.smooth;$('guideBpm').disabled=p.smooth||p.settings.noteSeconds>0;
- $('guideToleranceSelect').disabled=p.smooth;$('guideSmoothTolerance').hidden=!p.smooth;
- $('guideSmoothTolerance').disabled=!p.smooth;$('guideToleranceSelect').value=String(p.tolerance);
+ $('guideShift').disabled=p.infinite;if(p.infinite)$('guideShift').value='0';
+ $('guideToleranceSelect').disabled=p.smooth;$('guideSmoothTolerance').hidden=!p.smooth;$('guideSmoothTolerance').disabled=!p.smooth;$('guideToleranceSelect').value=String(p.tolerance);
  $('guideVolumeValue').textContent=$('guideVolume').value+'%';
  $('guidePlanInfo').textContent='음역 '+noteLabel(Math.min(...steps))+' ~ '+noteLabel(Math.max(...steps))+
-  ' · '+(p.smooth?'연속 왕복 12초':'한 음 '+(p.noteMs/1000).toFixed(1)+'초 · 한 구절 '+(p.phraseMs/1000).toFixed(1)+'초')+
-  ' · 총 '+Math.ceil((p.duration+window.VoiceLineGuideTraining.TIMING.prepare)/1000)+'초'+
-  (p.direction<0?' · 아래로 왕복':'')+
-  (p.smooth?' · 선택한 소리의 합성 지속음으로 안내합니다.':'')+
-  (p.settings.root!==Number($('guideRoot').value)?' · 패턴이 감지 음역 안에 들도록 시작음을 '+noteLabel(p.settings.root)+'로 조정합니다.':'')+
-  (p.limited?' · 음역 경계에 닿아 '+p.rounds+'회까지만 진행합니다.':'')+
-  (p.settings.volume===0?' · 가이드 소리가 꺼져 있습니다.':'');
+  ' · '+(p.smooth?'연속 왕복 12초':'한 음 '+(p.noteMs/1000).toFixed(1)+'초')+
+  ' · '+(p.infinite?'같은 음역으로 계속 반복':'총 '+Math.ceil((p.duration+(p.settings.listenFirst?1800:3000))/1000)+'초')+
+  (p.limited?' · 음역 경계에서 '+p.rounds+'회로 조정':'')+(p.settings.volume===0?' · 기준음 소리 꺼짐':'');
+ $('guideMethodInfo').textContent=p.settings.listenFirst?'한 구절 듣기 → 3·2·1 → 따라 부르기. 듣기와 준비는 채점하지 않습니다.':'3·2·1 → 바로 따라 부르기. 음계·도약의 짧은 기준음이 재생되는 구간은 채점하지 않습니다. 이어폰 사용을 권장합니다.';
 }
 function openGuideSettings(trigger){
- if(app.training){notify('훈련을 중단한 뒤 설정을 변경해 주세요.');return;}
+ if(app.training||app.micStartPromise||app.nativeStartResolve){notify('진행 중인 연습이나 마이크 연결을 중단한 뒤 설정해 주세요.');return;}
  const options=guideOptions(),root=$('guideRoot');root.replaceChildren();fillNotes(root,options.root);
- for(const [id,key] of Object.entries({guideRoot:'root',guideNoteSeconds:'noteSeconds',guideBpm:'bpm',guideRounds:'rounds',guideShift:'shift',guideSound:'sound',guideToleranceSelect:'tolerance',guideVolume:'volume'})){
-  $(id).value=String(options[key]);$(id).onchange=updateGuidePlan;
- }
- $('guideVolume').oninput=updateGuidePlan;app.guideSettingsReturnFocus=trigger;
- updateGuidePlan();modalOpen('guideSettingsDialog');
+ for(const [id,key]of Object.entries({guideRoot:'root',guideNoteSeconds:'noteSeconds',guideBpm:'bpm',guideRounds:'rounds',guideShift:'shift',guideSound:'sound',guideToleranceSelect:'tolerance',guideVolume:'volume'})){$(id).value=String(options[key]);$(id).onchange=updateGuidePlan;}
+ $('guideListenFirst').value=options.listenFirst?'on':'off';$('guideListenFirst').onchange=updateGuidePlan;
+ $('guideVolume').oninput=updateGuidePlan;app.guideSettingsReturnFocus=trigger;updateGuidePlan();modalOpen('guideSettingsDialog');
 }
 function applyGuideSettings(reset=false){
  if(app.training)return;
- saveGuideOptions(reset?window.VoiceLineGuideTraining.DEFAULTS:guideSettingsFromForm());
+ saveGuideOptions(reset?window.VoiceLineGuideTraining.PRACTICE_DEFAULTS:guideSettingsFromForm());
  modalClose('guideSettingsDialog');modeControls();renderGuideTraining(performance.now(),true);
 }
 function startGuideSound(session,t){
@@ -2163,50 +2133,37 @@ function startGuideSound(session,t){
  }catch(error){session.guidePlayer?.stop();console.warn('Guide audio',error);notify('가이드 소리를 시작하지 못했습니다.');return false;}
 }
 function updateGuideTraining(a,t){
- const p=window.VoiceLineGuideTraining.position(a,t);
- a.target=p.phase==='answer'?p.midi:null;
- const label={ready:'가이드 준비',listen:'가이드 듣기',handoff:Math.ceil(p.answerIn/1000)+'초 뒤 따라 부르기',answer:'지금 따라 부르세요',rest:'잠깐 쉬기'}[p.phase]||'완료';
- setMessage((p.round+1)+'/'+a.rounds+'회 · '+label+' · '+a.pattern.label);
- progress(clamp((t-a.start)/a.duration,0,1),t<a.start?Math.ceil((a.start-t)/1000)+'초 준비':(p.round+1)+'/'+a.rounds+'회 · '+label);
+ const api=window.VoiceLineGuideTraining;api.advance(a,t);const p=api.position(a,t);
+ a.target=p.phase==='answer'?Math.round(p.midi):null;
+ if(Number.isFinite(a.target)&&!app.owners?.size&&(a.target<app.base||a.target>=app.base+(app.keyboardNotes||24))){app.base=targetKeyboardBase(a.target);drawKeys();}
+ const label={ready:a.settings.listenFirst?'가이드 준비':'따라 부르기 준비',listen:'먼저 듣기',handoff:Math.ceil(p.answerIn/1000)+'초 뒤 시작',answer:'목표를 따라 부르세요',rest:'잠깐 쉬기'}[p.phase]||'완료';
+ const rounds=(p.round+1)+'/'+(a.infinite?'∞':a.rounds)+'회';setMessage(rounds+' · '+label+' · '+a.pattern.label);
+ progress(a.infinite?clamp(((t-a.start)%a.cycleMs)/a.cycleMs,0,1):clamp((t-a.start)/a.duration,0,1),t<a.start?Math.ceil((a.start-t)/1000)+'초 준비':rounds+' · '+label);
 }
 function renderGuideTraining(t=performance.now(),force=false){
  const panel=$('guideVoicePanel');if(!panel||panel.hidden)return;
  if(!force&&t-app.trainingLastDraw<70)return;app.trainingLastDraw=t;
- const api=window.VoiceLineGuideTraining;
- const active=app.training?.mode==='guideVoice'?app.training:null,result=active?null:app.guideLastResult;
+ const api=window.VoiceLineGuideTraining,active=app.training?.mode==='guideVoice'?app.training:null,result=active?null:app.guideLastResult;
  const a=active||result||(app.guidePreview??=api.create(guideOptions(),t));
  const now=active?t:result?Math.min(a.start+a.duration,a.finishedAt??a.start+a.duration):a.start-1,p=api.position(a,now),m=api.metrics(a);
  const phase=active?p.phase:result?'done':'idle',cue=api.startCue(a,now);panel.dataset.phase=phase;
- const titles={idle:'음역 슬라이드',ready:'잠시 뒤 가이드가 시작됩니다',listen:'① 가이드 듣기',handoff:'② 따라 부르기 준비',answer:cue.starting?'③ 지금 시작!':'③ 따라 부르세요',rest:'편안하게 쉬세요',done:'연습 결과'};
- const nextRoot=a.roots[Math.min(a.rounds-1,p.round+1)];
- const hints={idle:a.pattern.tip,ready:'먼저 한 구절을 들으세요. 이어폰을 사용하면 내 목소리를 더 정확히 측정할 수 있습니다.',
-  listen:'먼저 들으세요 · 가이드가 끝나면 3·2·1 준비 후 따라 부릅니다.',handoff:'숫자가 끝나고 시작!이 나오면 왼쪽 첫 음부터 부르세요.',
-  answer:a.smooth?'민트색 목표선을 따라 음을 끊지 않고 부드럽게 연결하세요.':'민트색 목표선을 따라 「음」이나 편안한 모음으로 부르세요.',rest:p.round+1<a.rounds?'다음 시작 기준음 '+noteLabel(nextRoot)+' · 다시 가이드를 먼저 듣습니다.':'연습 결과를 정리합니다.',
-  done:api.evaluate(a,true).reason};
- if(result){titles.done=result.completed?'연습 결과':'연습 중단';hints.done=api.evaluate(a,result.completed).reason;}
- const title=active&&phase==='ready'?titles[phase]+' · '+Math.ceil(p.remaining/1000):titles[phase];
- if($('guidePhaseTitle').textContent!==title)$('guidePhaseTitle').textContent=title;
+ const titles={idle:'음정 연습',ready:a.settings.listenFirst?'가이드 준비':'따라 부르기 준비',listen:'① 먼저 듣기',handoff:'② 따라 부르기 준비',answer:cue.starting?'지금 시작!':'목표를 따라 부르세요',rest:'잠깐 쉬세요',done:result?.completed?'연습 결과':'연습 중단'};
+ const hints={idle:a.pattern.tip,ready:a.settings.listenFirst?'먼저 한 구절을 들으세요.':'3·2·1이 끝나면 첫 음부터 시작하세요.',listen:'가이드가 끝나면 3·2·1 후 따라 부릅니다.',handoff:'숫자가 끝나면 첫 음부터 부르세요.',
+  answer:a.smooth?'민트색 목표를 따라 음을 끊지 않고 연결하세요.':'민트색 목표와 보라색 목소리를 겹쳐보세요.',rest:a.settings.listenFirst?'잠시 뒤 다음 가이드를 들려드립니다.':'잠시 뒤 다음 구절을 시작합니다.',done:api.evaluate(a,result?.completed??true).reason};
+ $('guidePhaseTitle').textContent=titles[phase];$('guidePhaseHint').textContent=hints[phase];
  $('guideStartCue').hidden=!active||!cue.visible;
- if(active&&cue.visible){
-  const count=cue.starting?'시작!':String(cue.count);
-  const cueText=cue.starting?'첫 음 '+noteLabel(cue.firstMidi):cue.count+'초 뒤 · 첫 음 '+noteLabel(cue.firstMidi)+'부터';
-  if($('guideStartCount').textContent!==count)$('guideStartCount').textContent=count;
-  if($('guideStartText').textContent!==cueText)$('guideStartText').textContent=cueText;
- }
- $('guidePhaseHint').textContent=hints[phase];
- $('guideRoundInfo').textContent=(p.round+1)+'/'+a.rounds+'회 · 기준 '+noteLabel(a.roots[p.round]);
+ if(active&&cue.visible){$('guideStartCount').textContent=cue.starting?'시작!':String(cue.count);$('guideStartText').textContent=cue.starting?'첫 음 '+noteLabel(cue.firstMidi):cue.count+'초 뒤 · 첫 음 '+noteLabel(cue.firstMidi)+'부터';}
+ $('guideRoundInfo').textContent=(p.round+1)+'/'+(a.infinite?'∞':a.rounds)+'회 · 기준 '+noteLabel(a.roots[a.infinite?0:p.round]);
  $('guideTargetLabel').textContent='목표 '+noteLabel(p.midi);
- const liveMidi=active&&Number.isFinite(a.last?.midi)&&t-a.last.t<=210?a.last.midi:null;
+ const last=result?[...a.history].reverse().find(v=>Number.isFinite(v.midi)):a.last;
+ const liveMidi=Number.isFinite(last?.midi)&&(result||t-last.t<=210)?last.midi:null;
  $('guideDetectedLabel').textContent='내 음 '+(liveMidi===null?'—':noteLabel(liveMidi));
- const recent=phase==='answer'&&a.last?.phase==='answer'&&Number.isFinite(a.last.midi)&&t-a.last.t<=210;
- const cents=recent?Math.round((a.last.midi-p.midi)*100):null;
- $('guideLiveCents').textContent=cents===null?'—':(cents>0?'+':'')+cents+' ¢';
- $('guideLiveCents').dataset.match=cents===null?'':Math.abs(cents)<=a.tolerance?'near':'away';
- $('guideLiveHint').textContent=phase==='answer'?(cents===null?'목소리를 기다립니다':Math.abs(cents)<=a.tolerance?'목표에 가깝습니다':cents>0?'조금 낮춰보세요':'조금 높여보세요'):phase==='listen'?'듣기 중 · 채점 제외':'따라 부르기 구간만 측정';
- $('guideAccuracy').textContent=m.accuracy===null?'—':m.accuracy+'%';
- $('guideTolerance').textContent='목표 ±'+a.tolerance+'cent';
- $('guideCoverage').textContent=m.coverage+'%';
- $('guideCoverageHint').textContent='유효 발성 '+(a.voicedMs/1000).toFixed(1)+'초 / '+(a.responseMs/1000).toFixed(1)+'초';
+ const recent=liveMidi!==null&&(phase==='answer'||result);
+ const reference=result&&last?api.position(a,last.t).midi:p.midi,cents=recent?Math.round((liveMidi-reference)*100):null;
+ $('guideLiveCents').textContent=cents===null?'—':(cents>0?'+':'')+cents+' ¢';$('guideLiveCents').dataset.match=cents===null?'':Math.abs(cents)<=a.tolerance?'near':'away';
+ $('guideLiveHint').textContent=recent?(Math.abs(cents)<=a.tolerance?'목표에 가깝습니다':cents>0?'조금 낮춰보세요':'조금 높여보세요'):phase==='listen'?'듣기 · 채점 제외':'목소리 대기';
+ $('guideAccuracy').textContent=m.accuracy===null?'—':m.accuracy+'%';$('guideTolerance').textContent='목표 ±'+a.tolerance+'cent';
+ $('guideCoverage').textContent=m.coverage+'%';$('guideCoverageHint').textContent='유효 발성 '+(a.voicedMs/1000).toFixed(1)+'초';
  api.draw($('guidePhraseGraph'),a,now,noteLabel);
 }
 function rememberFullRecordingPitch(t,midi){
@@ -2526,7 +2483,7 @@ async function stopActivity(reason='user'){
 function resetMainAction(){
  const b=$('mainButton');
  b.classList.remove('recording');
- b.textContent=TRAINING_MODES.has(app.mode)?'훈련 시작':app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
+ b.textContent=TRAINING_MODES.has(app.mode)?(app.mode==='practice'?'연습 시작':'훈련 시작'):app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
  $('stopButton').hidden=true;
 }
 // Keep microphone control independent of the main activity button.
@@ -2598,7 +2555,7 @@ function updateMetronomeSummary(settings){
  $('noteHz').textContent=settings.numerator+'/'+settings.denominator;$('noteCents').textContent=settings.subdivision+'분할';
 }
 async function switchMode(mode){
- if(mode==='glideVoice')mode='guideVoice'; // Old callers open the merged mode.
+ if(mode==='glideVoice'||mode==='guideVoice')mode='practice'; // Preserve old links into the unified screen.
  if(!MODES[mode])return;
  if(app.busy||app.stopPromise||app.recordSaving||app.lifeStopping)return;app.busy=true;
  try{
@@ -2608,12 +2565,13 @@ async function switchMode(mode){
   clearNote();progress(0,'준비');modeControls();
   syncPitchGraphOverlay(true);syncVibratoOverlay();syncRecordPitchOverlay();syncTrainingOverlay();syncMetronomeMode();
   if(mode==='vibrato'){app.vibratoProgress=0;focusVibratoReference();}
-  $('mainButton').textContent=TRAINING_MODES.has(mode)?'훈련 시작':mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
+  $('mainButton').textContent=TRAINING_MODES.has(mode)?(mode==='practice'?'연습 시작':'훈련 시작'):mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
   $('mainButton').classList.remove('recording');$('stopButton').hidden=true;
   syncKeyColors();
  }finally{app.busy=false;updateMicToggle();}
 }
 $('mainButton').addEventListener('click',async()=>{
+ if(app.micStartPromise||app.nativeStartResolve){cancelMicStart();resetMainAction();clearNote();return;}
  if(app.busy||app.stopPromise||app.recordSaving||app.lifeStopping)return;
  app.busy=true;const b=$('mainButton');b.disabled=true;
  try{
@@ -2623,14 +2581,14 @@ $('mainButton').addEventListener('click',async()=>{
   }else if(TRAINING_MODES.has(app.mode)){
    if(app.training)finishTraining(false);
    else {
-    if(app.mode==='guideVoice'&&!window.VoiceLineGuideTraining){notify('가이드 연습을 불러오지 못했습니다. 앱을 다시 열어 주세요.');return;}
+    if((app.mode==='practice'||app.mode==='guideVoice')&&!window.VoiceLineGuideTraining){notify('가이드 연습을 불러오지 못했습니다. 앱을 다시 열어 주세요.');return;}
     // Unlock the mobile WebAudio instrument from this real tap. Permission
     // prompts may otherwise suspend later ear-training reference playback.
     // Tone.js must be unlocked synchronously by this user gesture BEFORE the
     // microphone-permission await. Otherwise the later reference note emitted
     // by requestAnimationFrame can remain silent on Android WebView.
     window.VoiceLineToneEngine?.unlock?.().catch(e=>console.warn('Piano unlock',e));
-    if(app.mode==='guideVoice')ensureSynth();
+    if(app.mode==='practice'||app.mode==='guideVoice')ensureSynth();
     // Warmup cues use WebAudio unlocked from this tap.
     if(app.mode==='warmupVoice'||app.mode==='dynamicVoice'||!window.VoiceLineToneEngine)ensureSynth();
     if(app.mode==='warmupVoice'||await startMic())startTraining(performance.now());
@@ -2641,13 +2599,6 @@ $('mainButton').addEventListener('click',async()=>{
    else if(await startMic()){
     try{startRecording();b.textContent='녹음 중지 · 저장';b.classList.add('recording');$('stopButton').hidden=false;progress(0,'녹음 중');}
     catch(e){notify('녹음을 시작할 수 없습니다.');stopMic();}
-   }
-  }else if(app.mode==='practice'){
-   if(app.exercise){finishExercise(false);stopMic();}
-   else {
-    window.VoiceLineToneEngine?.unlock?.().catch(e=>console.warn('Piano unlock',e));
-    if(!window.VoiceLineToneEngine)ensureSynth();
-    if(await startMic()){startExercise(performance.now());$('stopButton').hidden=false;}
    }
   }else if(app.mode==='vibrato'){
    if(app.vibratoStart){await finishVibrato();stopMic();}
@@ -2661,7 +2612,7 @@ $('mainButton').addEventListener('click',async()=>{
 $('stopButton').addEventListener('click',async()=>{
  if(app.micStartPromise||app.nativeStartResolve){cancelMicStart();resetMainAction();return;}
  if(app.busy)return;app.busy=true;
- try{await stopActivity();$('stopButton').hidden=true;$('mainButton').classList.remove('recording');$('mainButton').textContent=TRAINING_MODES.has(app.mode)?'훈련 시작':app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';}
+ try{await stopActivity();$('stopButton').hidden=true;$('mainButton').classList.remove('recording');$('mainButton').textContent=TRAINING_MODES.has(app.mode)?(app.mode==='practice'?'연습 시작':'훈련 시작'):app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';}
  finally{app.busy=false;updateMicToggle();}
 });
 function modalOpen(name){
@@ -2753,7 +2704,7 @@ const MODE_GUIDES={
  pitch:{intro:'마이크로 입력한 목소리의 음높이를 음표와 피아노 건반으로 보여줍니다.',steps:['상단 마이크 켜기를 누르고 한 음을 편안하게 불러보세요.','보라색 건반은 현재 감지된 음정이며, 음정 카드에는 음표·옥타브·Hz·cent가 표시됩니다.','그래프는 최근 6초의 음높이와 최저·최고음을 보여줍니다. 축에도 계이름과 옥타브를 표시하고 음정이 확인되지 않는 구간은 비워둡니다. 마이크를 끄면 마지막 그래프가 남고 다시 켜면 새 측정을 시작합니다.'],rule:'마이크 또는 피아노 소음이 섞이면 측정값이 달라질 수 있습니다.'},
  record:{intro:'음성을 녹음하고 동시에 목소리 음높이 변화를 확인합니다.',steps:['녹음 시작을 한 번 누른 뒤 평소처럼 발성합니다. 잠깐 쉬거나 무음이 있어도 같은 녹음으로 계속 이어집니다.','실시간 그래프는 최근 6초를 보여주며 녹음 파일은 처음부터 전부 이어집니다. 저장 후 전체 재생에서 처음부터 끝까지 들을 수 있습니다.','녹음 중지·저장을 누르면 기기에 녹음 파일이 보관됩니다. 저장 실패나 앱 중단 시 나의 기록에서 복구 가능한 녹음을 확인하세요.'],rule:'사용자가 중지하면 녹음 1개를 저장합니다. 녹음 기록은 나의 기록의 녹음 탭에만 표시하고 연습 기록에는 남기지 않습니다. 앱을 벗어나거나 실제 입력·저장 오류가 발생하면 그 시점까지 한 파일로 저장합니다.'},
  vibrato:{intro:'한 음을 유지하며 비브라토의 흔들림 폭과 속도를 추정합니다.',steps:['연습 기준음을 지정하고 비브라토 시작을 누릅니다.','민트색 선은 선택한 기준음이며 보라색 곡선은 실제 목소리의 음높이입니다.','측정 중 상태가 길어지면 그래프의 진단 안내를 확인하세요.'],rule:'최근 3초 자료에서 기준음 ±150cent, 유효 자료 16개 이상·0.9초 이상, 진폭 ±7~125cent, 속도 3~9Hz, 일정한 주기 4개 이상을 확인합니다. 상세 기준은 「ⓘ 측정 기준」 버튼으로 확인할 수 있습니다.'},
- practice:{intro:'선택한 음정 패턴을 따라 부르고 목표 음정과 얼마나 일치했는지 확인합니다.',steps:['패턴(13종), 반복 횟수, 시작음과 음 길이를 선택합니다.','연습 시작 후 3초 준비 시간이 지나면 민트색 목표 건반을 따라 부릅니다.','최근 6초 그래프에서 민트색 선은 목표음, 보라색 선은 실제 목소리입니다. 축과 목표음에는 계이름·옥타브가 표시됩니다. 준비·회차 사이에는 목표선을 끊고 소리가 없는 구간은 목소리 선을 비워 둡니다.','회차가 끝나면 다음 회차로 진행하며, 계속 반복은 사용자가 중단할 때까지 이어집니다.'],rule:'목표 ±'+SCORE_RULES.sustainTolerance+'cent 일치율을 표시합니다. 회차당 '+SCORE_RULES.minSamples+'개 이상 감지, 전체 시간의 '+Math.round(SCORE_RULES.practiceCoverage*100)+'% 이상 발성, 각 음 길이의 '+Math.round(SCORE_RULES.stepCoverage*100)+'% 이상 발성이 필요합니다. 부족하면 정확도 대신 측정 부족으로 기록합니다.'},
+ practice:{intro:'음계·도약과 연속 슬라이드를 하나의 화면에서 연습합니다.',steps:['종류에서 음계·도약 또는 연속 슬라이드를 고르고 패턴을 선택합니다. 중복 패턴은 한 목록으로 통합했습니다.','연습 설정에서 시작음, 반복 횟수, 빠르기와 먼저 듣기를 조절합니다. 먼저 듣기를 끄면 3·2·1 후 바로 따라 부릅니다. 켜면 한 구절을 듣고 준비 후 따라 부릅니다.','가로 화면은 큰 건반 위 중앙에 반투명 그래프를 표시합니다. 그래프는 최대 6초 구간을 따라가며 민트색 목표와 보라색 목소리를 비교합니다. 축에 계이름·옥타브를 표시합니다.','연속 슬라이드는 목표선을 따라 음을 끊지 않고 연결합니다. 소리가 없는 구간은 비워 두며 정확도와 충분히 발성했는지를 함께 확인합니다.','같은 시작 버튼이 연습 중단으로 바뀝니다. 마이크 연결 중에는 연결 취소로 바뀝니다. 계속 반복은 중단할 때까지 같은 음역을 반복합니다.'],rule:'음계·도약은 선택한 ±35·50·75cent, 연속 슬라이드는 ±110cent로 확인합니다. 정확도 65% 이상, 발성 40% 이상과 각 음·이동 구간 20% 이상이 필요합니다. 충분한 발성이 없으면 측정 부족으로 표시합니다. 기준음 재생·준비·듣기는 채점에서 제외합니다. 이어폰을 권장합니다.'},
  guideVoice:{intro:'가이드를 듣고 음을 오르내리는 음역 슬라이드입니다. 음계·도약과 기존의 단계별 왕복·연속 슬라이드를 한 패턴 목록에 통합했습니다.',
   steps:['패턴은 음계·도약 10종, 3·5·7·12반음 단계별 왕복 4종, 같은 범위의 연속 슬라이드 4종으로 총 18종입니다. 연습 설정에서 시작음과 1~5회 반복을 정합니다.',
    '음계·단계별은 50~120 BPM에 맞추거나 한 음을 2·3·4초 유지하도록 정할 수 있습니다. 연속 패턴은 6초 이동 후 6초 되돌아오는 12초 왕복이며, 높은 시작음에서는 감지 가능한 범위 안에서 아래로 왕복합니다.',
@@ -2812,7 +2763,7 @@ function showVibratoCriteria(){
 }
 function showHelp(){
  $('infoTitle').textContent='사용법';const b=$('infoBody');b.replaceChildren();
- const sections=Object.entries(MODE_GUIDES).map(([mode,guide])=>[
+ const sections=Object.entries(MODE_GUIDES).filter(([mode])=>mode!=='guideVoice').map(([mode,guide])=>[
   MODES[mode][0],[guide.intro,...guide.steps,'측정·판정: '+guide.rule].join(' ')
  ]);
  sections.push(

@@ -14,6 +14,38 @@ body.portrait-layout .app.guide-mode #keyboard{display:block}
 body.portrait-layout .app.guide-mode .piano-area{padding:3px 8px max(7px,env(safe-area-inset-bottom))}
 /* Portrait shares the same controls, audio and data. Only their placement changes. */
 body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
+/* Start/stop is one action. Pending microphone capture can be cancelled there. */
+#stopButton{display:none!important}
+.practice-graph-overlay{background:rgba(17,19,40,.82);border-color:#a48fdbb0;pointer-events:none}
+.app.practice-mode #exerciseControls{gap:6px}
+.app.practice-mode #exerciseControls label{min-width:0}
+.app.practice-mode #guideKind{max-width:130px;min-width:90px}
+.app.practice-mode #guidePattern{max-width:245px;min-width:105px}
+.app.practice-mode #guideSettingsOpen{white-space:nowrap;min-width:72px}
+@media(orientation:landscape){
+ body:not(.portrait-layout) .vibrato-overlay:not(.warmup-mode){left:50%;right:auto;transform:translateX(-50%);width:min(76%,680px);top:37px;height:clamp(136px,70%,230px);max-height:calc(100% - 76px);min-height:0}
+ body:not(.portrait-layout) .practice-graph-overlay{padding:7px 9px;gap:8px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-phase-row{gap:5px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-phase-row strong{font-size:14px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-phase-row span{font-size:9px;max-width:52%}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-phrase-main{gap:4px}
+ body:not(.portrait-layout) .practice-graph-overlay #guidePhaseHint{display:none}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard{flex-basis:126px;gap:4px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard>div{padding:3px 5px;gap:1px;overflow:hidden}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard strong{font-size:18px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard span,body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard small{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-start-cue strong{font-size:clamp(24px,8dvh,42px)}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-start-cue span{font-size:10px}
+}
+body.portrait-layout .app.practice-mode #guideKind,body.portrait-layout .app.practice-mode #guidePattern{max-width:100%;min-width:0}
+body.portrait-layout .app.practice-mode #guideSettingsOpen{grid-column:1/-1}
+body.portrait-layout .practice-graph-overlay .guide-phrase-main{flex:1 1 auto}
+body.portrait-layout .practice-graph-overlay .guide-scoreboard{flex:0 0 62px}
+@media(orientation:landscape) and (max-height:460px){
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 4px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard strong{font-size:17px}
+ body:not(.portrait-layout) .practice-graph-overlay .guide-scoreboard small{display:none}
+}
 body.portrait-layout .toolbar{height:46px;gap:5px;padding:4px 8px;grid-template-columns:auto minmax(0,1fr) auto auto}
 body.portrait-layout .toolbar .brand{max-width:none;gap:4px}
 body.portrait-layout .toolbar .brand-logo{width:24px;height:24px;flex-basis:24px}

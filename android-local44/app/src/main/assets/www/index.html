@@ -48,7 +48,7 @@
       </div>
       <div class="exercise-footer"><div class="progress-track"><span id="progressBar"></span></div><span id="exerciseProgress">준비</span></div>
     </div>
-    <div class="main-actions"><button id="mainButton" type="button" class="main-button">마이크 켜기</button><button id="stopButton" type="button" class="sub-button" hidden>종료</button></div>
+    <div class="main-actions"><button id="mainButton" type="button" class="main-button">마이크 켜기</button><button id="stopButton" type="button" class="sub-button" aria-hidden="true" tabindex="-1" hidden>종료</button></div>
   </div>
   <div class="piano-area">
     <div class="piano-topline"><div class="octave-tools"><button type="button" id="octaveDown" aria-label="낮은 옥타브로 이동">−</button><span id="octaveLabel">1옥 도 – 2옥 시</span><button type="button" id="octaveUp" aria-label="높은 옥타브로 이동">+</button></div><div class="piano-volume-control" role="group" aria-label="피아노 전용 음량 조절">
@@ -57,9 +57,9 @@
        <output id="pianoVolumeValue" for="pianoVolume">85%</output>
      </div><div class="legend"><span id="pianoSoundChip" class="piano-sound-chip" role="status">그랜드 피아노 음원 준비 중</span><button type="button" id="pianoRetry" class="piano-retry" hidden>음원 재시도</button><span class="key-legend played"></span> 터치 <span class="key-legend detected"></span> 내 음정 <span class="key-legend target"></span> 목표</div></div>
     <div id="keyboard" class="keyboard" aria-label="터치하면 소리 나는 피아노 건반" role="group"></div>
-    <section id="guideVoicePanel" class="guide-voice-panel" aria-label="음역 슬라이드" hidden>
+    <section id="guideVoicePanel" class="guide-voice-panel vibrato-overlay practice-graph-overlay" aria-label="음정 연습 그래프" hidden>
       <div class="guide-phrase-main">
-        <div class="guide-phase-row"><strong id="guidePhaseTitle" role="status" aria-live="polite">가이드를 먼저 들어보세요</strong><span id="guideRoundInfo"></span></div>
+        <div class="guide-phase-row"><strong id="guidePhaseTitle" role="status" aria-live="polite">음정 연습을 시작하세요</strong><span id="guideRoundInfo"></span></div>
         <p id="guidePhaseHint">한 구절 듣기 → 따라 부르기 · 이어폰 권장</p>
         <div class="guide-graph-stage">
           <canvas id="guidePhraseGraph" aria-label="가로축은 한 구절의 시간, 세로축은 음높이입니다. 3·2·1 준비 후 첫 음 시작선에서 따라 부릅니다. 민트색 목표 음정과 보라색 내 목소리를 겹쳐 보여줍니다."></canvas>
@@ -68,9 +68,9 @@
         <div class="guide-legend"><span id="guideTargetLabel">목표 C4 · 2옥 도</span><span id="guideDetectedLabel">내 음 —</span></div>
       </div>
       <div class="guide-scoreboard" aria-live="off">
-        <div><span>목표와 현재 차이</span><strong id="guideLiveCents">—</strong><small id="guideLiveHint">듣기 중에는 채점하지 않음</small></div>
-        <div><span>음정 일치율</span><strong id="guideAccuracy">—</strong><small id="guideTolerance">목표 ±50cent</small></div>
-        <div><span>발성 커버리지</span><strong id="guideCoverage">0%</strong><small id="guideCoverageHint">전체 따라 부르기 시간 기준</small></div>
+        <div><span>음정 차이</span><strong id="guideLiveCents">—</strong><small id="guideLiveHint">듣기 중에는 채점하지 않음</small></div>
+        <div><span>정확도</span><strong id="guideAccuracy">—</strong><small id="guideTolerance">목표 ±50cent</small></div>
+        <div><span>발성 비율</span><strong id="guideCoverage">0%</strong><small id="guideCoverageHint">전체 따라 부르기 시간 기준</small></div>
       </div>
     </section>
     <section id="metronomePanel" class="metronome-panel" aria-label="메트로놈" hidden>
@@ -157,8 +157,7 @@
    <button data-screen="pitch" class="menu-tile"><span class="tile-icon">♬</span><span><strong>음정 측정하기</strong><small>내가 부르는 음을 건반에서 확인</small></span></button>
    <button data-screen="record" class="menu-tile"><span class="tile-icon">●</span><span><strong>녹음하기</strong><small>목소리를 녹음하고 기기에 보관</small></span></button>
    <button data-screen="vibrato" class="menu-tile"><span class="tile-icon">∿</span><span><strong>비브라토 연습</strong><small>목소리의 흔들림과 속도 확인</small></span></button>
-   <button data-screen="practice" class="menu-tile"><span class="tile-icon">♫</span><span><strong>음정 연습하기</strong><small>목표 건반을 따라 정확도 확인</small></span></button>
-   <button data-screen="guideVoice" class="menu-tile"><span class="tile-icon" aria-hidden="true"><svg class="guide-menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 16 10 7M4 7h6v6M13 7l8 9M15 16h6v-6"/></svg></span><span><strong>음역 슬라이드</strong><small>듣고 따라 부르기 · 단계별·연속 등 18패턴</small></span></button>
+   <button data-screen="practice" class="menu-tile"><span class="tile-icon">♫</span><span><strong>음정 연습</strong><small>음계·도약·연속 슬라이드</small></span></button>
    <button data-screen="sustainVoice" class="menu-tile"><span class="tile-icon">━</span><span><strong>발성 유지</strong><small>한 음의 안정도 측정</small></span></button>
    <button data-screen="earVoice" class="menu-tile"><span class="tile-icon">♫</span><span><strong>청음·따라 부르기</strong><small>듣고 같은 음을 발성</small></span></button>
    <button data-screen="dynamicVoice" class="menu-tile"><span class="tile-icon">◖</span><span><strong>발성 강약 조절</strong><small>상대적인 소리 크기 변화</small></span></button>
@@ -167,7 +166,7 @@
    <button data-screen="history" class="menu-tile"><span class="tile-icon">▤</span><span><strong>나의 기록</strong><small>측정 기록과 녹음 재생·삭제</small></span></button>
    <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
   </div>
-  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local48</span></p>
+  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local49</span></p>
  </section>
 </div>
 <div id="recordToolsDialog" class="modal-backdrop record-tools-backdrop" hidden>
@@ -183,19 +182,20 @@
 </div>
 <div id="guideSettingsDialog" class="modal-backdrop guide-settings-backdrop" hidden>
  <section class="modal guide-settings-modal" role="dialog" aria-modal="true" aria-labelledby="guideSettingsTitle">
-  <div class="modal-heading"><h2 id="guideSettingsTitle">음역 슬라이드 설정</h2><button type="button" id="guideSettingsClose" class="close-btn" aria-label="음역 슬라이드 설정 닫기">✕</button></div>
+  <div class="modal-heading"><h2 id="guideSettingsTitle">음정 연습 설정</h2><button type="button" id="guideSettingsClose" class="close-btn" aria-label="음정 연습 설정 닫기">✕</button></div>
   <div class="guide-settings-fields">
+   <label for="guideListenFirst">진행 방식<select id="guideListenFirst"><option value="off">바로 따라 부르기</option><option value="on">먼저 듣고 따라 부르기</option></select></label>
    <label for="guideRoot">시작 기준음<select id="guideRoot"></select></label>
-   <label for="guideNoteSeconds">한 음 길이<select id="guideNoteSeconds"><option value="0">BPM에 맞춤</option><option value="2">2초 유지</option><option value="3">3초 유지</option><option value="4">4초 유지</option></select></label>
+   <label for="guideNoteSeconds">한 음 길이<select id="guideNoteSeconds"><option value="0">BPM에 맞춤</option><option value="1.2">1.2초 · 빠르게</option><option value="1.8">1.8초 · 보통</option><option value="2.8">2.8초 · 천천히</option><option value="2">2초 유지</option><option value="3">3초 유지</option><option value="4">4초 유지</option></select></label>
    <label for="guideBpm">빠르기 (음 하나 = 1박)<select id="guideBpm"><option value="50">50 BPM · 천천히</option><option value="60">60 BPM</option><option value="70">70 BPM</option><option value="80">80 BPM · 기본</option><option value="90">90 BPM</option><option value="100">100 BPM</option><option value="110">110 BPM</option><option value="120">120 BPM · 빠르게</option></select></label>
-   <label for="guideRounds">반복 횟수<select id="guideRounds"><option value="1">1회</option><option value="2">2회</option><option value="3">3회</option><option value="4">4회</option><option value="5">5회</option></select></label>
+   <label for="guideRounds">반복 횟수<select id="guideRounds"><option value="0">계속 반복</option><option value="1">1회</option><option value="2">2회</option><option value="3">3회</option><option value="4">4회</option><option value="5">5회</option></select></label>
    <label for="guideShift">다음 회차의 음역<select id="guideShift"><option value="0">같은 음역 반복</option><option value="1">반음씩 올리기</option><option value="-1">반음씩 내리기</option></select></label>
    <label for="guideSound">가이드 소리<select id="guideSound"><option value="piano">피아노</option><option value="hum">부드러운 허밍 톤 (합성)</option><option value="vowel">밝은 모음 톤 (합성)</option></select></label>
    <label for="guideToleranceSelect">음정 허용 범위<select id="guideToleranceSelect"><option value="75">여유롭게 · ±75cent</option><option value="50">기본 · ±50cent</option><option value="35">정밀하게 · ±35cent</option><option id="guideSmoothTolerance" value="110" hidden disabled>연속 이동 · ±110cent</option></select></label>
-   <label for="guideVolume">가이드 전용 음량 <output id="guideVolumeValue" for="guideVolume">70%</output><input id="guideVolume" type="range" min="0" max="100" step="1" value="70"></label>
+   <label for="guideVolume">기준음 음량 <output id="guideVolumeValue" for="guideVolume">70%</output><input id="guideVolume" type="range" min="0" max="100" step="1" value="70"></label>
   </div>
   <p id="guidePlanInfo" class="guide-settings-note"></p>
-  <p class="guide-settings-note">한 구절 듣기 → 3·2·1 준비 → 시작!에 첫 음부터 따라 부르세요. 준비 시간에는 채점하지 않습니다. 허밍·모음 톤은 음높이를 안내하는 합성음입니다.</p>
+  <p id="guideMethodInfo" class="guide-settings-note"></p>
   <div class="guide-settings-actions"><button type="button" id="guideSettingsReset">기본값</button><button type="button" id="guideSettingsSave">설정 저장</button></div>
  </section>
 </div>

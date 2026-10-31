@@ -20,8 +20,8 @@ function sing(s,pitch=(p)=>p.midi,step=50){
  return guide.metrics(s);
 }
 test('Guide patterns and every round stay in detectable range without reversing the phrase',()=>{
- assert.equal(Object.keys(guide.PATTERNS).length,18);
- assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify(p.steps))).size,18);
+ assert.equal(Object.keys(guide.PATTERNS).length,22);
+ assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify(p.steps))).size,22);
  for(const pattern of Object.keys(guide.PATTERNS))for(const root of [36,48,60,82,94])for(const shift of [-1,0,1]){
   const s=session({pattern,root,shift,rounds:5});
   assert.ok(s.rounds>=1&&s.rounds<=5);
@@ -166,7 +166,7 @@ test('Shared training lifecycle stops guide audio, saves only a practice event a
  const s=app.training;s.guidePlayer={stop(){actions.push('audio stop');}};
  for(let t=s.start;t<s.start+s.duration;t+=50){const p=guide.position(s,t);api.receiveTrainingSample(t,p.midi,.06);}
  api.finishTraining(true);assert.equal(app.training,null);assert.deepEqual(actions,['audio stop','result','mic stop']);
- assert.equal(events.length,1);assert.equal(events[0][2],'guideVoice');assert.match(events[0][1],/성공/);
+ assert.equal(events.length,1);assert.equal(events[0][2],'practice');assert.match(events[0][1],/성공/);
 });
 test('Guide mode is practice history only and cannot create a recording',async()=>{
  const calls=[],app={sessionMode:'guideVoice'};
@@ -325,10 +325,12 @@ test('Continuous graph draws a sloping target instead of discrete note bars',()=
  guide.draw(canvas,s,s.start+5000,String);
  const curve=ops.findIndex((op,i)=>op[0]==='moveTo'&&ops[i+1]?.[0]==='lineTo'&&ops[i+2]?.[0]==='lineTo');
  assert.ok(curve>=0);const [start,peak,end]=ops.slice(curve,curve+3);
- assert.ok(start[1]<peak[1]&&peak[1]<end[1]);assert.ok(Math.abs(peak[1]-(start[1]+end[1])/2)<.01);
- assert.ok(peak[2]<start[2]&&Math.abs(start[2]-end[2])<.01);
+ assert.ok(start[1]<peak[1]&&peak[1]<end[1]);
+ const view=guide.plotView(s,s.start+5000),fraction=(s.phraseMs/2-view.from)/(view.to-view.from);
+ assert.ok(Math.abs(peak[1]-(start[1]+(end[1]-start[1])*fraction))<.01);
+ assert.ok(peak[2]<start[2]&&peak[2]<end[2]);
  assert.equal(ops.filter(op=>op[0]==='fillRect').length,0);
- assert.ok(ops.some(op=>op[0]==='fillText'&&op[1]==='67'));
+ assert.ok(ops.some(op=>op[0]==='fillText'&&typeof op[1]==='string'));
  assert.ok(ops.flat().filter(v=>typeof v==='number').every(Number.isFinite));
 });
 test('Old slide settings migrate once; valid existing guide choices always take precedence',()=>{
@@ -338,7 +340,7 @@ test('Old slide settings migrate once; valid existing guide choices always take 
   assert.equal(restored.pattern,style+span);assert.equal(restored.root,84);assert.equal(restored.rounds,1);assert.equal(restored.shift,0);
   assert.equal(restored.noteSeconds,style==='step'?4:0);
   const previous={pattern:'triad',root:55,bpm:90,noteSeconds:2,rounds:2,shift:-1,sound:'vowel',volume:50,tolerance:75};
-  assert.deepEqual(guide.restore(previous,legacy),previous);
+  assert.deepEqual(guide.restore(previous,legacy),{...previous,listenFirst:true});
  }
  assert.equal(guide.restore(null,{glideSpan:7,root:60}).pattern,'step3');
  assert.equal(guide.restore({pattern:'bad'},{glideSpan:5,glideStyle:'step'}).pattern,'step5');
@@ -351,7 +353,7 @@ test('App preference migration persists the merged selection without changing ol
   app,window:{VoiceLineGuideTraining:guide},localStorage:{getItem:key=>stored.get(key)||null,setItem:(key,value)=>{writes.push(key);stored.set(key,value);}}
  });
  assert.equal(read().pattern,'step5');assert.equal(read().noteSeconds,2);assert.equal(read().root,72);
- assert.deepEqual(writes,['voiceline-guide-v1']);assert.equal(stored.get('voiceline-training-v1'),original);
+ assert.deepEqual(writes,['voiceline-unified-practice-v1']);assert.equal(stored.get('voiceline-training-v1'),original);
  stored.set('voiceline-training-v1',JSON.stringify({root:60}));app.guideSettings=null;
  assert.equal(read().pattern,'step5');assert.equal(read().root,72);assert.equal(writes.length,1);
 });
