@@ -1212,7 +1212,7 @@ function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=fal
  // The mint step line records the actual goal at each capture time. Pauses
  // break the goal line, just as silence breaks the purple voice trace.
  let previous=null;
- ctx.strokeStyle='#69ecd0';ctx.lineWidth=2;ctx.setLineDash([]);
+ ctx.strokeStyle='#69ecd0';ctx.lineWidth=5;ctx.setLineDash([]);
  for(const point of points){
   if(!Number.isFinite(point.target)){previous=null;continue;}
   if(previous&&point.t-previous.t<=200){
