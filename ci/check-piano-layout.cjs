@@ -75,7 +75,7 @@ async function graphPixels(page){return page.locator('#pitchGraph').evaluate(can
    await page.locator('#micToggle').click();await frames(page);const stopped=await geometry(page);assert.equal(stopped.keyboard.height,after.keyboard.height);
   }
   await choose(page,'practice');await page.locator('#mainButton').click();
-  await page.waitForFunction(()=>document.querySelector('#pitchGraphTarget').textContent.includes('C4'),null,{timeout:8000});
+  await page.waitForFunction(()=>document.querySelector('#pitchGraphTarget').textContent.includes('C4')&&document.querySelector('#exerciseProgress').textContent.includes('음')&&!document.querySelector('#exerciseProgress').textContent.includes('준비'),null,{timeout:8000});
   await sendTone(page,261.625565);const pixels=await graphPixels(page);assert.ok(pixels.voice>5,'practice voice trace missing');assert.ok(pixels.goal>5,'practice target trace missing');
   await page.screenshot({path:path.join(output,'portrait-practice.png')});
   const request=await page.evaluate(()=>window.__micRequest);await page.setViewportSize(viewports[3]);await frames(page);await sendTone(page,293.664768);
