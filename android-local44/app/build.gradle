@@ -8,8 +8,8 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 60
-        versionName '2.0.0-local45'
+        versionCode 61
+        versionName '2.0.0-local46'
     }
 
     signingConfigs {

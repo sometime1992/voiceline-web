@@ -463,7 +463,7 @@ test('Application boot, all eleven modes and the merged slide controls execute t
  await window.__local32Test.switchMode('warmupVoice');await $('mainButton').events.click();
  const warmup=window.__local32Test.app.training;assert.equal(warmup.mode,'warmupVoice');assert.equal(window.__local32Test.app.mic,false);assert.equal($('warmupGuide').hidden,false);
  window.__local32Test.updateTraining(warmup.start+10000);assert.match($('warmupPhaseTitle').textContent,/지금 허밍/);assert.equal($('warmupSeconds').textContent,'6');
- await $('mainButton').events.click();assert.equal(window.__local32Test.app.training,null);assert.equal(warmup.warmupCueNodes.size,0);
+ await $('mainButton').events.click();assert.equal(window.__local32Test.app.training,null);assert.equal(warmup.trainingCueNodes.size,0);
  window.__local32Test.app.micStatusText='마이크 꺼짐 (Android)';
  window.innerWidth=390;window.innerHeight=780;window.__local32Test.applyResponsiveLayout();
  assert.equal($('keyboard').children.length,12);assert.equal(window.__local32Test.app.layoutPortrait,true);

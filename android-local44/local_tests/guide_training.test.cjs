@@ -159,7 +159,7 @@ test('Shared training lifecycle stops guide audio, saves only a practice event a
   chunk('function trainingSummary(a,completed){','function syncTrainingOverlay(){')+
   '\n({newTrainingSession,receiveTrainingSample,finishTraining})';
  const api=vm.runInNewContext(code,{window:{VoiceLineGuideTraining:guide},app,$,Math,Number,performance:{now:()=>100000},
-  MODES:{guideVoice:['음역 슬라이드']},...labels,addEvent:(...args)=>events.push(args),cancelWarmupCues(){},
+  MODES:{guideVoice:['음역 슬라이드']},...labels,addEvent:(...args)=>events.push(args),cancelTrainingCues(){},
   showTrainingResult(){actions.push('result');},setMessage(){},progress(){},syncKeyColors(){},renderTrainingOverlay(){},
   stopMic(){actions.push('mic stop');},cancelAnimationFrame(){}});
  app.training=api.newTrainingSession('guideVoice',0);app.mic=true;

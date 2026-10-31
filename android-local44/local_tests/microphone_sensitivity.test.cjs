@@ -111,7 +111,7 @@ test('Local45 the selected sensitivity reaches both native and browser graph det
    analyser:{getFloatTimeDomainData:b=>b.set(sound)},buffer:new Float32Array(4096),micCtx:{sampleRate:44100},sessionSamples:0};
   const $=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id);};
   const run=vm.runInNewContext(constants+detector+chunk('function updateDetection(','// For the Android-only APK,')+'\nupdateDetection',{
-   app,$,Math,Float32Array,clamp:clip,PITCH_RANGE:{minHz:65,maxHz:1900},showNote:m=>shown.push(m),syncKeyColors(){},clearNote(){}
+   app,$,Math,Float32Array,clamp:clip,PITCH_RANGE:{minHz:65,maxHz:1900},showNote:m=>shown.push(m),syncKeyColors(){},clearNote(){},rememberPitchGraphPoint(){}
   });
   run(1000,native?sound:null,native?44100:0);
   assert.equal(shown.length,1,native?'native':'browser');assert.ok(Math.abs(shown[0]-57)<.1);

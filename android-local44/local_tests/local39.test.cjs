@@ -121,7 +121,7 @@ function warmup(){
  const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:true,textContent:'',dataset:{},setAttribute(){},querySelectorAll(){return [];},focus(){}});return nodes.get(id);};
  const app={trainingSettings:{},training:null,mode:'warmupVoice'},stored=new Map();
  const context={app,$,Math,Number,JSON,Object,Array,Set,document:{hidden:false},performance:{now:()=>0},clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),localStorage:{setItem:(k,v)=>stored.set(k,v)},modalOpen(){},modalClose(){},notify(){},updateWarmupGuide(){},ensureSynth:()=>{throw Error('muted cues must not start audio');}};
- const code=chunk('const WARMUP_CYCLE_MS=','function restoreTrainingSettings(){')+chunk('function trainingDuration(','function trainingTargetAt(')+'\n({warmupTimeline,warmupPhaseAt,warmupGuideState,normalizeWarmup,trainingDuration,scheduleWarmupCues,saveWarmupOptions})';
+ const code=chunk('const WARMUP_CYCLE_MS=','function restoreTrainingSettings(){')+chunk('function trainingDuration(','function trainingTargetAt(')+'\n({warmupTimeline,warmupPhaseAt,warmupGuideState,normalizeWarmup,trainingDuration,scheduleTrainingCues,saveWarmupOptions})';
  return {...vm.runInNewContext(code,context),app,$,stored};
 }
 test('Local39 custom warmup times drive both phase boundaries and total duration',()=>{
@@ -130,7 +130,7 @@ test('Local39 custom warmup times drive both phase boundaries and total duration
  assert.equal(timeline.cycle,10000);assert.equal(h.trainingDuration('warmupVoice',{rounds:2,warmup:timeline.settings}),20000);
  assert.equal(h.warmupPhaseAt(4999,s).key,'exhale');assert.equal(h.warmupPhaseAt(5000,s).key,'hum');assert.equal(h.warmupPhaseAt(10000,s).key,'inhale');
  assert.equal(h.warmupGuideState(s,6800).key,'hum');assert.match(h.warmupGuideState(s,10800).next,/다음 세트 들이쉬기/);
- h.app.training=s;h.scheduleWarmupCues(s);assert.equal(s.warmupCueContext,undefined);
+ h.app.training=s;h.scheduleTrainingCues(s);assert.equal(s.trainingCueContext,undefined);
 });
 test('Local39 warmup settings reject blank/out-of-range fields and persist one validated object',()=>{
  const h=warmup();for(const [id,value]of [['warmupInhale','2'],['warmupExhale','3'],['warmupHum','5'],['warmupRest','0']])h.$(id).value=value;

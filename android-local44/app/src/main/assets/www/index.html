@@ -97,6 +97,13 @@
         </div>
       </div>
     </section>
+    <section id="pitchGraphOverlay" class="vibrato-overlay pitch-graph-overlay" aria-label="음정 측정 실시간 그래프" hidden>
+      <div class="vibrato-graph-pane">
+        <div class="vibrato-overlay-header"><strong>목소리 음높이 변화</strong><span id="pitchGraphStatus">마이크를 켜세요</span></div>
+        <canvas id="pitchGraph" aria-label="최근 6초의 음높이를 계이름과 옥타브로 표시합니다. 소리가 없거나 음정을 확인할 수 없는 구간은 비워둡니다."></canvas>
+        <div class="pitch-range-values"><span>최근 최저 <strong id="pitchGraphLow">—</strong></span><span>최근 최고 <strong id="pitchGraphHigh">—</strong></span></div>
+      </div>
+    </section>
     <section id="vibratoOverlay" class="vibrato-overlay" aria-label="비브라토 실시간 음높이 분석" hidden>
       <div class="vibrato-graph-pane">
         <div class="vibrato-overlay-header"><strong>비브라토 · 음높이 변화</strong><span id="vibratoTargetLabel">기준음 C4 · 2옥 도 · 최근 3초</span></div>
@@ -111,7 +118,8 @@
       </div>
     </section>
     <section id="trainingOverlay" class="vibrato-overlay training-overlay" aria-label="보컬 훈련 실시간 분석" hidden>
-      <div class="vibrato-graph-pane"><div class="vibrato-overlay-header"><strong id="trainingTitle">보컬 훈련</strong><span id="trainingInfo">훈련 시작을 누르세요</span></div>
+      <div class="vibrato-graph-pane"><div class="vibrato-overlay-header"><strong id="trainingTitle">보컬 훈련</strong><span id="trainingInfo">훈련 시작을 누르세요</span><div id="dynamicGuide" class="dynamic-phase-plan" aria-label="약 3초, 중간 3초, 강 3초, 다시 약 3초" hidden><span data-dynamic-step="soft">약</span><span data-dynamic-step="medium">중</span><span data-dynamic-step="strong">강</span><span data-dynamic-step="softAgain">약</span></div></div>
+        <span id="dynamicAnnouncement" class="warmup-announcement" role="status" aria-live="polite" hidden></span>
         <div id="warmupGuide" class="warmup-guide" hidden aria-label="호흡과 허밍 단계 안내">
          <div class="warmup-current"><div class="warmup-current-copy"><strong id="warmupPhaseTitle">호흡과 허밍 준비</strong><span id="warmupPhaseHint">허밍은 내쉬기를 마친 다음에 시작합니다.</span></div><div class="warmup-time" aria-label="현재 단계 남은 시간"><strong id="warmupSeconds">—</strong><span>초</span></div></div>
          <span id="warmupNext" class="warmup-next">다음 단계를 안내합니다.</span>
@@ -120,10 +128,10 @@
         </div><canvas id="trainingGraph" aria-label="최근 음정 또는 상대적 음량 그래프"></canvas>
       </div>
       <div class="vibrato-metrics">
-        <div class="vibrato-metric"><span>현재 측정</span><strong id="trainingMetric1">—</strong></div>
-        <div class="vibrato-metric"><span>진행 / 일치율</span><strong id="trainingMetric2">—</strong></div>
-        <div class="vibrato-metric"><span>감지 음역</span><strong id="trainingMetric3">—</strong></div>
-        <div class="vibrato-metric"><span>남은 시간</span><strong id="trainingMetric4">—</strong></div>
+        <div class="vibrato-metric"><span id="trainingMetricLabel1">현재 측정</span><strong id="trainingMetric1">—</strong></div>
+        <div class="vibrato-metric"><span id="trainingMetricLabel2">진행 / 일치율</span><strong id="trainingMetric2">—</strong></div>
+        <div class="vibrato-metric"><span id="trainingMetricLabel3">감지 음역</span><strong id="trainingMetric3">—</strong></div>
+        <div class="vibrato-metric"><span id="trainingMetricLabel4">남은 시간</span><strong id="trainingMetric4">—</strong></div>
       </div>
     </section>
     <section id="recordPitchOverlay" class="vibrato-overlay record-pitch-overlay" aria-label="녹음 중 실시간 음높이 변화" hidden>

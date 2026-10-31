@@ -6,7 +6,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const js=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/www/piano.js'),'utf8');
 const from=js.indexOf('const WARMUP_CYCLE_MS='),to=js.indexOf('function restoreTrainingSettings(){',from);
-const source=js.slice(from,to)+'\n({warmupPhaseAt,warmupGuideState,updateWarmupGuide,scheduleWarmupCues,cancelWarmupCues})';
+const source=js.slice(from,to)+'\n({warmupPhaseAt,warmupGuideState,updateWarmupGuide,scheduleTrainingCues,cancelTrainingCues})';
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(rounds=2){
  const sources=[],events=new Map(),nodes=new Map();let clock=0,unlock;
@@ -39,7 +39,7 @@ test('Local35 warmup previews when humming is next and marks start and stop clea
  h.updateWarmupGuide(s,s.start+16000);assert.match(h.$('warmupPhaseTitle').textContent,/허밍을 멈추고 쉬세요/);assert.equal(h.$('warmupSeconds').textContent,'3');
 });
 test('Local35 warmup queues a distinct double cue for humming at the same timeline as the visual guide',()=>{
- const h=fixture();h.scheduleWarmupCues(h.session);h.scheduleWarmupCues(h.session);
+ const h=fixture();h.scheduleTrainingCues(h.session);h.scheduleTrainingCues(h.session);
  assert.equal(h.sources.length,10,'one cue per stage and two for humming in each set');
  const hum=h.sources.filter(o=>o.hz===660||o.hz===880);assert.equal(hum.length,4);
  for(const [i,round] of [0,1].entries()){
@@ -49,16 +49,16 @@ test('Local35 warmup queues a distinct double cue for humming at the same timeli
  assert.equal(h.sources.filter(o=>o.hz===330)[0].startAt,17.8);
 });
 test('Local35 stopping warmup cancels all remaining cues and detaches its audio listener',()=>{
- const h=fixture();h.scheduleWarmupCues(h.session);assert.equal(h.events.size,1);
- h.session.active=false;h.app.training=null;h.cancelWarmupCues(h.session);
- assert.ok(h.sources.every(o=>o.cancelled));assert.equal(h.session.warmupCueNodes.size,0);assert.equal(h.events.size,0);
+ const h=fixture();h.scheduleTrainingCues(h.session);assert.equal(h.events.size,1);
+ h.session.active=false;h.app.training=null;h.cancelTrainingCues(h.session);
+ assert.ok(h.sources.every(o=>o.cancelled));assert.equal(h.session.trainingCueNodes.size,0);assert.equal(h.events.size,0);
 });
 test('Local35 a late audio unlock cannot play warmup cues after cancellation',async()=>{
- const h=fixture();let release;h.context.state='suspended';h.gate(new Promise(resolve=>release=resolve));h.scheduleWarmupCues(h.session);assert.equal(h.sources.length,0);
- h.session.active=false;h.app.training=null;h.cancelWarmupCues(h.session);h.context.state='running';release();await turn();assert.equal(h.sources.length,0);assert.equal(h.events.size,0);
+ const h=fixture();let release;h.context.state='suspended';h.gate(new Promise(resolve=>release=resolve));h.scheduleTrainingCues(h.session);assert.equal(h.sources.length,0);
+ h.session.active=false;h.app.training=null;h.cancelTrainingCues(h.session);h.context.state='running';release();await turn();assert.equal(h.sources.length,0);assert.equal(h.events.size,0);
 });
 test('Local35 interrupted audio discards elapsed warmup cues when it resumes',()=>{
- const h=fixture(1);h.scheduleWarmupCues(h.session);const before=h.sources.length;
+ const h=fixture(1);h.scheduleTrainingCues(h.session);const before=h.sources.length;
  h.context.state='suspended';h.events.get('statechange')();assert.ok(h.sources.every(o=>o.cancelled));
  h.clock(14000);h.context.currentTime=14;h.context.state='running';h.events.get('statechange')();
  const after=h.sources.slice(before);assert.equal(after.length,1);assert.equal(after[0].hz,330);assert.ok(Math.abs(after[0].startAt-17.8)<1e-9);

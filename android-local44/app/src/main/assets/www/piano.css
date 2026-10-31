@@ -46,6 +46,17 @@
 /* iPhone/iPad pitch during recording: the same quiet glass treatment as vibrato. */
 .record-pitch-overlay{border-color:#ccb0ffad;background:rgba(17,19,40,.83)}
 #recordPitchGraph{display:block;flex:1;width:100%;height:100%;min-height:0}
+#pitchGraph{display:block;flex:1;width:100%;height:100%;min-height:0}
+.pitch-graph-overlay{border-color:#b99bf3ad;background:rgba(17,19,40,.83)}
+.pitch-range-values{display:flex;gap:10px;font-size:10px;color:#c0bfd3;flex:none;min-width:0}
+.pitch-range-values>span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pitch-range-values strong{color:#dfc7ff;font-weight:700}
+.dynamic-phase-plan{display:flex;gap:3px;flex:none;white-space:nowrap}
+.vibrato-overlay-header .dynamic-phase-plan>span{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:17px;padding:1px 5px;border:1px solid #b9b0da55;border-radius:5px;background:#28273c;color:#bfb8d3;font-size:9px;line-height:1}
+.vibrato-overlay-header .dynamic-phase-plan>span.active{background:#244f47;border-color:#78f3d3;color:#d4fff3;font-weight:800}
+.dynamic-mode .vibrato-metric:first-child{border-color:#78f3d388;background:#19423977}
+.dynamic-mode #trainingMetric1{font-size:clamp(12px,1.7vw,22px)}
+.dynamic-mode #trainingMetric3{font-size:clamp(10px,1.25vw,15px);white-space:normal;line-height:1.15}
 .record-pitch-overlay .vibrato-metric strong{color:#e1b4ff}
 
 /* Small landscape screens and larger iOS text sizes:

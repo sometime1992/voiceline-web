@@ -62,8 +62,8 @@ body.portrait-layout .white-key .key-note-west{font-size:14px}
 body.portrait-layout .white-key .key-note-korean{font-size:11px}
 body.portrait-layout .black-key .key-note-west{font-size:10px}
 body.portrait-layout .black-key .key-note-korean{font-size:8px}
-body.portrait-layout .app:is([data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .piano-area{grid-template-rows:auto minmax(0,1fr) minmax(96px,.55fr)}
-body.portrait-layout .app:is([data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .keyboard{grid-row:3}
+body.portrait-layout .app:is([data-mode=pitch],[data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .piano-area{grid-template-rows:auto minmax(0,1fr) minmax(96px,.55fr)}
+body.portrait-layout .app:is([data-mode=pitch],[data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .keyboard{grid-row:3}
 body.portrait-layout .vibrato-overlay{position:static;grid-row:2;grid-column:1;display:flex;flex-direction:column;gap:5px;min-height:0;height:auto;max-height:none;padding:6px 7px;border-radius:11px;box-shadow:none}
 body.portrait-layout .vibrato-graph-pane{flex:1 1 auto;min-height:0;gap:3px}
 body.portrait-layout .vibrato-overlay-header{min-height:15px;gap:4px}

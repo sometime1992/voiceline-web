@@ -737,7 +737,7 @@ test('Training results retain visible criteria and warmup audio unlock',()=>{
  assert.match(html,/role="dialog" aria-modal="true" aria-labelledby="trainingResultTitle"/);
  assert.match(js,/showTrainingResult\(a,completed,detail\)/);
  assert.match(js,/status:passed\?'성공':'미달성'/);
- assert.match(js,/if\(app\.mode==='warmupVoice'\|\|!window\.VoiceLineToneEngine\)ensureSynth\(\)/);
+ assert.match(js,/if\(app\.mode==='warmupVoice'\|\|app\.mode==='dynamicVoice'\|\|!window\.VoiceLineToneEngine\)ensureSynth\(\)/);
 });
 
 test('Local31: description control is beside mode title and header never scrolls help prose',()=>{

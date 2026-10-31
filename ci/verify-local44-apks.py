@@ -14,20 +14,20 @@ sdk_tools = Path(os.environ["ANDROID_HOME"]) / "build-tools/35.0.0"
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
 report = [
-    "VoiceLine Local45 - GitHub Actions debug APKs",
+    "VoiceLine Local46 - GitHub Actions debug APKs",
     "Commit: " + os.environ["GITHUB_SHA"],
     "Run: https://github.com/" + os.environ["GITHUB_REPOSITORY"]
     + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
     "Original Local44 source ZIP SHA-256: "
     "2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1",
-    "Local45 adds adjustable microphone sensitivity and faster pitch analysis to Local44.",
+    "Local46 adds a live pitch graph and timed dynamics guidance. The application ID and signing key match CI45.",
     "CI45 APK: separate application and separate storage; keeps earlier PC/CI installations and recordings intact.",
     "Do not uninstall an existing app to resolve a signature mismatch.",
     "CI45 signing uses an explicit cached key. Once pinned, a missing or different key blocks future builds.",
     "",
 ]
 variants = [
-    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local45-ci", "VoiceLine-Local45-CI.apk"),
+    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local46-ci", "VoiceLine-Local46-CI.apk"),
 ]
 certificates = []
 for variant, app_id, version, filename in variants:
@@ -36,7 +36,7 @@ for variant, app_id, version, filename in variants:
     apk = outputs[0]
     badging = subprocess.check_output([str(sdk_tools / "aapt"), "dump", "badging", str(apk)], text=True)
     assert "package: name='" + app_id + "'" in badging, badging
-    assert "versionCode='60'" in badging, badging
+    assert "versionCode='61'" in badging, badging
     assert "versionName='" + version + "'" in badging, badging
     assert "sdkVersion:'26'" in badging, badging
     assert "targetSdkVersion:'35'" in badging, badging
@@ -63,7 +63,7 @@ for variant, app_id, version, filename in variants:
     report.extend([
         filename,
         "  Application ID: " + app_id,
-        "  Version: " + version + " (60)",
+        "  Version: " + version + " (61)",
         "  SHA-256: " + hashlib.sha256(target.read_bytes()).hexdigest(),
         "  Signing certificate SHA-256: " + digest.group(1),
         "  Offline assets verified byte-for-byte: " + str(count),

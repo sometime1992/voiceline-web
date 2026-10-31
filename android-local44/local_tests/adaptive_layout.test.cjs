@@ -21,7 +21,7 @@ function harness(){
   performance:{now:()=>clock},clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),
   requestAnimationFrame:fn=>{frames.set(++frameId,fn);return frameId;},
   syncKeyColors(){calls.push('colors');},soundOff:m=>{calls.push(['off',m]);app.playing.delete(m);},updateToneEngineStatus(){},updateMicToggle(){},
-  renderVibratoOverlay:()=>calls.push('vibrato'),renderRecordPitchOverlay:()=>calls.push('record'),renderTrainingOverlay:()=>calls.push('training'),updatePracticeScrollHint:()=>calls.push('settings'),
+  renderPitchGraphOverlay:()=>calls.push('pitch'),renderVibratoOverlay:()=>calls.push('vibrato'),renderRecordPitchOverlay:()=>calls.push('record'),renderTrainingOverlay:()=>calls.push('training'),updatePracticeScrollHint:()=>calls.push('settings'),
   store,readSessionParts:async id=>[...parts.values()].filter(p=>p.sessionId===id),
   removeSessionData:async id=>{sessions.delete(id);for(const [key,value]of parts)if(value.sessionId===id)parts.delete(key);},
   notify:message=>calls.push(message),progress(){},id:()=> 'take-'+(++serial),stamp:()=> '오늘',updateRecordingStorage:async()=>{},setTimeout,clearTimeout,
