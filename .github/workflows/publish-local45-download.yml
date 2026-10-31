@@ -1,0 +1,86 @@
+name: VoiceLine Local45 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local45-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local45-ci
+      SOURCE_RUN_ID: '41203951105'
+      SOURCE_COMMIT: 18d2e382634ffaa330e99d0094a4e79fcfc4c5de
+      APK_SHA256: dea84bcce20e3b77c61b639fc8e71a4a77888e8f524d71083316e6193d418b61
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local45-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local45-CI.apk'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ['APK_SHA256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local45-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 10, 31, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## 보이스라인 Local45 테스트 APK
+
+          아래 Assets에서 VoiceLine-Local45-CI.apk를 다운로드해 설치하세요.
+          APK 다운로드가 제한되는 환경에서는 VoiceLine-Local45-CI.zip을 받고 압축을 풀어 설치하세요.
+
+          - 마이크 감도 표준·민감·최대 선택, 작은 목소리 감지 개선
+          - 그래프 갱신 간격 단축, 가로·세로 화면 지원
+          - 자동 테스트 235개 통과, APK 서명·내장 파일 검증 완료
+
+          보이스라인 CI45로 별도 설치됩니다. 이전 앱의 녹음·연습 기록은 이전 앱에 남습니다.
+          이전 앱을 삭제해 설치 충돌을 해결하지 마세요.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local45-CI.apk dist/VoiceLine-Local45-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local45 CI45 테스트 APK' --notes-file release-notes.md dist/VoiceLine-Local45-CI.apk dist/VoiceLine-Local45-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local45-CI.apk VoiceLine-Local45-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
