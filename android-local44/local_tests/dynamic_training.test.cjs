@@ -66,5 +66,7 @@ test('The graph shows all twelve seconds, the same personal target and a bounded
  for(const label of ['0초','3초','6초','9초','12초','약','중','강'])assert.ok(text.includes(label),label);
  assert.ok(strokes.includes('#69ecd0'));assert.ok(strokes.includes('#d4a6ff'));assert.ok(strokes.includes('#ffd67f'));
  assert.ok(lines.every(p=>p.every(Number.isFinite)));assert.equal(JSON.stringify(m),snapshot);
+ canvas.getBoundingClientRect=()=>({width:300,height:42});
+ assert.ok(api.draw(canvas,m,12000),'short landscape canvas must still draw its target and voice');
  canvas.getBoundingClientRect=()=>({width:0,height:0});assert.equal(api.draw(canvas,m,12000),null);
 });

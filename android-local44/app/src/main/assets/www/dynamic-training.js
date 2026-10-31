@@ -64,12 +64,12 @@
   return {text:'목표 범위 안이에요',match:'near'};
  }
  function draw(canvas,model,now,{dpr=globalThis.devicePixelRatio||1}={}){
-  const rect=canvas?.getBoundingClientRect();if(!rect||rect.width<40||rect.height<32)return null;
+  const rect=canvas?.getBoundingClientRect();if(!rect||rect.width<40||rect.height<28)return null;
   const w=rect.width,h=rect.height,scale=clamp(dpr,1,2);
   if(canvas.width!==Math.round(w*scale)||canvas.height!==Math.round(h*scale)){canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);}
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,w,h);
-  const left=25,right=w-8,top=17,bottom=h-17,step=(right-left)/4;
+  const compact=h<72,left=25,right=w-8,top=compact?3:17,bottom=h-(h<55?12:17),step=(right-left)/4;
   if(bottom<=top)return null;
   const start=model?.start??now,duration=model?.duration??12000,baseline=model?.baseline;
   const elapsed=clamp(now-start,0,duration),current=stageAt({start,duration},now);
@@ -83,11 +83,11 @@
    ctx.fillStyle=i===current?'rgba(105,236,208,.07)':'rgba(255,255,255,.025)';ctx.fillRect(x,top,step,bottom-top);
    ctx.fillStyle=i===current?'rgba(105,236,208,.22)':'rgba(105,236,208,.10)';
    const a=yForLevel(targetLevels[i]+bandWidth),b=yForLevel(targetLevels[i]-bandWidth);ctx.fillRect(x,a,step,b-a);
-   ctx.fillStyle=i===current?'#a4ffe7':'#c0c6d6';ctx.textAlign='center';ctx.fillText(STAGES[i].short,x+step/2,7,step-4);
+   if(!compact){ctx.fillStyle=i===current?'#a4ffe7':'#c0c6d6';ctx.textAlign='center';ctx.fillText(STAGES[i].short,x+step/2,7,step-4);}
    ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.strokeStyle='rgba(217,220,243,.16)';ctx.lineWidth=1;ctx.stroke();
   }
   for(const [index,label]of ['약','중','강'].entries()){
-   const y=yForLevel(index);ctx.fillStyle='#c1c9d9';ctx.textAlign='right';ctx.fillText(label,left-5,y);
+   const y=yForLevel(index);ctx.fillStyle='#c1c9d9';ctx.font=(h<60?'8':'10')+'px system-ui';ctx.textAlign='right';if(h>=60||index!==1)ctx.fillText(label,left-5,y);
    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.strokeStyle='rgba(220,220,240,.12)';ctx.stroke();
   }
   ctx.beginPath();
