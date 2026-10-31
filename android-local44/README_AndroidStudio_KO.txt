@@ -214,7 +214,7 @@ VOICE LINE / 보이스라인 Android Studio 프로젝트 (Local50)
    androidx.webkit 1.12.1과 파일 공유용 androidx.core 1.15.0을 사용합니다.
    첫 Sync에서는 Maven 의존성을 받기 위한 인터넷 연결이 필요합니다.
 5. USB 디버깅을 켠 기기를 연결하고 Run > Run 'app'으로 실행합니다.
-6. 메뉴 하단 버전 2.0.0-local49를 확인합니다.
+6. 메뉴 하단 버전 2.0.0-local50를 확인합니다.
 
 [검사와 한계]
 - Node.js가 설치된 PC에서 run-tests.bat를 실행합니다. npm 설치는 필요하지 않습니다.
