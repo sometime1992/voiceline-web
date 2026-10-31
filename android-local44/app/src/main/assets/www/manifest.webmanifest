@@ -1,0 +1,16 @@
+{
+  "name": "보이스라인 | 피아노 보컬 트레이닝",
+  "short_name": "보이스라인",
+  "description": "건반을 연주하며 음정 측정, 녹음, 비브라토 및 음정 연습",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#100f1c",
+  "theme_color": "#100f1c",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

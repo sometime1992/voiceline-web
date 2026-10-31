@@ -1,0 +1,40 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.voiceline.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.voiceline.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 59
+        versionName '2.0.0-local44'
+    }
+
+    buildTypes {
+        debug {
+            // Standalone debug install; does not alter previous Beta15 recordings.
+            applicationIdSuffix '.local18'
+        }
+        release { minifyEnabled false }
+        // Separate CI installation keeps a PC-signed app and its recordings intact.
+        ciDebug {
+            initWith debug
+            applicationIdSuffix '.local18.ci'
+            versionNameSuffix '-ci'
+            matchingFallbacks = ['debug']
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+// All offline HTML, JS, CSS, piano samples and engine are already embedded
+// in app/src/main/assets/www. No npm asset downloads are necessary.

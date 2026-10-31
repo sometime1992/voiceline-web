@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#100f1c">
+<meta name="description" content="피아노 건반을 연주하며 음정을 측정하고 연습하는 보이스라인">
+<title>보이스라인 · VOICE LINE</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="piano.css">
+<link rel="stylesheet" href="recording-tools.css">
+<link rel="stylesheet" href="guide-training.css">
+<link rel="stylesheet" href="responsive-layout.css">
+<script src="vendor/tone-piano.js" defer></script>
+<script src="metronome.js" defer></script>
+<script src="recording-tools.js" defer></script>
+<script src="guide-training.js" defer></script>
+<script src="piano.js" defer></script>
+</head>
+<body>
+<div id="app" class="app">
+<header class="toolbar">
+  <div class="brand" aria-label="보이스라인"><img class="brand-logo" src="icon-192.png" alt="" aria-hidden="true"><span class="brand-word"><span class="brand-title">VOICE<span>LINE</span></span><small>보이스라인</small></span></div>
+  <aside id="micNotice" class="mic-notice" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span class="mic-notice-symbol" id="micNoticeSymbol" aria-hidden="true">●</span>
+    <div class="mic-notice-copy"><strong id="micNoticeTitle">마이크 상태</strong><p id="micNoticeBody"></p></div>
+    <button type="button" class="mic-notice-dismiss" id="micNoticeDismiss" aria-label="마이크 안내 닫기">✕</button>
+  </aside>
+  <div class="toolbar-center"><span id="modeChip">피아노 연주</span><button type="button" id="micToggle" class="mic-toggle" aria-label="마이크 켜기" aria-pressed="false" title="피아노 소리가 마이크에 들어가면 음정 인식이 달라질 수 있습니다.">
+     <span id="micChip" role="status">마이크 꺼짐</span><span id="micToggleAction" aria-hidden="true">켜기</span>
+    </button></div>
+  <button type="button" class="icon-btn menu-button" id="menuOpen" aria-label="메뉴 열기" aria-expanded="false" aria-controls="menuDialog"><span></span><span></span><span></span></button>
+</header>
+<section class="workspace" aria-label="피아노 연습 화면">
+  <div class="info-strip">
+    <div class="note-panel"><span class="label" id="noteHint">건반을 눌러 연주해 보세요</span><div class="note-values"><strong id="noteName">--</strong><span id="noteKorean">마이크 대기</span><span id="noteHz">-- Hz</span><span id="noteCents">-- cent</span></div></div>
+    <div class="exercise-panel">
+      <div class="exercise-heading">
+        <div class="mode-heading-row"><strong id="modeTitle">피아노 건반</strong><button type="button" id="modeGuideButton" class="mode-guide-button" aria-haspopup="dialog" aria-controls="infoDialog" aria-label="현재 기능 사용 설명 열기">ⓘ 설명</button></div>
+        <span id="recordStorageInfo" class="record-storage-info" hidden></span>
+        <span id="modeMessage" class="mode-live-status" role="status" aria-live="off">준비 · 설명 버튼에서 방법 확인</span>
+      </div>
+      <div id="practiceScrollShell" class="practice-scroll-shell" role="group" aria-label="연습 설정">
+        <div class="exercise-controls" id="exerciseControls"></div>
+        <button type="button" id="practiceScrollPrev" class="practice-scroll-arrow prev" aria-label="이전 설정 보기" title="왼쪽 설정 더 보기" hidden>‹</button>
+        <button type="button" id="practiceScrollNext" class="practice-scroll-arrow next" aria-label="오른쪽 설정 더 보기" title="오른쪽 설정 더 보기" hidden><span>더 보기</span> ›</button>
+      </div>
+      <div class="exercise-footer"><div class="progress-track"><span id="progressBar"></span></div><span id="exerciseProgress">준비</span></div>
+    </div>
+    <div class="main-actions"><button id="mainButton" type="button" class="main-button">마이크 켜기</button><button id="stopButton" type="button" class="sub-button" hidden>종료</button></div>
+  </div>
+  <div class="piano-area">
+    <div class="piano-topline"><div class="octave-tools"><button type="button" id="octaveDown" aria-label="낮은 옥타브로 이동">−</button><span id="octaveLabel">1옥 도 – 2옥 시</span><button type="button" id="octaveUp" aria-label="높은 옥타브로 이동">+</button></div><div class="piano-volume-control" role="group" aria-label="피아노 전용 음량 조절">
+       <label for="pianoVolume" title="휴대폰 미디어 볼륨과 별도로 피아노 음원만 조절합니다.">피아노 음량</label>
+       <input id="pianoVolume" type="range" min="0" max="100" step="1" value="85" aria-label="피아노 소리 크기" aria-valuetext="85퍼센트">
+       <output id="pianoVolumeValue" for="pianoVolume">85%</output>
+     </div><div class="legend"><span id="pianoSoundChip" class="piano-sound-chip" role="status">그랜드 피아노 음원 준비 중</span><button type="button" id="pianoRetry" class="piano-retry" hidden>음원 재시도</button><span class="key-legend played"></span> 터치 <span class="key-legend detected"></span> 내 음정 <span class="key-legend target"></span> 목표</div></div>
+    <div id="keyboard" class="keyboard" aria-label="터치하면 소리 나는 피아노 건반" role="group"></div>
+    <section id="guideVoicePanel" class="guide-voice-panel" aria-label="음역 슬라이드" hidden>
+      <div class="guide-phrase-main">
+        <div class="guide-phase-row"><strong id="guidePhaseTitle" role="status" aria-live="polite">가이드를 먼저 들어보세요</strong><span id="guideRoundInfo"></span></div>
+        <p id="guidePhaseHint">한 구절 듣기 → 따라 부르기 · 이어폰 권장</p>
+        <div class="guide-graph-stage">
+          <canvas id="guidePhraseGraph" aria-label="가로축은 한 구절의 시간, 세로축은 음높이입니다. 3·2·1 준비 후 첫 음 시작선에서 따라 부릅니다. 민트색 목표 음정과 보라색 내 목소리를 겹쳐 보여줍니다."></canvas>
+          <div id="guideStartCue" class="guide-start-cue" role="status" aria-live="polite" aria-atomic="true" hidden><strong id="guideStartCount">3</strong><span id="guideStartText">숫자가 끝나면 첫 음부터 시작하세요</span></div>
+        </div>
+        <div class="guide-legend"><span id="guideTargetLabel">목표 C4 · 2옥 도</span><span id="guideDetectedLabel">내 음 —</span></div>
+      </div>
+      <div class="guide-scoreboard" aria-live="off">
+        <div><span>목표와 현재 차이</span><strong id="guideLiveCents">—</strong><small id="guideLiveHint">듣기 중에는 채점하지 않음</small></div>
+        <div><span>음정 일치율</span><strong id="guideAccuracy">—</strong><small id="guideTolerance">목표 ±50cent</small></div>
+        <div><span>발성 커버리지</span><strong id="guideCoverage">0%</strong><small id="guideCoverageHint">전체 따라 부르기 시간 기준</small></div>
+      </div>
+    </section>
+    <section id="metronomePanel" class="metronome-panel" aria-label="메트로놈" hidden>
+      <div class="metro-tempo-card">
+        <div class="metro-section-heading"><strong id="metroSignature">4/4</strong><span id="metroState" class="metro-state" role="status">정지</span></div>
+        <div class="metro-beat-readout"><div class="metro-current-beat"><span class="metro-overline">현재 박</span><strong id="metroCount">—</strong></div><span id="metroPosition" class="metro-position">켜기를 누르면 시작합니다</span></div>
+        <div class="metro-tempo"><button type="button" id="metroMinus" aria-label="BPM 1 줄이기, 길게 누르면 연속 조절" title="길게 누르면 BPM 연속 조절">−</button><label class="metro-bpm-display"><input type="number" id="metroBpm" min="20" max="300" step="1" value="80" inputmode="numeric" aria-label="BPM, 20부터 300"><span>BPM</span></label><button type="button" id="metroPlus" aria-label="BPM 1 늘리기, 길게 누르면 연속 조절" title="길게 누르면 BPM 연속 조절">+</button></div>
+        <div class="metro-slider-row"><span aria-hidden="true">20</span><input type="range" id="metroBpmRange" min="20" max="300" value="80" aria-label="메트로놈 빠르기"><span aria-hidden="true">300</span></div>
+        <div class="metro-transport"><button type="button" id="metroToggle" class="metro-play-toggle" aria-pressed="false" aria-label="메트로놈 켜기">▶ 메트로놈 켜기</button><button type="button" id="metroMuteQuick" class="metro-mute-button" aria-pressed="false" aria-label="메트로놈 음소거">소리 켜짐</button></div>
+      </div>
+      <div class="metro-rhythm-card">
+        <div class="metro-inline-fields">
+          <label class="metro-inline-field">박자표<select id="metroPreset" aria-label="기본 박자표"></select></label>
+          <label class="metro-inline-field">BPM 기준<select id="metroUnit" aria-label="BPM 기준 음표"><option value="beat">박자표의 1박</option><option value="quarter">♩ 4분음표</option><option value="dottedQuarter">♩. 점4분음표</option></select></label>
+          <label class="metro-inline-field">세분 박자<select id="metroSubdivision" aria-label="한 박 안의 세분"><option value="1">기본 박</option><option value="2">2분할</option><option value="3">3분할</option><option value="4">4분할</option><option value="6">6분할</option><option value="8">8분할</option></select></label>
+          <div class="metro-inline-field" role="group" aria-labelledby="metroCustomLabel"><span id="metroCustomLabel">직접 박자표</span><div class="metro-custom-meter"><input id="metroNumerator" type="number" min="1" max="64" step="1" value="4" inputmode="numeric" aria-label="한 마디 박 수, 1부터 64"><span aria-hidden="true">/</span><select id="metroDenominator" aria-label="박자표 분모, 4는 4분음표"></select></div></div>
+          <label class="metro-inline-field">클릭 소리<select id="metroSound" aria-label="메트로놈 소리 종류"><option value="click">클릭</option><option value="wood">우드</option><option value="bell">벨</option></select></label>
+          <label class="metro-inline-field"><span class="metro-volume-label"><span>음량</span><output id="metroVolumeValue" for="metroVolume">75%</output></span><span class="metro-volume-row"><input type="range" id="metroVolume" min="0" max="100" value="75" aria-label="메트로놈 전용 음량"></span></label>
+        </div>
+        <div class="metro-inline-footer">
+          <div class="metro-inline-toolbar"><div class="metro-groups"><label for="metroGroups">강세 묶음</label><div class="metro-group-inputs"><input id="metroGroups" type="text" maxlength="127" placeholder="예: 2+2+3" aria-describedby="metroGroupMessage"><button type="button" id="metroApplyGroups">적용</button></div></div><button type="button" id="metroResetAccentsQuick" aria-label="현재 박자표의 기본 강세로 되돌리기">기본 강세로</button><button type="button" id="metroSettingsOpen" aria-haspopup="dialog" aria-controls="metronomeSettingsDialog">박별 강세</button><button type="button" id="metroFavoritesOpen" aria-haspopup="dialog" aria-controls="metronomeSettingsDialog">저장 리듬</button></div>
+          <p id="metroGroupMessage" class="metro-group-message" role="status">강세 묶음의 합계 = 한 마디 박 수</p>
+          <p id="metroSettingNotice" class="metro-settings-message" role="status"></p>
+        </div>
+      </div>
+    </section>
+    <section id="vibratoOverlay" class="vibrato-overlay" aria-label="비브라토 실시간 음높이 분석" hidden>
+      <div class="vibrato-graph-pane">
+        <div class="vibrato-overlay-header"><strong>비브라토 · 음높이 변화</strong><span id="vibratoTargetLabel">기준음 C4 · 2옥 도 · 최근 3초</span></div>
+        <div id="vibratoFeedback" class="vibrato-feedback" role="status" aria-live="polite">마이크를 켜고 소리를 내보세요</div>
+        <canvas id="vibratoGraph" aria-label="가로축은 시간, 세로축은 기준음 대비 센트 차이입니다. 기준 음정 선과 실시간 발성 곡선을 표시합니다."></canvas>
+      </div>
+      <div class="vibrato-metrics" aria-live="off">
+        <div class="vibrato-metric"><span>중심 음정</span><strong id="vibratoCenter">—</strong><small>기준음 대비</small></div>
+        <div class="vibrato-metric"><span>진폭</span><strong id="vibratoDepth">—</strong><small>±cent 추정</small></div>
+        <div class="vibrato-metric"><span>속도</span><strong id="vibratoRate">—</strong><small>Hz 추정</small></div>
+        <div class="vibrato-metric"><span>규칙성</span><strong id="vibratoRegularity">대기</strong><small id="vibratoGraphStatus">마이크를 켜세요</small></div>
+      </div>
+    </section>
+    <section id="trainingOverlay" class="vibrato-overlay training-overlay" aria-label="보컬 훈련 실시간 분석" hidden>
+      <div class="vibrato-graph-pane"><div class="vibrato-overlay-header"><strong id="trainingTitle">보컬 훈련</strong><span id="trainingInfo">훈련 시작을 누르세요</span></div>
+        <div id="warmupGuide" class="warmup-guide" hidden aria-label="호흡과 허밍 단계 안내">
+         <div class="warmup-current"><div class="warmup-current-copy"><strong id="warmupPhaseTitle">호흡과 허밍 준비</strong><span id="warmupPhaseHint">허밍은 내쉬기를 마친 다음에 시작합니다.</span></div><div class="warmup-time" aria-label="현재 단계 남은 시간"><strong id="warmupSeconds">—</strong><span>초</span></div></div>
+         <span id="warmupNext" class="warmup-next">다음 단계를 안내합니다.</span>
+         <ol class="warmup-steps" aria-label="한 세트의 순서"><li data-warmup-step="inhale">들이쉬기 <b>4초</b></li><li data-warmup-step="exhale">내쉬기 <b>6초</b></li><li data-warmup-step="hum">허밍 <b>6초</b></li><li data-warmup-step="rest">쉬기 <b>3초</b></li></ol>
+         <span id="warmupAnnouncement" class="warmup-announcement" role="status" aria-live="polite"></span>
+        </div><canvas id="trainingGraph" aria-label="최근 음정 또는 상대적 음량 그래프"></canvas>
+      </div>
+      <div class="vibrato-metrics">
+        <div class="vibrato-metric"><span>현재 측정</span><strong id="trainingMetric1">—</strong></div>
+        <div class="vibrato-metric"><span>진행 / 일치율</span><strong id="trainingMetric2">—</strong></div>
+        <div class="vibrato-metric"><span>감지 음역</span><strong id="trainingMetric3">—</strong></div>
+        <div class="vibrato-metric"><span>남은 시간</span><strong id="trainingMetric4">—</strong></div>
+      </div>
+    </section>
+    <section id="recordPitchOverlay" class="vibrato-overlay record-pitch-overlay" aria-label="녹음 중 실시간 음높이 변화" hidden>
+      <div class="vibrato-graph-pane">
+        <div class="vibrato-overlay-header"><strong>녹음 · 한 파일로 이어짐</strong><span id="recordPitchWindow">최근 6초</span></div>
+        <canvas id="recordPitchGraph" aria-label="시간에 따라 변하는 목소리의 높이를 음표와 음역으로 표시합니다."></canvas>
+      </div>
+      <div class="vibrato-metrics">
+        <div class="vibrato-metric"><span>현재 음정</span><strong id="recordCurrentPitch">—</strong><small>마이크 측정</small></div>
+        <div class="vibrato-metric"><span>현재 높이</span><strong id="recordCurrentHz">—</strong><small>Hz</small></div>
+        <div class="vibrato-metric"><span>최저 음</span><strong id="recordLowNote">—</strong><small>녹음 구간</small></div>
+        <div class="vibrato-metric"><span>최고 음</span><strong id="recordHighNote">—</strong><small id="recordPitchStatus">녹음 대기</small></div>
+      </div>
+    </section>
+  </div>
+</section>
+<div id="menuDialog" class="modal-backdrop" hidden>
+ <section class="modal menu-modal" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+  <div class="modal-heading"><div><span class="eyebrow">VOICE LINE</span><h1 id="menuTitle">연습 메뉴</h1><p>원하는 기능을 선택하면 피아노 화면에 바로 적용됩니다.</p></div><button type="button" class="close-btn" id="menuClose" aria-label="메뉴 닫기">✕</button></div>
+  <p class="menu-scroll-tip">↕ 아래로 스크롤하여 다른 보컬 훈련을 볼 수 있습니다.</p>
+  <div class="menu-grid">
+   <button data-screen="pitch" class="menu-tile"><span class="tile-icon">♬</span><span><strong>음정 측정하기</strong><small>내가 부르는 음을 건반에서 확인</small></span></button>
+   <button data-screen="record" class="menu-tile"><span class="tile-icon">●</span><span><strong>녹음하기</strong><small>목소리를 녹음하고 기기에 보관</small></span></button>
+   <button data-screen="vibrato" class="menu-tile"><span class="tile-icon">∿</span><span><strong>비브라토 연습</strong><small>목소리의 흔들림과 속도 확인</small></span></button>
+   <button data-screen="practice" class="menu-tile"><span class="tile-icon">♫</span><span><strong>음정 연습하기</strong><small>목표 건반을 따라 정확도 확인</small></span></button>
+   <button data-screen="guideVoice" class="menu-tile"><span class="tile-icon" aria-hidden="true"><svg class="guide-menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 16 10 7M4 7h6v6M13 7l8 9M15 16h6v-6"/></svg></span><span><strong>음역 슬라이드</strong><small>듣고 따라 부르기 · 단계별·연속 등 18패턴</small></span></button>
+   <button data-screen="sustainVoice" class="menu-tile"><span class="tile-icon">━</span><span><strong>발성 유지</strong><small>한 음의 안정도 측정</small></span></button>
+   <button data-screen="earVoice" class="menu-tile"><span class="tile-icon">♫</span><span><strong>청음·따라 부르기</strong><small>듣고 같은 음을 발성</small></span></button>
+   <button data-screen="dynamicVoice" class="menu-tile"><span class="tile-icon">◖</span><span><strong>발성 강약 조절</strong><small>상대적인 소리 크기 변화</small></span></button>
+   <button data-screen="metronome" class="menu-tile"><span class="tile-icon">◈</span><span><strong>메트로놈</strong><small>모든 기본 박자 · 직접 설정 · 강세·세분</small></span></button>
+   <button data-screen="warmupVoice" class="menu-tile"><span class="tile-icon">◎</span><span><strong>호흡·워밍업</strong><small>편안한 호흡과 허밍 안내</small></span></button>
+   <button data-screen="history" class="menu-tile"><span class="tile-icon">▤</span><span><strong>나의 기록</strong><small>측정 기록과 녹음 재생·삭제</small></span></button>
+   <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
+  </div>
+  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local44</span></p>
+ </section>
+</div>
+<div id="recordToolsDialog" class="modal-backdrop record-tools-backdrop" hidden>
+ <section class="modal record-tools-modal" role="dialog" aria-modal="true" aria-labelledby="recordToolsTitle">
+  <div class="modal-heading"><h2 id="recordToolsTitle">녹음 관리</h2><button type="button" id="recordToolsClose" class="close-btn" aria-label="녹음 관리 닫기">✕</button></div>
+  <p id="recordToolsInfo" class="record-tools-info"></p>
+  <label for="recordTitleInput">녹음 이름</label>
+  <div class="record-title-row"><input id="recordTitleInput" type="text" maxlength="60" autocomplete="off"><button type="button" id="recordRename">이름 변경</button></div>
+  <div class="record-export-actions"><button type="button" id="recordSaveFile">파일로 저장</button><button type="button" id="recordShare">공유</button></div>
+  <p class="record-tools-info">파일로 저장은 선택한 위치에 원본 형식으로 복사합니다. 앱 안의 녹음도 유지됩니다.</p>
+  <div class="record-tools-bottom"><p id="recordToolsStatus" role="status" aria-live="polite"></p><button type="button" id="recordDelete" class="record-danger">녹음 삭제</button></div>
+ </section>
+</div>
+<div id="guideSettingsDialog" class="modal-backdrop guide-settings-backdrop" hidden>
+ <section class="modal guide-settings-modal" role="dialog" aria-modal="true" aria-labelledby="guideSettingsTitle">
+  <div class="modal-heading"><h2 id="guideSettingsTitle">음역 슬라이드 설정</h2><button type="button" id="guideSettingsClose" class="close-btn" aria-label="음역 슬라이드 설정 닫기">✕</button></div>
+  <div class="guide-settings-fields">
+   <label for="guideRoot">시작 기준음<select id="guideRoot"></select></label>
+   <label for="guideNoteSeconds">한 음 길이<select id="guideNoteSeconds"><option value="0">BPM에 맞춤</option><option value="2">2초 유지</option><option value="3">3초 유지</option><option value="4">4초 유지</option></select></label>
+   <label for="guideBpm">빠르기 (음 하나 = 1박)<select id="guideBpm"><option value="50">50 BPM · 천천히</option><option value="60">60 BPM</option><option value="70">70 BPM</option><option value="80">80 BPM · 기본</option><option value="90">90 BPM</option><option value="100">100 BPM</option><option value="110">110 BPM</option><option value="120">120 BPM · 빠르게</option></select></label>
+   <label for="guideRounds">반복 횟수<select id="guideRounds"><option value="1">1회</option><option value="2">2회</option><option value="3">3회</option><option value="4">4회</option><option value="5">5회</option></select></label>
+   <label for="guideShift">다음 회차의 음역<select id="guideShift"><option value="0">같은 음역 반복</option><option value="1">반음씩 올리기</option><option value="-1">반음씩 내리기</option></select></label>
+   <label for="guideSound">가이드 소리<select id="guideSound"><option value="piano">피아노</option><option value="hum">부드러운 허밍 톤 (합성)</option><option value="vowel">밝은 모음 톤 (합성)</option></select></label>
+   <label for="guideToleranceSelect">음정 허용 범위<select id="guideToleranceSelect"><option value="75">여유롭게 · ±75cent</option><option value="50">기본 · ±50cent</option><option value="35">정밀하게 · ±35cent</option><option id="guideSmoothTolerance" value="110" hidden disabled>연속 이동 · ±110cent</option></select></label>
+   <label for="guideVolume">가이드 전용 음량 <output id="guideVolumeValue" for="guideVolume">70%</output><input id="guideVolume" type="range" min="0" max="100" step="1" value="70"></label>
+  </div>
+  <p id="guidePlanInfo" class="guide-settings-note"></p>
+  <p class="guide-settings-note">한 구절 듣기 → 3·2·1 준비 → 시작!에 첫 음부터 따라 부르세요. 준비 시간에는 채점하지 않습니다. 허밍·모음 톤은 음높이를 안내하는 합성음입니다.</p>
+  <div class="guide-settings-actions"><button type="button" id="guideSettingsReset">기본값</button><button type="button" id="guideSettingsSave">설정 저장</button></div>
+ </section>
+</div>
+<div id="warmupSettingsDialog" class="modal-backdrop warmup-settings-backdrop" hidden>
+ <section class="modal warmup-settings-modal" role="dialog" aria-modal="true" aria-labelledby="warmupSettingsTitle">
+  <div class="modal-heading"><h2 id="warmupSettingsTitle">호흡·허밍 설정</h2><button type="button" id="warmupSettingsClose" class="close-btn" aria-label="워밍업 설정 닫기">✕</button></div>
+  <div class="warmup-settings-fields">
+   <label for="warmupInhale">들이쉬기 (초)<input id="warmupInhale" type="number" min="1" max="30" value="4" inputmode="numeric"></label>
+   <label for="warmupExhale">내쉬기 (초)<input id="warmupExhale" type="number" min="1" max="30" value="6" inputmode="numeric"></label>
+   <label for="warmupHum">허밍 (초)<input id="warmupHum" type="number" min="1" max="30" value="6" inputmode="numeric"></label>
+   <label for="warmupRest">쉬기 (초)<input id="warmupRest" type="number" min="0" max="30" value="3" inputmode="numeric"></label>
+  </div>
+  <label class="warmup-cue-option"><input id="warmupCues" type="checkbox" checked> 단계 안내음 켜기</label>
+  <p id="warmupSettingsStatus" class="record-tools-info" role="status">기본값: 4초 → 6초 → 6초 → 3초</p>
+  <div class="warmup-settings-actions"><button type="button" id="warmupSettingsReset">기본값</button><button type="button" id="warmupSettingsSave">설정 저장</button></div>
+ </section>
+</div>
+<div id="metronomeSettingsDialog" class="modal-backdrop metro-settings-backdrop" hidden>
+ <section class="modal metro-settings-modal" role="dialog" aria-modal="true" aria-labelledby="metroSettingsTitle">
+  <div class="modal-heading"><h2 id="metroSettingsTitle">강세·저장한 리듬</h2><button type="button" id="metroSettingsClose" class="close-btn" aria-label="메트로놈 설정 닫기">✕</button></div>
+  <div class="metro-settings-tabs" role="tablist" aria-label="메트로놈 설정 종류"><button type="button" id="metroTabRhythm" role="tab" aria-controls="metroRhythmPanel" aria-selected="true">박별 강세</button><button type="button" id="metroTabPresets" role="tab" aria-controls="metroPresetsPanel" aria-selected="false" tabindex="-1">저장한 리듬</button></div>
+  <section id="metroRhythmPanel" class="metro-settings-tabpanel" role="tabpanel" aria-labelledby="metroTabRhythm">
+   <div class="metro-editor-heading"><p class="metro-settings-note">박을 누르면 강세 → 보통 → 묵음으로 바뀝니다.</p><button type="button" id="metroResetAccents">기본 강세로</button></div>
+   <div id="metroBeats" class="metro-beats" role="group" aria-label="각 박의 강세와 묵음 설정"></div>
+   <div class="metro-beat-meta"><div class="metro-accent-legend"><span class="legend-strong">강세</span><span class="legend-normal">보통</span><span class="legend-muted">묵음</span></div><div id="metroBeatPager" class="metro-beat-pager" role="group" aria-label="박 페이지" hidden><button type="button" id="metroPrevBeats" aria-label="이전 박 보기">‹</button><span id="metroBeatPage" aria-live="off"></span><button type="button" id="metroNextBeats" aria-label="다음 박 보기">›</button></div></div>
+   <p id="metroInterval" class="metro-settings-note"></p>
+  </section>
+  <section id="metroPresetsPanel" class="metro-settings-tabpanel" role="tabpanel" aria-labelledby="metroTabPresets" hidden>
+   <div class="metro-preset-save"><input type="text" id="metroPresetName" maxlength="24" placeholder="예: 발성 연습 80 BPM" aria-label="저장할 리듬 이름"><button type="button" id="metroSavePreset">현재 리듬 저장</button><span id="metroSavedCount">0/24</span></div>
+   <div id="metroSavedList" class="metro-saved-list"></div><p id="metroSavedEmpty" class="metro-settings-note">자주 쓰는 빠르기와 박자를 이름으로 저장하세요.</p>
+   <div id="metroSavedPager" class="metro-saved-pager" hidden><button type="button" id="metroSavedPrev" aria-label="이전 저장 리듬">‹</button><span id="metroSavedPage">1 / 1</span><button type="button" id="metroSavedNext" aria-label="다음 저장 리듬">›</button></div>
+   <p id="metroPresetMessage" class="metro-settings-message" role="status"></p>
+  </section>
+ </section>
+</div>
+<div id="infoDialog" class="modal-backdrop" hidden>
+ <section class="modal info-modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+   <div class="modal-heading"><div><span class="eyebrow">VOICE LINE</span><h2 id="infoTitle">나의 기록</h2></div><button type="button" class="close-btn" id="infoClose" aria-label="닫기">✕</button></div>
+   <div id="infoBody" class="info-body"></div>
+ </section>
+</div>
+<!-- Custom app-owned confirmation: window.confirm() exposes an Android WebView URL. -->
+<div id="historyDeleteDialog" class="modal-backdrop history-delete-backdrop" hidden>
+ <section class="modal history-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="historyDeleteTitle" aria-describedby="historyDeleteText historyDeleteWarning">
+  <span class="history-delete-eyebrow">VOICE LINE · 나의 기록</span>
+  <h2 id="historyDeleteTitle">기록 삭제</h2>
+  <p id="historyDeleteText">선택한 기록을 삭제하시겠습니까?</p>
+  <p id="historyDeleteWarning" class="history-delete-warning">삭제한 기록은 복구할 수 없습니다.</p>
+  <div class="history-delete-actions">
+   <button type="button" class="history-delete-cancel" id="historyDeleteCancel">취소</button>
+   <button type="button" class="history-delete-danger" id="historyDeleteConfirm">삭제</button>
+  </div>
+ </section>
+</div>
+<div id="trainingResultDialog" class="modal-backdrop training-result-backdrop" hidden>
+ <section class="modal training-result-modal" role="dialog" aria-modal="true" aria-labelledby="trainingResultTitle">
+  <span class="eyebrow">VOICE LINE · 훈련 결과</span>
+  <strong id="trainingResultStatus" class="training-result-status">성공</strong>
+  <h2 id="trainingResultTitle">훈련 결과</h2>
+  <p id="trainingResultMetrics"></p>
+  <p><strong>판정 기준</strong> <span id="trainingResultRule"></span></p>
+  <p><strong>실제 측정</strong> <span id="trainingResultReason"></span></p>
+  <button type="button" id="trainingResultClose" class="training-result-close">확인</button>
+ </section>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div>
+</body>
+</html>

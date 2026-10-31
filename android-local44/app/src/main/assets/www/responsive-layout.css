@@ -1,0 +1,219 @@
+/* Portrait shares the same controls, audio and data. Only their placement changes. */
+body.portrait-layout .toolbar{height:46px;gap:5px;padding:4px 8px;grid-template-columns:auto minmax(0,1fr) auto auto}
+body.portrait-layout .toolbar .brand{max-width:none;gap:4px}
+body.portrait-layout .toolbar .brand-logo{width:24px;height:24px;flex-basis:24px}
+body.portrait-layout .toolbar .brand-title{font-size:11px;letter-spacing:0}
+body.portrait-layout .toolbar .brand-word>small{display:none}
+body.portrait-layout .toolbar>.toolbar-center{max-width:96px}
+body.portrait-layout .toolbar #modeChip{display:none}
+body.portrait-layout .toolbar .mic-toggle{min-height:32px;max-width:96px;padding:3px 5px;gap:3px;font-size:10px}
+body.portrait-layout .toolbar .mic-toggle #micChip{max-width:55px}
+body.portrait-layout .toolbar .mic-toggle #micToggleAction{padding:2px 3px}
+body.portrait-layout .toolbar .menu-button{width:34px;height:34px;gap:4px}
+body.portrait-layout .toolbar .menu-button span{width:20px}
+body.portrait-layout .toolbar .mic-notice{gap:3px;padding:3px;min-height:27px}
+body.portrait-layout .mic-notice-symbol{display:none}
+body.portrait-layout .mic-notice-copy strong{font-size:9px}
+body.portrait-layout .mic-notice-copy p{display:none}
+body.portrait-layout .mic-notice-dismiss{min-width:22px;min-height:23px;flex-basis:22px;font-size:10px}
+
+body.portrait-layout .info-strip{height:auto;min-height:0;flex:none;display:grid;grid-template-columns:minmax(0,1fr) 108px;grid-template-areas:"note actions" "exercise exercise";gap:7px;padding:7px 8px}
+body.portrait-layout .note-panel{grid-area:note;width:auto;min-width:0;min-height:68px;padding:5px 9px;overflow:hidden}
+body.portrait-layout .note-panel .label{font-size:10px;line-height:1.2;max-height:1.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.portrait-layout .note-values{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1px 8px;align-items:center}
+body.portrait-layout #noteName{grid-column:1;grid-row:1/4;font-size:34px;line-height:1.05}
+body.portrait-layout .note-values span{grid-column:2;min-width:0;font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.portrait-layout #noteKorean{font-size:12px}
+body.portrait-layout .main-actions{grid-area:actions;min-width:0;width:auto;gap:4px;justify-content:center}
+body.portrait-layout .main-button{min-height:38px;padding:5px;font-size:12px}
+body.portrait-layout .sub-button{min-height:28px;padding:3px;font-size:11px}
+body.portrait-layout .exercise-panel{grid-area:exercise;gap:5px;padding:0;min-height:0;overflow:hidden}
+body.portrait-layout .exercise-panel .mode-heading-row{min-height:29px;gap:6px}
+body.portrait-layout .exercise-panel .mode-heading-row #modeTitle{font-size:15px;max-width:calc(100% - 66px)}
+body.portrait-layout .exercise-panel .mode-guide-button{min-height:28px;min-width:54px;font-size:11px}
+body.portrait-layout .exercise-panel .mode-live-status{display:none}
+body.portrait-layout .record-storage-info{font-size:10px;line-height:1.2}
+body.portrait-layout .practice-scroll-shell{display:block;min-height:0;max-height:none;flex:none}
+body.portrait-layout .practice-scroll-shell .exercise-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:stretch;min-height:0;max-height:none;padding:0;overflow:hidden;touch-action:manipulation}
+body.portrait-layout .exercise-controls .practice-setting,body.portrait-layout .exercise-controls>label{display:flex;align-items:center;gap:4px;min-width:0;font-size:11px;white-space:nowrap}
+body.portrait-layout .exercise-controls select,body.portrait-layout .exercise-controls .practice-setting select{flex:1;min-width:0;width:100%;max-width:100%;min-height:33px;padding:3px 4px;font-size:12px}
+body.portrait-layout .exercise-controls button{min-height:33px;padding:4px 7px;font-size:11px}
+body.portrait-layout .exercise-controls>.control-note{display:none}
+body.portrait-layout .vibrato-criteria-short,body.portrait-layout .training-control-hint{display:none}
+body.portrait-layout .exercise-controls #recordList{grid-column:1/-1}
+body.portrait-layout .exercise-controls #guideSettingsOpen{font-size:12px}
+body.portrait-layout .exercise-controls #guidePattern{font-size:12px}
+body.portrait-layout .practice-scroll-arrow{display:none!important}
+body.portrait-layout .exercise-footer{min-width:0;min-height:13px;font-size:10px;gap:6px}
+body.portrait-layout #exerciseProgress{max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.portrait-layout .app:is([data-mode=piano],[data-mode=pitch]) .practice-scroll-shell{display:none}
+
+body.portrait-layout .piano-area{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0;padding:3px 8px max(7px,env(safe-area-inset-bottom));overflow:hidden}
+body.portrait-layout .piano-topline{grid-column:1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"octave volume" "legend legend";height:auto;min-height:0;gap:3px 6px;padding:0}
+body.portrait-layout .octave-tools{grid-area:octave;min-width:0;gap:4px;font-size:11px}
+body.portrait-layout .octave-tools button{width:28px;height:29px;flex:none}
+body.portrait-layout #octaveLabel{flex:1;min-width:0;max-width:none;text-align:center;font-size:10px}
+body.portrait-layout .piano-volume-control{grid-area:volume;width:100%;min-width:0;max-width:none;flex:none;gap:4px}
+body.portrait-layout .piano-volume-control input[type=range]{min-width:30px;max-width:none;flex:1;height:29px}
+body.portrait-layout .piano-topline .legend{grid-area:legend;min-width:0;max-width:100%;justify-content:center;min-height:15px;gap:3px;font-size:9px;overflow:hidden}
+body.portrait-layout .keyboard{grid-row:2;grid-column:1;min-height:0;align-self:stretch}
+body.portrait-layout .white-key .key-note-west{font-size:14px}
+body.portrait-layout .white-key .key-note-korean{font-size:11px}
+body.portrait-layout .black-key .key-note-west{font-size:10px}
+body.portrait-layout .black-key .key-note-korean{font-size:8px}
+body.portrait-layout .app:is([data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .piano-area{grid-template-rows:auto minmax(0,1fr) minmax(96px,.55fr)}
+body.portrait-layout .app:is([data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .keyboard{grid-row:3}
+body.portrait-layout .vibrato-overlay{position:static;grid-row:2;grid-column:1;display:flex;flex-direction:column;gap:5px;min-height:0;height:auto;max-height:none;padding:6px 7px;border-radius:11px;box-shadow:none}
+body.portrait-layout .vibrato-graph-pane{flex:1 1 auto;min-height:0;gap:3px}
+body.portrait-layout .vibrato-overlay-header{min-height:15px;gap:4px}
+body.portrait-layout .vibrato-overlay-header strong{font-size:11px}
+body.portrait-layout .vibrato-overlay-header span{display:block;font-size:9px;min-width:0}
+body.portrait-layout .vibrato-feedback{font-size:10px}
+body.portrait-layout .vibrato-metrics{flex:0 0 82px;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:4px;min-width:0;min-height:0}
+body.portrait-layout .vibrato-metric{padding:3px 5px;gap:1px}
+body.portrait-layout .vibrato-metric span{font-size:9px}
+body.portrait-layout .vibrato-metric strong{font-size:13px;line-height:1.1;max-width:100%;max-height:2.2em;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+body.portrait-layout .vibrato-metric small{display:none}
+body.portrait-layout .training-overlay #trainingMetric3{font-size:11px}
+body.portrait-layout .training-overlay.warmup-mode{top:auto;bottom:auto;max-height:none}
+body.portrait-layout .warmup-current{gap:7px}
+body.portrait-layout .warmup-current-copy>strong{font-size:20px}
+body.portrait-layout .warmup-current-copy>span{font-size:11px}
+body.portrait-layout .warmup-time strong{font-size:44px}
+body.portrait-layout .warmup-next{font-size:11px}
+body.portrait-layout .warmup-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+body.portrait-layout .warmup-steps li{padding:6px 4px;font-size:11px}
+
+body.portrait-layout .app.guide-mode .piano-area{padding:4px 8px 8px}
+body.portrait-layout .guide-voice-panel{grid-row:1/-1;grid-column:1;flex-direction:column;gap:7px;padding:8px;min-height:0}
+body.portrait-layout .guide-phrase-main{min-height:0;gap:4px}
+body.portrait-layout .guide-phase-row{gap:5px}
+body.portrait-layout .guide-phase-row strong{font-size:17px}
+body.portrait-layout .guide-phase-row span{font-size:10px;max-width:53%}
+body.portrait-layout .guide-phrase-main>p{font-size:10px}
+body.portrait-layout .guide-scoreboard{flex:0 0 72px;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:5px;min-width:0}
+body.portrait-layout .guide-scoreboard>div{min-width:0;min-height:0;padding:5px;gap:2px;overflow:hidden}
+body.portrait-layout .guide-scoreboard strong{font-size:20px}
+body.portrait-layout .guide-scoreboard span,body.portrait-layout .guide-scoreboard small{font-size:9px;line-height:1.15}
+body.portrait-layout .guide-scoreboard small{max-height:2.3em;overflow:hidden;overflow-wrap:anywhere}
+body.portrait-layout .guide-start-cue strong{font-size:clamp(40px,9dvh,70px)}
+body.portrait-layout .guide-start-cue span{font-size:12px}
+body.portrait-layout .guide-voice-panel[data-phase=answer] .guide-start-cue{inset:4px 4px auto auto;gap:5px;padding:4px 6px}
+body.portrait-layout .guide-voice-panel[data-phase=answer] .guide-start-cue strong{font-size:17px}
+body.portrait-layout .guide-voice-panel[data-phase=answer] .guide-start-cue span{font-size:10px}
+
+body.portrait-layout .app.metronome-mode .info-strip{grid-template-columns:minmax(0,1fr);grid-template-areas:"exercise";height:35px;min-height:35px;padding:2px 8px;gap:0}
+body.portrait-layout .app.metronome-mode .mode-heading-row{min-height:29px}
+body.portrait-layout .app.metronome-mode .piano-area{padding:6px 8px 8px;overflow:hidden}
+body.portrait-layout .metronome-panel{grid-row:1/-1;grid-column:1;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(192px,.8fr) minmax(0,1fr);gap:7px;min-height:0}
+body.portrait-layout .metro-tempo-card,body.portrait-layout .metro-rhythm-card{padding:8px;border-radius:12px;min-width:0;min-height:0}
+body.portrait-layout .metro-tempo-card{grid-template-rows:23px minmax(24px,.5fr) minmax(57px,1fr) 25px 38px;gap:5px}
+body.portrait-layout .metro-section-heading>strong{font-size:25px}
+body.portrait-layout .metro-state{font-size:11px;padding:2px 5px}
+body.portrait-layout .metro-current-beat>strong{font-size:32px}
+body.portrait-layout .metro-current-beat{gap:7px}
+body.portrait-layout .metro-overline,body.portrait-layout .metro-position{font-size:11px}
+body.portrait-layout .metro-tempo{grid-template-columns:42px minmax(0,1fr) 42px;gap:8px}
+body.portrait-layout .metronome-panel .metro-tempo>button{width:42px;min-height:42px;font-size:27px}
+body.portrait-layout .metronome-panel .metro-bpm-display input{font-size:54px}
+body.portrait-layout .metro-bpm-display>span{font-size:10px}
+body.portrait-layout .metro-slider-row,body.portrait-layout #metroBpmRange{min-height:25px;height:25px}
+body.portrait-layout .metro-transport{grid-template-columns:minmax(0,1fr) 88px;gap:6px}
+body.portrait-layout .metronome-panel .metro-play-toggle{min-height:38px;font-size:14px}
+body.portrait-layout .metronome-panel .metro-mute-button{min-height:38px;font-size:12px}
+body.portrait-layout .metro-rhythm-card{display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+body.portrait-layout .metro-inline-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 9px}
+body.portrait-layout .metro-inline-field,body.portrait-layout .metro-groups{gap:3px;font-size:11px}
+body.portrait-layout .metronome-panel .metro-inline-field select,body.portrait-layout .metronome-panel .metro-inline-field input:not([type=range]){min-height:33px;padding:5px;font-size:13px}
+body.portrait-layout .metro-volume-row,body.portrait-layout #metroVolume{min-height:33px;height:33px}
+body.portrait-layout .metro-inline-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+body.portrait-layout .metro-groups{grid-column:1/-1}
+body.portrait-layout .metronome-panel #metroGroups{min-height:33px;font-size:13px}
+body.portrait-layout .metronome-panel .metro-inline-toolbar button{min-width:0;min-height:32px;padding:5px;font-size:11px}
+body.portrait-layout .metro-group-message{font-size:10px;margin-top:4px}
+body.portrait-layout .metro-settings-message{font-size:10px;line-height:1.2;margin-top:3px}
+
+body.portrait-layout .modal-backdrop{padding:8px}
+body.portrait-layout .modal{width:100%;max-width:600px;max-height:calc(100dvh - 16px);padding:12px;border-radius:15px}
+body.portrait-layout .modal-heading{align-items:center;gap:8px;margin-bottom:10px;flex:none}
+body.portrait-layout .modal h1,body.portrait-layout .modal h2{font-size:20px}
+body.portrait-layout .modal-heading p{font-size:11px}
+body.portrait-layout .close-btn{width:34px;height:34px}
+body.portrait-layout .menu-grid{gap:6px}
+body.portrait-layout .menu-tile{min-width:0;min-height:56px;padding:7px;gap:6px;overflow:hidden}
+body.portrait-layout .menu-tile>span:last-child{min-width:0}
+body.portrait-layout .menu-tile strong{font-size:13px;line-height:1.15;white-space:normal}
+body.portrait-layout .menu-tile small{font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.portrait-layout .tile-icon{width:22px;font-size:22px}
+body.portrait-layout .menu-scroll-tip{display:none}
+body.portrait-layout .local-note{font-size:10px;line-height:1.3;margin-top:9px}
+body.portrait-layout .info-modal{display:flex;flex-direction:column;overflow:hidden}
+body.portrait-layout .info-body{flex:1;min-height:0;max-height:none;overflow:auto}
+body.portrait-layout .history-row>div:first-child{flex-basis:100%}
+body.portrait-layout .history-row>div:nth-child(2){width:100%;justify-content:flex-end}
+body.portrait-layout .history-pitch-graph{height:145px}
+body.portrait-layout .guide-settings-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+body.portrait-layout .guide-settings-fields label{font-size:11px;gap:4px}
+body.portrait-layout .guide-settings-fields select,body.portrait-layout .guide-settings-fields input{min-height:35px;padding:5px;font-size:12px}
+body.portrait-layout .guide-settings-note{font-size:11px;line-height:1.35;margin:8px 0}
+body.portrait-layout .guide-settings-actions button{min-height:35px;padding:6px 15px}
+body.portrait-layout .metro-saved-list{grid-template-columns:minmax(0,1fr)}
+body.portrait-layout .metro-preset-save{flex-wrap:wrap;gap:5px}
+body.portrait-layout .metro-preset-save input{flex-basis:52%}
+body.portrait-layout .metro-preset-save>span{margin-left:auto}
+body.portrait-layout .metro-beat-meta{flex-wrap:wrap;gap:7px}
+body.portrait-layout .metro-editor-heading{align-items:flex-start;gap:6px}
+body.portrait-layout .metro-editor-heading .metro-settings-note{font-size:11px}
+body.portrait-layout .record-tools-bottom{align-items:flex-start}
+
+@media(max-width:360px){
+ body.portrait-layout .toolbar .brand-logo{width:22px;height:22px;flex-basis:22px}
+ body.portrait-layout .toolbar .brand-title{font-size:10px}
+ body.portrait-layout .toolbar>.toolbar-center,body.portrait-layout .toolbar .mic-toggle{max-width:90px}
+}
+
+@media(max-height:650px){
+ body.portrait-layout .toolbar{height:42px;padding-top:3px;padding-bottom:3px}
+ body.portrait-layout .info-strip{gap:5px;padding:5px 7px}
+ body.portrait-layout .note-panel{min-height:60px;padding:4px 7px}
+ body.portrait-layout #noteName{font-size:29px}
+ body.portrait-layout .note-values span{font-size:9px}
+ body.portrait-layout #noteKorean{font-size:11px}
+ body.portrait-layout .main-button{min-height:34px;font-size:11px}
+ body.portrait-layout .sub-button{min-height:25px;font-size:10px}
+ body.portrait-layout .exercise-panel{gap:4px}
+ body.portrait-layout .exercise-panel .mode-heading-row{min-height:26px}
+ body.portrait-layout .exercise-panel .mode-heading-row #modeTitle{font-size:14px}
+ body.portrait-layout .exercise-controls select,body.portrait-layout .exercise-controls button{min-height:30px;font-size:11px}
+ body.portrait-layout .piano-area{gap:5px;padding-top:1px}
+ body.portrait-layout .vibrato-metrics{flex-basis:72px;gap:3px}
+ body.portrait-layout .vibrato-metric strong{font-size:12px}
+ body.portrait-layout .guide-scoreboard{flex-basis:65px}
+ body.portrait-layout .guide-scoreboard strong{font-size:18px}
+ body.portrait-layout .app.metronome-mode .info-strip{height:33px;min-height:33px}
+ body.portrait-layout .metronome-panel{grid-template-rows:minmax(178px,.75fr) minmax(0,1fr);gap:6px}
+ body.portrait-layout .metro-tempo-card,body.portrait-layout .metro-rhythm-card{padding:6px;gap:4px}
+ body.portrait-layout .metro-tempo-card{grid-template-rows:22px 24px minmax(51px,1fr) 23px 34px;gap:3px}
+ body.portrait-layout .metro-current-beat>strong{font-size:27px}
+ body.portrait-layout .metronome-panel .metro-bpm-display input{font-size:46px}
+ body.portrait-layout .metro-slider-row,body.portrait-layout #metroBpmRange{min-height:23px;height:23px}
+ body.portrait-layout .metronome-panel .metro-play-toggle,body.portrait-layout .metronome-panel .metro-mute-button{min-height:34px}
+ body.portrait-layout .metro-inline-fields{gap:5px 8px}
+ body.portrait-layout .metro-inline-field,body.portrait-layout .metro-groups{font-size:10px;gap:2px}
+ body.portrait-layout .metronome-panel .metro-inline-field select,body.portrait-layout .metronome-panel .metro-inline-field input:not([type=range]),body.portrait-layout .metronome-panel #metroGroups{min-height:30px;padding:4px;font-size:12px}
+ body.portrait-layout .metro-volume-row,body.portrait-layout #metroVolume{min-height:30px;height:30px}
+ body.portrait-layout .metronome-panel .metro-inline-toolbar button{min-height:30px;font-size:10px}
+ body.portrait-layout .menu-tile{min-height:48px;padding:6px}
+ body.portrait-layout .menu-tile small{display:none}
+ body.portrait-layout .menu-tile strong{font-size:12px}
+ body.portrait-layout .modal-heading{margin-bottom:8px}
+}
+/* A software keyboard can leave less than half a screen. Keep every control reachable. */
+@media(max-height:480px){
+ body.portrait-layout .workspace{overflow-y:auto;overscroll-behavior-y:contain}
+ body.portrait-layout .piano-area{flex:none;min-height:280px;overflow:visible}
+ body.portrait-layout .app.guide-mode .piano-area{min-height:300px}
+ body.portrait-layout .app.metronome-mode .piano-area{min-height:435px}
+ body.portrait-layout .modal{overflow:auto}
+ body.portrait-layout .info-modal{overflow:hidden}
+}

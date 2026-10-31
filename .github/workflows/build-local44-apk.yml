@@ -1,0 +1,65 @@
+name: VoiceLine Local44 APK
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths:
+      - android-local44/**
+      - ci/verify-local44-apks.py
+      - .github/workflows/build-local44-apk.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voiceline-local44-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Test recording, training, metronome and adaptive layout
+        working-directory: android-local44
+        run: node --test local_tests/*.test.cjs
+      - name: Ensure Android SDK 35 packages
+        shell: bash
+        run: |
+          sdk_manager=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)
+          test -x "$sdk_manager"
+          yes | "$sdk_manager" --licenses >/dev/null || true
+          "$sdk_manager" --install "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.10.2'
+      - name: Restore CI debug signing key
+        uses: actions/cache@v6
+        with:
+          path: ~/.android/debug.keystore
+          key: voiceline-local44-debug-signing-v1
+      - name: Build normal and separately installable CI APKs
+        working-directory: android-local44
+        run: gradle --no-daemon :app:assembleDebug :app:assembleCiDebug
+      - name: Verify signatures, package IDs, version and every offline asset
+        run: python3 ci/verify-local44-apks.py
+      - name: Upload APKs and verification report
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local44-APKs
+          path: dist/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

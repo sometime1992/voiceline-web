@@ -1,0 +1,41 @@
+{
+  "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+  "creator": "Alexander Holm",
+  "title": "Salamander Grand Piano (Yamaha C5)",
+  "license": "Creative Commons Attribution 3.0 (CC BY 3.0)",
+  "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+  "voiceCount": 28,
+  "layers": [
+    8
+  ],
+  "files": [
+    "C1v8.mp3",
+    "Ds1v8.mp3",
+    "Fs1v8.mp3",
+    "A1v8.mp3",
+    "C2v8.mp3",
+    "Ds2v8.mp3",
+    "Fs2v8.mp3",
+    "A2v8.mp3",
+    "C3v8.mp3",
+    "Ds3v8.mp3",
+    "Fs3v8.mp3",
+    "A3v8.mp3",
+    "C4v8.mp3",
+    "Ds4v8.mp3",
+    "Fs4v8.mp3",
+    "A4v8.mp3",
+    "C5v8.mp3",
+    "Ds5v8.mp3",
+    "Fs5v8.mp3",
+    "A5v8.mp3",
+    "C6v8.mp3",
+    "Ds6v8.mp3",
+    "Fs6v8.mp3",
+    "A6v8.mp3",
+    "C7v8.mp3",
+    "Ds7v8.mp3",
+    "Fs7v8.mp3",
+    "A7v8.mp3"
+  ]
+}
