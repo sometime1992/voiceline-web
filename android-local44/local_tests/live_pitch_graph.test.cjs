@@ -69,8 +69,37 @@ test('Local46 rotation redraws the live pitch graph without losing samples or re
  assert.equal(h.app.keyboardNotes,12);assert.equal(h.canvas.width,640);assert.equal(h.canvas.height,560);
  h.window.innerWidth=844;h.window.innerHeight=390;h.applyResponsiveLayout();assert.equal(h.app.keyboardNotes,24);assert.equal(h.app.pitchGraphSamples,points);
 });
-test('Local46 pitch graph switches only with pitch mode and handles a temporarily tiny canvas',()=>{
+test('Shared pitch graph is visible in piano, pitch and practice and handles a temporarily tiny canvas',()=>{
  const h=fixture();h.app.mode='record';h.syncPitchGraphOverlay();assert.equal(h.$('pitchGraphOverlay').hidden,true);
- h.app.mode='pitch';h.syncPitchGraphOverlay(true);assert.equal(h.$('pitchGraphOverlay').hidden,false);
+ for(const mode of ['piano','pitch','practice']){h.app.mode=mode;h.syncPitchGraphOverlay(true);assert.equal(h.$('pitchGraphOverlay').hidden,false);}
  h.size(0,0);assert.doesNotThrow(()=>h.renderPitchGraphOverlay(2000,true));
+});
+test('Practice graph captures each timed target even before the next animation frame updates the keyboard',()=>{
+ const h=fixture();h.app.mode='practice';h.app.exerciseRoot=60;
+ h.app.exercise={active:true,start:2000,duration:1000,steps:[60,62,64],target:60};
+ for(const [t,midi] of [[1000,60],[2000,60.1],[2040,60.2],[2960,null],[3000,62.1],[5000,null]])h.rememberPitchGraphPoint(t,midi);
+ assert.deepEqual(Array.from(h.app.pitchGraphSamples,p=>p.target),[null,60,60,60,62,null]);
+ assert.equal(h.app.pitchGraphSamples[3].midi,null);
+ h.renderPitchGraphOverlay(5000,true);
+ assert.equal(h.$('pitchPracticeLegend').hidden,false);assert.match(h.$('pitchGraphTitle').textContent,/음정 연습/);
+ assert.ok(h.strokes.some(s=>s.color==='#69ecd0'),'practice goal is drawn in mint');
+ assert.ok(h.strokes.some(s=>s.color==='#d4a6ff'),'detected voice is drawn in purple');
+ assert.deepEqual(h.recordSamples,[{t:42,midi:61}]);
+});
+test('Silent practice still shows its real goal and never invents a voiced note',()=>{
+ const h=fixture();h.app.mode='practice';h.app.exerciseRoot=72;
+ h.app.exercise={active:true,start:1000,duration:1000,steps:[72],target:72};
+ h.rememberPitchGraphPoint(1000,null);h.rememberPitchGraphPoint(1080,null);h.renderPitchGraphOverlay(1080,true);
+ assert.ok(h.strokes.some(s=>s.color==='#69ecd0'));assert.ok(!h.strokes.some(s=>s.color==='#d4a6ff'));
+ assert.equal(h.$('pitchGraphLow').textContent,'—');assert.equal(h.$('pitchGraphHigh').textContent,'—');
+ assert.equal(h.$('pitchGraphTarget').textContent,'목표 C5 · 3옥 도');
+});
+test('Practice detection and silence feed the graph and scoring together',()=>{
+ const h=fixture(),received=[];h.app.mode='practice';h.app.exerciseRoot=60;
+ h.app.exercise={active:true,start:1000,duration:1000,steps:[60],target:60};
+ h.context.receiveExerciseSample=(t,midi)=>received.push({t,midi});
+ h.context.nextPitch={hz:261.625565,confidence:.99};h.updateDetection(1000,new Float32Array(4096),44100);
+ h.context.nextPitch=null;h.updateDetection(1080,new Float32Array(4096),44100);
+ assert.equal(received.length,2);assert.equal(h.app.pitchGraphSamples.length,2);
+ assert.equal(h.app.pitchGraphSamples[1].midi,null);assert.equal(h.app.pitchGraphSamples[1].target,60);
 });

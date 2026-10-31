@@ -97,10 +97,11 @@
         </div>
       </div>
     </section>
-    <section id="pitchGraphOverlay" class="vibrato-overlay pitch-graph-overlay" aria-label="음정 측정 실시간 그래프" hidden>
+    <section id="pitchGraphOverlay" class="vibrato-overlay pitch-graph-overlay" aria-label="실시간 음정 측정·연습 그래프" hidden>
       <div class="vibrato-graph-pane">
-        <div class="vibrato-overlay-header"><strong>목소리 음높이 변화</strong><span id="pitchGraphStatus">마이크를 켜세요</span></div>
+        <div class="vibrato-overlay-header"><strong id="pitchGraphTitle">목소리 음높이 변화</strong><span id="pitchGraphStatus">마이크를 켜세요</span></div>
         <canvas id="pitchGraph" aria-label="최근 6초의 음높이를 계이름과 옥타브로 표시합니다. 소리가 없거나 음정을 확인할 수 없는 구간은 비워둡니다."></canvas>
+        <div id="pitchPracticeLegend" class="pitch-practice-legend" hidden><span id="pitchGraphTarget">목표음 대기</span><span>내 목소리</span></div>
         <div class="pitch-range-values"><span>최근 최저 <strong id="pitchGraphLow">—</strong></span><span>최근 최고 <strong id="pitchGraphHigh">—</strong></span></div>
       </div>
     </section>
@@ -166,7 +167,7 @@
    <button data-screen="history" class="menu-tile"><span class="tile-icon">▤</span><span><strong>나의 기록</strong><small>측정 기록과 녹음 재생·삭제</small></span></button>
    <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
   </div>
-  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local44</span></p>
+  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local47</span></p>
  </section>
 </div>
 <div id="recordToolsDialog" class="modal-backdrop record-tools-backdrop" hidden>

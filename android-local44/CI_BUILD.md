@@ -1,6 +1,6 @@
 # Local46 APK build
 
-This directory contains the complete Local46 Android project, including its
+This directory contains the complete Local47 Android project, including its
 offline piano engine, samples, and regression tests. The Local44 baseline source archive
 is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 `2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1`.
@@ -8,11 +8,11 @@ is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 Pushing changes to `build/android-apk` runs `.github/workflows/build-local44-apk.yml`.
 The workflow runs the tests, builds the CI45 APK, verifies their signatures
 and package metadata, and compares every bundled asset to the source bytes.
-Download the `VoiceLine-Local46-APKs` artifact from the completed run.
+Download the `VoiceLine-Local47-APKs` artifact from the completed run.
 
 | APK | Application ID | Installation |
 | --- | --- | --- |
-| VoiceLine-Local46-CI.apk | com.voiceline.app.local18.ci45 | Installs separately as 보이스라인 CI45, with its own recordings and practice history. |
+| VoiceLine-Local47-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46 installation and preserves its recordings and practice history. |
 
 Do not uninstall an existing app to work around a signature mismatch: its local
 recordings and history may be lost. This CI build does not import recordings
@@ -23,8 +23,8 @@ Local44 CI keys were not retained, so CI45 has its own application ID and keeps
 those earlier installations intact. A durable release signing key is required
 before distributing long-term updates.
 
-The build uses version code 61 and target Android 35 with Android 26 minimum.
-They include the Local46 portrait/landscape layout and rotation preservation.
+The build uses version code 62 and target Android 35 with Android 26 minimum.
+It includes the shared keyboard geometry and preserved portrait/landscape sessions.
 
 ## Local45 sensitivity update
 
@@ -52,3 +52,17 @@ also to quiet dynamics, with the scoring ratios and time requirements retained.
 
 The application ID remains com.voiceline.app.local18.ci45 and version code is 61.
 The pinned CI45 key allows installation over CI45 without removing its records.
+
+## Local47 keyboard and practice graph
+
+All ten piano modes use the same viewport-based keyboard height and bottom
+position. The graph or warmup guide uses the row above it; slide practice now
+also shows that keyboard. Metronome keeps its dedicated view.
+Both microphone entry points explicitly show the live pitch graph. Piano has
+a waiting graph, and practice plots timed mint targets and purple detected
+voice with genuine silent gaps. Version code is 62 and the CI45 key is retained.
+
+The Chromium regression opens all ten modes at five portrait/landscape sizes,
+compares keyboard height and position, checks graph bounds, sends synthetic
+PCM through the native callback contract, and verifies actual canvas pixels.
+The report includes screenshots for review; it does not replace phone testing.

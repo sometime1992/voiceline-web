@@ -1,11 +1,9 @@
 /* The phrase occupies the existing piano area; settings stay in a dialog. */
 .menu-tile .guide-menu-icon{display:block;width:1em;height:1em;max-width:100%;margin:auto;overflow:hidden}
-.app.guide-mode .piano-topline,.app.guide-mode #keyboard{display:none}
 .app.guide-mode #exerciseControls{overflow:hidden;gap:7px;padding-right:0}
 .app.guide-mode #exerciseControls label{flex:1 1 auto;min-width:0}
 .app.guide-mode #guidePattern{min-width:0;max-width:100%;width:100%}
 .app.guide-mode .practice-scroll-arrow{display:none!important}
-.app.guide-mode .piano-area{padding:7px 10px max(7px,env(safe-area-inset-bottom))}
 .guide-voice-panel{display:flex;flex:1;min-height:0;overflow:hidden;background:#1b2034;border:1px solid #6ed4be70;border-radius:15px;padding:10px;gap:12px}
 .guide-phrase-main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:5px}
 .guide-phase-row{display:flex;gap:10px;align-items:center;justify-content:space-between;min-width:0}

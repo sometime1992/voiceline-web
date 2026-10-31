@@ -1,4 +1,4 @@
-name: VoiceLine Local46 APK
+name: VoiceLine Local47 APK
 
 on:
   push:
@@ -43,8 +43,25 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local46-Test-Report
+          name: VoiceLine-Local47-Test-Report
           path: android-local44/local44-tests.log
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Check every keyboard size and live graph in Chromium
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/voiceline-layout" --no-audit --no-fund --ignore-scripts playwright-core
+          export NODE_PATH="$RUNNER_TEMP/voiceline-layout/node_modules"
+          export CHROME_BIN="$(command -v google-chrome || command -v chromium || true)"
+          test -n "$CHROME_BIN"
+          node ci/check-piano-layout.cjs
+      - name: Keep keyboard layout and graph report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local47-Layout-Report
+          path: layout-report/
           if-no-files-found: warn
           retention-days: 7
       - name: Ensure Android SDK 35 packages
@@ -81,7 +98,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local46-APKs
+          name: VoiceLine-Local47-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0

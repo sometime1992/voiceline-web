@@ -1,4 +1,22 @@
+/* Every piano screen uses the same viewport-based keyboard height. Its
+   bottom edge stays fixed while the graph absorbs differences in controls. */
+:root{--keyboard-height:clamp(76px,25dvh,170px)}
+.app:not(.metronome-mode) .piano-area{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) var(--keyboard-height);gap:6px;overflow:hidden}
+.app:not(.metronome-mode) .piano-topline{grid-row:1;grid-column:1}
+.app:not(.metronome-mode) .keyboard{grid-row:3;grid-column:1;align-self:stretch;min-height:0}
+.app:not(.metronome-mode) .vibrato-overlay,.app:not(.metronome-mode) .guide-voice-panel{grid-row:2;grid-column:1;position:static;inset:auto;height:auto;max-height:none;min-height:0;box-shadow:none}
+.pitch-practice-legend{display:flex;gap:12px;flex:none;font-size:10px;color:#d2cce8;white-space:nowrap;overflow:hidden}
+.pitch-practice-legend span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pitch-practice-legend span:before{content:"";display:inline-block;width:12px;height:3px;margin-right:5px;vertical-align:middle;background:#69ecd0}
+.pitch-practice-legend span:last-child:before{background:#d4a6ff}
+@media(max-height:460px) and (min-aspect-ratio:1/1){
+ .guide-scoreboard>div{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:3px 6px;gap:4px;align-items:center}
+ .guide-scoreboard small{display:none}
+ .guide-scoreboard span{font-size:9px}
+ .guide-scoreboard strong{font-size:17px}
+}
 /* Portrait shares the same controls, audio and data. Only their placement changes. */
+body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
 body.portrait-layout .toolbar{height:46px;gap:5px;padding:4px 8px;grid-template-columns:auto minmax(0,1fr) auto auto}
 body.portrait-layout .toolbar .brand{max-width:none;gap:4px}
 body.portrait-layout .toolbar .brand-logo{width:24px;height:24px;flex-basis:24px}
@@ -49,7 +67,7 @@ body.portrait-layout .exercise-footer{min-width:0;min-height:13px;font-size:10px
 body.portrait-layout #exerciseProgress{max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.portrait-layout .app:is([data-mode=piano],[data-mode=pitch]) .practice-scroll-shell{display:none}
 
-body.portrait-layout .piano-area{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px;min-height:0;padding:3px 8px max(7px,env(safe-area-inset-bottom));overflow:hidden}
+body.portrait-layout .piano-area{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) var(--keyboard-height);gap:6px;min-height:0;padding:3px 8px max(7px,env(safe-area-inset-bottom));overflow:hidden}
 body.portrait-layout .piano-topline{grid-column:1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"octave volume" "legend legend";height:auto;min-height:0;gap:3px 6px;padding:0}
 body.portrait-layout .octave-tools{grid-area:octave;min-width:0;gap:4px;font-size:11px}
 body.portrait-layout .octave-tools button{width:28px;height:29px;flex:none}
@@ -57,13 +75,11 @@ body.portrait-layout #octaveLabel{flex:1;min-width:0;max-width:none;text-align:c
 body.portrait-layout .piano-volume-control{grid-area:volume;width:100%;min-width:0;max-width:none;flex:none;gap:4px}
 body.portrait-layout .piano-volume-control input[type=range]{min-width:30px;max-width:none;flex:1;height:29px}
 body.portrait-layout .piano-topline .legend{grid-area:legend;min-width:0;max-width:100%;justify-content:center;min-height:15px;gap:3px;font-size:9px;overflow:hidden}
-body.portrait-layout .keyboard{grid-row:2;grid-column:1;min-height:0;align-self:stretch}
+body.portrait-layout .keyboard{grid-row:3;grid-column:1;min-height:0;align-self:stretch}
 body.portrait-layout .white-key .key-note-west{font-size:14px}
 body.portrait-layout .white-key .key-note-korean{font-size:11px}
 body.portrait-layout .black-key .key-note-west{font-size:10px}
 body.portrait-layout .black-key .key-note-korean{font-size:8px}
-body.portrait-layout .app:is([data-mode=pitch],[data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .piano-area{grid-template-rows:auto minmax(0,1fr) minmax(96px,.55fr)}
-body.portrait-layout .app:is([data-mode=pitch],[data-mode=record],[data-mode=vibrato],[data-mode=sustainVoice],[data-mode=earVoice],[data-mode=dynamicVoice],[data-mode=warmupVoice]) .keyboard{grid-row:3}
 body.portrait-layout .vibrato-overlay{position:static;grid-row:2;grid-column:1;display:flex;flex-direction:column;gap:5px;min-height:0;height:auto;max-height:none;padding:6px 7px;border-radius:11px;box-shadow:none}
 body.portrait-layout .vibrato-graph-pane{flex:1 1 auto;min-height:0;gap:3px}
 body.portrait-layout .vibrato-overlay-header{min-height:15px;gap:4px}
@@ -85,8 +101,7 @@ body.portrait-layout .warmup-next{font-size:11px}
 body.portrait-layout .warmup-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
 body.portrait-layout .warmup-steps li{padding:6px 4px;font-size:11px}
 
-body.portrait-layout .app.guide-mode .piano-area{padding:4px 8px 8px}
-body.portrait-layout .guide-voice-panel{grid-row:1/-1;grid-column:1;flex-direction:column;gap:7px;padding:8px;min-height:0}
+body.portrait-layout .guide-voice-panel{grid-row:2;grid-column:1;flex-direction:column;gap:7px;padding:8px;min-height:0}
 body.portrait-layout .guide-phrase-main{min-height:0;gap:4px}
 body.portrait-layout .guide-phase-row{gap:5px}
 body.portrait-layout .guide-phase-row strong{font-size:17px}

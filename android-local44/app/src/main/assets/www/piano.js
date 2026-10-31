@@ -25,7 +25,7 @@ const MODES={
   metronome:['메트로놈','박자표, 빠르기와 박별 강세를 직접 설정하세요. 마이크 없이 사용할 수 있습니다.'],
   record:['녹음하기','녹음 파일은 기기 내부에만 저장됩니다.'],
   vibrato:['비브라토 연습','편안하게 한 음을 유지하면 흔들림 속도와 폭을 추정합니다.'],
-  practice:['음정 연습하기','민트색 목표 건반을 따라 노래하세요.'],
+  practice:['음정 연습하기','민트색 목표음을 따라 부르고 그래프의 보라색 목소리와 비교하세요.'],
   guideVoice:['음역 슬라이드','가이드 듣기 → 준비 → 따라 부르기 · 음계·단계별·연속 패턴을 선택하세요.'],
   sustainVoice:['발성 유지 훈련','선택한 음을 편안하게 지속하며 음정의 안정도를 확인하세요.'],
   earVoice:['청음·따라 부르기','피아노 기준음을 듣고 따라 불러보세요.'],
@@ -803,7 +803,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  const p=nativeSamples?pitchYin(nativeSamples,nativeRate,app.mode==='record',app.micSensitivity):
    pitchYin(app.buffer,app.micCtx.sampleRate,app.mode==='record',app.micSensitivity);
  if(!p){
-  if(app.mode==='pitch')rememberPitchGraphPoint(t,null);
+  if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')rememberPitchGraphPoint(t,null);
   if(app.exercise?.active)receiveExerciseSample(t,null);
   if(app.training?.active)receiveTrainingSample(t,null,rms);
   if(app.mode==='vibrato'){rememberVibratoPoint(t,null);renderVibratoOverlay(t);}
@@ -819,7 +819,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  if(app.lastTrustedPitchAt&&t-app.lastTrustedPitchAt<(app.mode==='record'?150:220)&&
     Math.abs(midi-app.lastTrustedPitch)>13&&
     (app.mode!=='record'||p.confidence<.86)){
-  if(app.mode==='pitch')rememberPitchGraphPoint(t,null);
+  if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')rememberPitchGraphPoint(t,null);
   if(app.training?.active)receiveTrainingSample(t,null,rms);
   if(app.exercise?.active)receiveExerciseSample(t,null);
   if(app.mode==='record'&&app.record){
@@ -842,7 +842,7 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  app.sessionHigh=Math.max(app.sessionHigh??midi,midi);
  $('noteHint').textContent='실시간 음정';
  showNote(midi,p.hz,(midi-Math.round(midi))*100);
- if(app.mode==='pitch')rememberPitchGraphPoint(t,midi);
+ if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')rememberPitchGraphPoint(t,midi);
  if(app.mode==='vibrato'){
   // Use unsmoothed pitch for vibrato depth; the 3-frame median above is for
   // stable note names and would otherwise flatten fast vocal oscillations.
@@ -988,7 +988,7 @@ async function startMic(){
  $('stopButton').hidden=false;$('stopButton').textContent='취소';updateMicToggle();
  try{
   const ok=Boolean(await task)&&micRequestCurrent(token)&&app.mic;
-  if(ok&&app.mode==='pitch')resetPitchGraph(performance.now());
+  if(ok&&(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice'))resetPitchGraph(performance.now());
   return ok;
  }
  finally{
@@ -1005,7 +1005,7 @@ function stopMic(){
  app.micCtx?.close().catch(()=>{});
  app.stream=null;app.source=null;app.analyser=null;app.micCtx=null;app.buffer=null;
  app.detected=null;app.notes=[];micStatus('마이크 꺼짐');syncKeyColors();
- if(app.mode==='pitch'){app.pitchGraphFrozenAt=performance.now();renderPitchGraphOverlay(app.pitchGraphFrozenAt,true);}
+ if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice'){app.pitchGraphFrozenAt=performance.now();renderPitchGraphOverlay(app.pitchGraphFrozenAt,true);}
 }
 async function stopAfterMicError(detail){
  app.micError=String(detail||'마이크 오류');
@@ -1024,7 +1024,7 @@ function tick(t){
   if(app.vibratoStart)progress(clamp(app.vibratoProgress/4,0,1),'주기 '+app.vibratoProgress+'/4 · '+Math.floor((t-app.vibratoStart)/1000)+'초');
  }
  if(app.mode==='record')renderRecordPitchOverlay(t);
- if(app.mode==='pitch')renderPitchGraphOverlay(t);
+ if(app.mode==='piano'||app.mode==='pitch'||app.mode==='practice')renderPitchGraphOverlay(t);
  if(app.record)progress(1,'녹음 '+recordTime(t-app.recordStart)+' · 한 파일');
  if(app.mic||app.training?.active)app.frame=requestAnimationFrame(tick);else app.frame=0;
 }
@@ -1179,7 +1179,7 @@ function syncRecordPitchOverlay(){
  el.hidden=app.mode!=='record';
  if(!el.hidden)renderRecordPitchOverlay(performance.now(),true);
 }
-function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=false}={}){
+function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=false,referenceMidi=null}={}){
  const rect=canvas.getBoundingClientRect();
  if(rect.width<15||rect.height<15)return;
  const w=rect.width,h=rect.height,dpr=Math.min(window.devicePixelRatio||1,2);
@@ -1191,8 +1191,11 @@ function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=fal
  if(right<=left||bottom<=top)return;
  const first=viewEnd-RECORD_PITCH_WINDOW_MS;
  const points=samples.filter(p=>p.t>=first&&p.t<=viewEnd+50);
- const range=recordPitchBounds(points);
+ const targets=points.filter(p=>Number.isFinite(p.target)).map(p=>({midi:p.target}));
+ if(Number.isFinite(referenceMidi))targets.push({midi:referenceMidi});
+ const range=recordPitchBounds(points.concat(targets));
  const yFor=midi=>bottom-clamp((midi-range.low)/(range.high-range.low),0,1)*(bottom-top);
+ const xFor=p=>left+clamp((p.t-first)/RECORD_PITCH_WINDOW_MS,0,1)*(right-left);
  // Draw note grid with named C keys and a subdued semitone background.
  const step=allNotes?Math.max(1,Math.ceil((range.high-range.low)/Math.max(1,Math.min(4,Math.floor((bottom-top)/22))))):12;
  const lowGrid=Math.ceil(range.low/step)*step;
@@ -1206,7 +1209,23 @@ function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=fal
  }
  ctx.textAlign='left';ctx.fillStyle='#b8bcd4';ctx.fillText('−6초',left,bottom+12);
  ctx.textAlign='right';ctx.fillText('현재',right,bottom+12);
- traceRecordingPitch(ctx,points,p=>left+clamp((p.t-first)/RECORD_PITCH_WINDOW_MS,0,1)*(right-left),yFor,200,bridgeGaps);
+ // The mint step line records the actual goal at each capture time. Pauses
+ // break the goal line, just as silence breaks the purple voice trace.
+ let previous=null;
+ ctx.strokeStyle='#69ecd0';ctx.lineWidth=2;ctx.setLineDash([]);
+ for(const point of points){
+  if(!Number.isFinite(point.target)){previous=null;continue;}
+  if(previous&&point.t-previous.t<=200){
+   ctx.beginPath();ctx.moveTo(xFor(previous),yFor(previous.target));
+   ctx.lineTo(xFor(point),yFor(previous.target));ctx.lineTo(xFor(point),yFor(point.target));ctx.stroke();
+  }
+  previous=point;
+ }
+ if(Number.isFinite(referenceMidi)&&!points.some(p=>Number.isFinite(p.target))){
+  ctx.beginPath();ctx.moveTo(left,yFor(referenceMidi));ctx.lineTo(right,yFor(referenceMidi));
+  ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+ }
+ traceRecordingPitch(ctx,points,xFor,yFor,200,bridgeGaps);
  return {points,ctx,w,h,left,right,top,bottom};
 }
 function renderRecordPitchOverlay(now=performance.now(),force=false){
@@ -1233,29 +1252,40 @@ function resetPitchGraph(now=performance.now()){
  renderPitchGraphOverlay(now,true);
 }
 function rememberPitchGraphPoint(t,midi){
- if(app.mode!=='pitch'||!app.mic||!Number.isFinite(t))return;
+ if(!['piano','pitch','practice'].includes(app.mode)||!app.mic||!Number.isFinite(t))return;
  const points=app.pitchGraphSamples;
- points.push({t,midi:Number.isFinite(midi)?midi:null});
+ const point={t,midi:Number.isFinite(midi)?midi:null};
+ if(app.mode==='practice'){
+  const e=app.exercise,index=e?.active?Math.floor((t-e.start)/e.duration):-1;
+  point.target=index>=0&&index<e.steps.length?e.steps[index]:null;
+ }
+ points.push(point);
  while(points.length&&t-points[0].t>RECORD_PITCH_WINDOW_MS+250)points.shift();
 }
 function syncPitchGraphOverlay(reset=false){
  const el=$('pitchGraphOverlay');if(!el)return;
- el.hidden=app.mode!=='pitch';
+ el.hidden=!['piano','pitch','practice'].includes(app.mode);
  if(!el.hidden){if(reset)resetPitchGraph();else renderPitchGraphOverlay(performance.now(),true);}
 }
 function renderPitchGraphOverlay(now=performance.now(),force=false){
- const el=$('pitchGraphOverlay');if(!el||el.hidden||app.mode!=='pitch')return;
+ const el=$('pitchGraphOverlay');if(!el||el.hidden||!['piano','pitch','practice'].includes(app.mode))return;
  if(!force&&now-app.pitchGraphLast<40)return;
  app.pitchGraphLast=now;
- const graph=drawLivePitchGraph($('pitchGraph'),app.pitchGraphSamples,app.pitchGraphFrozenAt??now,{bridgeGaps:false,allNotes:true});
+ const practice=app.mode==='practice';
+ $('pitchGraphTitle').textContent=practice?'음정 연습 · 목표와 내 목소리':'목소리 음높이 변화';
+ $('pitchPracticeLegend').hidden=!practice;
+ const target=practice?(app.exercise?.active?app.exercise.target:app.exerciseRoot):null;
+ $('pitchGraphTarget').textContent=Number.isFinite(target)?'목표 '+noteLabel(target):'목표음 대기';
+ const graph=drawLivePitchGraph($('pitchGraph'),app.pitchGraphSamples,app.pitchGraphFrozenAt??now,
+  {bridgeGaps:false,allNotes:true,referenceMidi:practice&&!app.exercise?.active?app.exerciseRoot:null});
  if(!graph)return;
  const {points,ctx,left,right,top,bottom}=graph;
  const voiced=points.filter(p=>Number.isFinite(p.midi)),values=voiced.map(p=>p.midi);
  $('pitchGraphLow').textContent=values.length?noteLabel(Math.round(Math.min(...values))):'—';
  $('pitchGraphHigh').textContent=values.length?noteLabel(Math.round(Math.max(...values))):'—';
  const last=points[points.length-1],fresh=app.mic&&Number.isFinite(last?.midi)&&now-last.t<250;
- $('pitchGraphStatus').textContent=app.mic?(fresh?'실시간 측정 · 최근 6초':'음정 대기 · 최근 6초'):app.pitchGraphFrozenAt!==null?'측정 종료 · 다시 켜면 새 측정':'마이크를 켜세요';
- if(!voiced.length){ctx.textAlign='center';ctx.fillStyle='#d2cce8';ctx.font='11px system-ui';ctx.fillText(app.mic?'한 음을 편안하게 불러보세요':'마이크를 켜면 음정이 표시됩니다',(left+right)/2,(top+bottom)/2,Math.max(1,right-left-12));}
+ $('pitchGraphStatus').textContent=app.mic?(fresh?'실시간 측정 · 최근 6초':practice?'목표를 따라 불러보세요 · 최근 6초':'음정 대기 · 최근 6초'):app.pitchGraphFrozenAt!==null?'측정 종료 · 다시 시작하면 새 측정':practice?'연습 시작을 누르세요':'마이크를 켜세요';
+ if(!voiced.length){ctx.textAlign='center';ctx.fillStyle='#d2cce8';ctx.font='11px system-ui';ctx.fillText(practice?'민트색 목표와 보라색 목소리를 비교하세요':app.mic?'한 음을 편안하게 불러보세요':'마이크를 켜면 음정이 표시됩니다',(left+right)/2,(top+bottom)/2,Math.max(1,right-left-12));}
 }
 function syncVibratoOverlay(){
  const el=$('vibratoOverlay');if(!el)return;
@@ -1391,7 +1421,7 @@ function modeControls(){
   const rootLabel=document.createElement('label');rootLabel.className='practice-setting';
   rootLabel.textContent='시작음 ';
   const root=document.createElement('select');root.id='root';root.setAttribute('aria-label','연습 시작음');
-  fillNotes(root,app.exerciseRoot);root.onchange=()=>{app.exerciseRoot=Number(root.value);savePracticeOptions();};
+  fillNotes(root,app.exerciseRoot);root.onchange=()=>{app.exerciseRoot=Number(root.value);savePracticeOptions();renderPitchGraphOverlay(performance.now(),true);};
   root.disabled=Boolean(app.exercise);rootLabel.append(root);c.append(rootLabel);
   addSelect('tempo','음 길이',[{value:2800,label:'천천히'},{value:1800,label:'보통'},{value:1200,label:'빠르게'}],
    app.exerciseSpeed,v=>app.exerciseSpeed=Number(v));
@@ -2537,6 +2567,7 @@ $('micToggle').addEventListener('click',async()=>{
        $('modeChip').textContent=MODES.pitch[0];
        setTitle(MODES.pitch[0]);
        modeControls();
+       syncPitchGraphOverlay(true);
      }
      if(app.mode==='pitch'){
        $('mainButton').textContent='마이크 끄기';
@@ -2623,7 +2654,7 @@ $('mainButton').addEventListener('click',async()=>{
    else if(await startMic()){app.vibratoSamples=[];app.vibratoLast=null;app.vibratoSummary=null;app.vibratoValidMs=0;app.vibratoValidUntil=0;app.vibratoProgress=0;app.vibratoStart=performance.now();renderVibratoOverlay(performance.now(),true);b.textContent='비브라토 중지';$('stopButton').hidden=false;}
   }else{
    if(app.mic){await stopActivity();b.textContent='마이크 켜기';$('stopButton').hidden=true;}
-   else if(await startMic()){if(app.mode==='piano'){app.mode='pitch';$('modeChip').textContent='음정 측정하기';setTitle('음정 측정하기');modeControls();setMessage(MODES.pitch[1]);}b.textContent='마이크 끄기';$('stopButton').hidden=false;}
+   else if(await startMic()){if(app.mode==='piano'){app.mode='pitch';$('modeChip').textContent='음정 측정하기';setTitle('음정 측정하기');modeControls();syncPitchGraphOverlay(true);setMessage(MODES.pitch[1]);}b.textContent='마이크 끄기';$('stopButton').hidden=false;}
   }
  }finally{b.disabled=false;app.busy=false;updateMicToggle();}
 });
@@ -2722,7 +2753,7 @@ const MODE_GUIDES={
  pitch:{intro:'마이크로 입력한 목소리의 음높이를 음표와 피아노 건반으로 보여줍니다.',steps:['상단 마이크 켜기를 누르고 한 음을 편안하게 불러보세요.','보라색 건반은 현재 감지된 음정이며, 음정 카드에는 음표·옥타브·Hz·cent가 표시됩니다.','그래프는 최근 6초의 음높이와 최저·최고음을 보여줍니다. 축에도 계이름과 옥타브를 표시하고 음정이 확인되지 않는 구간은 비워둡니다. 마이크를 끄면 마지막 그래프가 남고 다시 켜면 새 측정을 시작합니다.'],rule:'마이크 또는 피아노 소음이 섞이면 측정값이 달라질 수 있습니다.'},
  record:{intro:'음성을 녹음하고 동시에 목소리 음높이 변화를 확인합니다.',steps:['녹음 시작을 한 번 누른 뒤 평소처럼 발성합니다. 잠깐 쉬거나 무음이 있어도 같은 녹음으로 계속 이어집니다.','실시간 그래프는 최근 6초를 보여주며 녹음 파일은 처음부터 전부 이어집니다. 저장 후 전체 재생에서 처음부터 끝까지 들을 수 있습니다.','녹음 중지·저장을 누르면 기기에 녹음 파일이 보관됩니다. 저장 실패나 앱 중단 시 나의 기록에서 복구 가능한 녹음을 확인하세요.'],rule:'사용자가 중지하면 녹음 1개를 저장합니다. 녹음 기록은 나의 기록의 녹음 탭에만 표시하고 연습 기록에는 남기지 않습니다. 앱을 벗어나거나 실제 입력·저장 오류가 발생하면 그 시점까지 한 파일로 저장합니다.'},
  vibrato:{intro:'한 음을 유지하며 비브라토의 흔들림 폭과 속도를 추정합니다.',steps:['연습 기준음을 지정하고 비브라토 시작을 누릅니다.','민트색 선은 선택한 기준음이며 보라색 곡선은 실제 목소리의 음높이입니다.','측정 중 상태가 길어지면 그래프의 진단 안내를 확인하세요.'],rule:'최근 3초 자료에서 기준음 ±150cent, 유효 자료 16개 이상·0.9초 이상, 진폭 ±7~125cent, 속도 3~9Hz, 일정한 주기 4개 이상을 확인합니다. 상세 기준은 「ⓘ 측정 기준」 버튼으로 확인할 수 있습니다.'},
- practice:{intro:'선택한 음정 패턴을 따라 부르고 목표 음정과 얼마나 일치했는지 확인합니다.',steps:['패턴(13종), 반복 횟수, 시작음과 음 길이를 선택합니다.','연습 시작 후 3초 준비 시간이 지나면 민트색 목표 건반을 따라 부릅니다.','회차가 끝나면 다음 회차로 진행하며, 계속 반복은 사용자가 중단할 때까지 이어집니다.'],rule:'목표 ±'+SCORE_RULES.sustainTolerance+'cent 일치율을 표시합니다. 회차당 '+SCORE_RULES.minSamples+'개 이상 감지, 전체 시간의 '+Math.round(SCORE_RULES.practiceCoverage*100)+'% 이상 발성, 각 음 길이의 '+Math.round(SCORE_RULES.stepCoverage*100)+'% 이상 발성이 필요합니다. 부족하면 정확도 대신 측정 부족으로 기록합니다.'},
+ practice:{intro:'선택한 음정 패턴을 따라 부르고 목표 음정과 얼마나 일치했는지 확인합니다.',steps:['패턴(13종), 반복 횟수, 시작음과 음 길이를 선택합니다.','연습 시작 후 3초 준비 시간이 지나면 민트색 목표 건반을 따라 부릅니다.','최근 6초 그래프에서 민트색 선은 목표음, 보라색 선은 실제 목소리입니다. 축과 목표음에는 계이름·옥타브가 표시됩니다. 준비·회차 사이에는 목표선을 끊고 소리가 없는 구간은 목소리 선을 비워 둡니다.','회차가 끝나면 다음 회차로 진행하며, 계속 반복은 사용자가 중단할 때까지 이어집니다.'],rule:'목표 ±'+SCORE_RULES.sustainTolerance+'cent 일치율을 표시합니다. 회차당 '+SCORE_RULES.minSamples+'개 이상 감지, 전체 시간의 '+Math.round(SCORE_RULES.practiceCoverage*100)+'% 이상 발성, 각 음 길이의 '+Math.round(SCORE_RULES.stepCoverage*100)+'% 이상 발성이 필요합니다. 부족하면 정확도 대신 측정 부족으로 기록합니다.'},
  guideVoice:{intro:'가이드를 듣고 음을 오르내리는 음역 슬라이드입니다. 음계·도약과 기존의 단계별 왕복·연속 슬라이드를 한 패턴 목록에 통합했습니다.',
   steps:['패턴은 음계·도약 10종, 3·5·7·12반음 단계별 왕복 4종, 같은 범위의 연속 슬라이드 4종으로 총 18종입니다. 연습 설정에서 시작음과 1~5회 반복을 정합니다.',
    '음계·단계별은 50~120 BPM에 맞추거나 한 음을 2·3·4초 유지하도록 정할 수 있습니다. 연속 패턴은 6초 이동 후 6초 되돌아오는 12초 왕복이며, 높은 시작음에서는 감지 가능한 범위 안에서 아래로 왕복합니다.',
