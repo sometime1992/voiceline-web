@@ -2410,7 +2410,7 @@ async function stopRecording(){
  r.pitchTrack=app.recordPitchTrack;r.pitchLow=app.recordPitchLow;r.pitchHigh=app.recordPitchHigh;
  app.recordPitchFrozenAt=performance.now();if(r.type!=='native-file')app.record=null;
  renderRecordPitchOverlay(app.recordPitchFrozenAt,true);
- $('mainButton').textContent='녹음 시작';$('mainButton').classList.remove('recording');
+ $('mainButton').textContent='저장 중…';$('mainButton').disabled=true;$('mainButton').classList.remove('recording');
  const job=(async()=>{
   try{
    if(r.type==='native-file'){
@@ -2443,7 +2443,7 @@ async function stopRecording(){
  })();
  app.recordSaving=job;
  try{return await job;}
- finally{if(app.record===r)app.record=null;if(app.recordSaving===job)app.recordSaving=null;app.savingRecordId=null;}
+ finally{if(app.record===r)app.record=null;if(app.recordSaving===job)app.recordSaving=null;app.savingRecordId=null;$('mainButton').textContent='녹음 시작';$('mainButton').disabled=false;}
 }
 async function finishVibrato(){
  if(!app.vibratoStart)return;

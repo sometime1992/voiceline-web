@@ -144,7 +144,8 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
    await page.waitForFunction(()=>/중단|중지/.test(document.querySelector('#mainButton').textContent));
    assert.equal(await page.locator('#stopButton').isVisible(),false,mode+' duplicated stop action');
    if(mode==='record')await sendTone(page,261.625565);
-   await page.locator('#mainButton').click();await page.waitForFunction(()=>/시작/.test(document.querySelector('#mainButton').textContent));
+   await page.locator('#mainButton').click();await page.waitForFunction(()=>/시작/.test(document.querySelector('#mainButton').textContent)&&!document.querySelector('#mainButton').disabled);
+   if(mode==='record')await page.waitForFunction(()=>document.querySelector('#exerciseProgress').textContent.includes('녹음 1개 저장됨'));
    if(await page.locator('#trainingResultDialog').isVisible())await page.locator('#trainingResultClose').click();
   }
   const stored=await page.evaluate(()=>new Promise((resolve,reject)=>{
