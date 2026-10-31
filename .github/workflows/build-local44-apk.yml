@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: voiceline-local44-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apk:
@@ -33,8 +33,18 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - name: Test recording, training, metronome and adaptive layout
+        timeout-minutes: 3
         working-directory: android-local44
-        run: node --test local_tests/*.test.cjs
+        shell: bash
+        run: node --test --test-concurrency=1 --test-timeout=60000 local_tests/*.test.cjs 2>&1 | tee local44-tests.log
+      - name: Keep regression test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local44-Test-Report
+          path: android-local44/local44-tests.log
+          if-no-files-found: warn
+          retention-days: 7
       - name: Ensure Android SDK 35 packages
         shell: bash
         run: |
