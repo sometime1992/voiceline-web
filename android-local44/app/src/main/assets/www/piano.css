@@ -409,6 +409,10 @@
 }
 /* Keep the heading row full-width; otherwise the help button may squeeze the title. */
 .exercise-panel .mode-heading-row{width:100%;align-self:stretch}
+.exercise-panel .mic-sensitivity-button{flex:none;margin-left:auto;min-height:28px;padding:3px 7px;border:1px solid #aa98ff80;border-radius:9px;background:#34304c;color:#e1d9ff;font-size:11px;font-weight:700;line-height:1.1;white-space:nowrap;touch-action:manipulation}
+.exercise-panel .mic-sensitivity-button:active{background:#514372}
+.app:is([data-mode=piano],[data-mode=metronome]) .mic-sensitivity-button{display:none}
+@media(max-width:900px),(max-height:460px){.exercise-panel .mic-sensitivity-button{min-height:25px;padding:2px 6px;font-size:10px}}
 
 /* Local32: recoverable saves and bounded history lists use the existing dialogs. */
 .recovery-section{margin:10px 0 17px;padding:10px 12px;border:1px solid #e4be7b66;border-radius:12px;background:#3b304c44}

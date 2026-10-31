@@ -32,6 +32,19 @@ const MODES={
   dynamicVoice:['발성 강약 조절','같은 음을 유지하며 소리의 상대적 강약을 바꿔보세요.'],
   warmupVoice:['호흡·워밍업','편안한 호흡과 허밍을 순서대로 진행합니다.']
 };
+const MIC_SENSITIVITY_KEY='voiceline-mic-sensitivity-v1';
+const MIC_SENSITIVITIES=Object.freeze({
+ standard:Object.freeze({label:'표준',minRms:.009,recordMinRms:.0028}),
+ sensitive:Object.freeze({label:'민감',minRms:.0035,recordMinRms:.0018}),
+ high:Object.freeze({label:'최대',minRms:.0015,recordMinRms:.001})
+});
+function readMicSensitivity(){
+ try{
+  const value=localStorage.getItem(MIC_SENSITIVITY_KEY);
+  if(Object.prototype.hasOwnProperty.call(MIC_SENSITIVITIES,value))return value;
+ }catch(_){/* Detection remains available when settings storage is blocked. */}
+ return 'sensitive';
+}
 const PIANO_VOLUME_KEY='voiceline-piano-volume-v1';
 function readPianoVolume(){
  try{
@@ -41,7 +54,7 @@ function readPianoVolume(){
  return 85;
 }
 const app={
-  mode:'piano',base:48,keyboardNotes:24,playing:new Map(),owners:new Map(),ctx:null,pianoVolume:readPianoVolume(),
+  mode:'piano',base:48,keyboardNotes:24,playing:new Map(),owners:new Map(),ctx:null,pianoVolume:readPianoVolume(),micSensitivity:readMicSensitivity(),
   layoutPortrait:false,layoutOrientation:null,layoutWidth:0,layoutHeight:0,layoutFrame:0,layoutReady:false,
   stream:null,micCtx:null,source:null,analyser:null,buffer:null,frame:0,
   mic:false,nativeMic:false,nativeStartResolve:null,nativeStartTimeout:0,nativeSampleRate:0,
@@ -724,7 +737,7 @@ $('octaveUp').addEventListener('click',()=>{app.base=clamp(app.base+12,24,108-(a
 // Convert 44.1kHz microphone input to 22.05kHz before estimating periodicity.
 // The original 768-sample window only covered 17ms of sound; sustained lower
 // notes and breathier voices could intermittently fail, although audio recorded.
-function pitchYin(s,sr,recording=false){
+function pitchYin(s,sr,recording=false,sensitivity='sensitive'){
  if(!s||s.length<1024||!Number.isFinite(sr)||sr<=0)return null;
  if(sr>=32000&&s.length>=2048){
   const half=new Float32Array(Math.floor(s.length/2));
@@ -737,9 +750,11 @@ function pitchYin(s,sr,recording=false){
  let sum=0,count=0;
  for(let i=0;i<s.length;i+=2){sum+=s[i]*s[i];count++;}
  const rms=Math.sqrt(sum/count);
- // Recording mode uses a slightly more sensitive gate. Noise alone still
- // needs a sufficiently periodic YIN result to be called a musical note.
- if(!Number.isFinite(rms)||rms<(recording?.0028:.009))return null;
+ // Sensitivity changes only the minimum input level, never the recorded PCM
+ // or periodicity/confidence rules that reject unvoiced noise.
+ const profile=Object.prototype.hasOwnProperty.call(MIC_SENSITIVITIES,sensitivity)
+  ?MIC_SENSITIVITIES[sensitivity]:MIC_SENSITIVITIES.sensitive;
+ if(!Number.isFinite(rms)||rms<(recording?profile.recordMinRms:profile.minRms))return null;
  const lo=Math.max(2,Math.floor(sr/PITCH_RANGE.maxHz));
  const hi=Math.min(Math.floor(sr/PITCH_RANGE.minHz),Math.floor(s.length/2)-2);
  const win=Math.min(1024,s.length-hi-1);
@@ -784,8 +799,8 @@ function updateDetection(t,nativeSamples=null,nativeRate=0){
  const sound=nativeSamples||app.buffer;
  const rms=microphoneSignalRms(sound);
  if(app.mode==='record'&&app.record)app.recordSignalRms=microphoneSignalRms(sound);
- const p=nativeSamples?pitchYin(nativeSamples,nativeRate,app.mode==='record'):
-   pitchYin(app.buffer,app.micCtx.sampleRate,app.mode==='record');
+ const p=nativeSamples?pitchYin(nativeSamples,nativeRate,app.mode==='record',app.micSensitivity):
+   pitchYin(app.buffer,app.micCtx.sampleRate,app.mode==='record',app.micSensitivity);
  if(!p){
   if(app.exercise?.active)receiveExerciseSample(t,null);
   if(app.training?.active)receiveTrainingSample(t,null,rms);
@@ -897,7 +912,7 @@ window.VoiceLineNativeAudio = {
      const t=captured?(app.nativeClockStart??app.sessionStart)+(frameStart+samples.length/2)*1000/sampleRate:performance.now();
      if(app.record?.type==='native-file'&&captured&&frameStart<app.record.startFrame)return;
      if(app.record?.type==='native-file')app.recordCaptureMs=captured?(frameStart+samples.length/2-app.record.startFrame)*1000/sampleRate:null;
-     const cadence=app.mode==='vibrato'?35:app.mode==='record'?65:70;
+     const cadence=app.mode==='vibrato'?35:40;
      if(t-app.lastAnalyze>cadence){updateDetection(t,samples,sampleRate);app.lastAnalyze=t;}
    }catch(e){console.error('Native audio input',e);void stopAfterMicError('마이크 입력을 읽을 수 없습니다.');}
  }
@@ -991,7 +1006,7 @@ async function stopAfterMicError(detail){
 function tick(t){
  if(app.mode==='record'&&t-(app.lastStorageCheck||0)>15000)void updateRecordingStorage();
  if(!app.mic&&!app.training?.active){app.frame=0;return;}
- if(app.mic&&!app.nativeMic&&t-app.lastAnalyze>(app.mode==='vibrato'?35:app.mode==='record'?65:70)){updateDetection(t);app.lastAnalyze=t;}
+ if(app.mic&&!app.nativeMic&&t-app.lastAnalyze>(app.mode==='vibrato'?35:40)){updateDetection(t);app.lastAnalyze=t;}
  if(app.exercise?.active)updateExercise(t);
  if(app.training?.active)updateTraining(t);
  if(app.mode==='vibrato'){
@@ -2397,6 +2412,26 @@ function resetMainAction(){
 }
 // Keep microphone control independent of the main activity button.
 // A manual OFF must finish active recording/exercises rather than lose data.
+function updateMicSensitivityControl(){
+ const button=$('micSensitivity');if(!button)return;
+ const label=MIC_SENSITIVITIES[app.micSensitivity].label;
+ button.textContent='감도 '+label;
+ button.setAttribute('aria-label','마이크 감도 '+label+'. 누르면 표준, 민감, 최대 순서로 변경');
+ button.title='작은 목소리는 민감 또는 최대, 주변 소리에 반응하면 표준으로 조절하세요.';
+}
+function applyMicSensitivity(value){
+ if(!Object.prototype.hasOwnProperty.call(MIC_SENSITIVITIES,value))return;
+ app.micSensitivity=value;
+ // Apply to the next analysis frame without restarting capture or a lesson.
+ app.notes=[];app.lastTrustedPitchAt=0;
+ try{localStorage.setItem(MIC_SENSITIVITY_KEY,value);}catch(_){}
+ updateMicSensitivityControl();
+}
+$('micSensitivity').addEventListener('click',()=>{
+ const levels=Object.keys(MIC_SENSITIVITIES);
+ applyMicSensitivity(levels[(levels.indexOf(app.micSensitivity)+1)%levels.length]);
+});
+updateMicSensitivityControl();
 $('micToggle').addEventListener('click',async()=>{
  if(app.busy||app.nativeStartResolve||app.stopPromise||app.recordSaving||app.lifeStopping)return;
  app.busy=true;updateMicToggle();
@@ -2624,6 +2659,7 @@ function showModeGuide(mode=app.mode){
  for(const sentence of guide.steps)plain(steps,'li','',sentence);
  plain(b,'h3','mode-guide-section','측정·판정 기준');
  plain(b,'p','mode-guide-rule',guide.rule);
+ if(mode!=='metronome'&&mode!=='piano')plain(b,'p','mode-guide-caution','감도 버튼으로 표준 → 민감 → 최대를 선택합니다. 기본은 민감이며 작은 목소리는 최대, 주변 소리에 반응하면 표준으로 조절하세요. 설정은 기기에 보관되고 녹음 중에도 바꿀 수 있습니다. 녹음 파일의 실제 소리 크기는 바뀌지 않습니다.');
  if(mode!=='metronome')plain(b,'p','mode-guide-caution','목소리 측정은 참고용입니다. 피아노 소리가 마이크에 섞이면 결과가 달라질 수 있으므로 이어폰을 권장합니다.');
  modeGuideReturnFocus=true;
  modalOpen('infoDialog');

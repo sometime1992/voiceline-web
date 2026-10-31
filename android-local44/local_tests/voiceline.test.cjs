@@ -12,9 +12,10 @@ const manifest=fs.readFileSync(path.join(root,'app/src/main/AndroidManifest.xml'
 function snippet(from,to,ending){let start=js.indexOf(from),end=js.indexOf(to,start);assert.ok(start>=0&&end>start,`${from} to ${to} missing`);return js.slice(start,end)+(ending||'');}
 const clip=(v,a,b)=>Math.max(a,Math.min(b,v));
 const policies=vm.runInNewContext(snippet('const PITCH_RANGE=','const MODES=','\n({PITCH_RANGE,SCORE_RULES})'));
+const micSettings=vm.runInNewContext(snippet('const MIC_SENSITIVITIES=','function readMicSensitivity','\n({MIC_SENSITIVITIES})'));
 const ruleText=vm.runInNewContext(snippet('function dynamicRuleText(){','function showTrainingResult(','\ndynamicRuleText'),policies);
 function runInContext(code,ctx={}){
- for(const [k,v] of Object.entries({...policies,clamp:clip,dynamicRuleText:ruleText}))if(!(k in ctx))ctx[k]=v;
+ for(const [k,v] of Object.entries({...policies,...micSettings,clamp:clip,dynamicRuleText:ruleText}))if(!(k in ctx))ctx[k]=v;
  ctx.window=ctx.window||{};ctx.window.VoiceLineGuideTraining=require('../app/src/main/assets/www/guide-training.js');
  return vm.runInNewContext(code,ctx);
 }
@@ -33,7 +34,7 @@ test('database upgrade keeps old recordings, adds chunk store',()=>{
  assert.doesNotMatch(js,/deleteObjectStore/);
 });
 test('simulated musical pitch 110-880 Hz, weak noise and silence',()=>{
- const code=snippet('function pitchYin(s,sr,recording=false){','function updateDetection(', '\npitchYin');
+ const code=snippet("function pitchYin(s,sr,recording=false,sensitivity='sensitive'){",'function updateDetection(', '\npitchYin');
  const pitchYin=runInContext(code,{Math,Float32Array,clamp:clip});
  const sr=44100;
  for(let freq of [110,220,440,880]){
@@ -143,7 +144,7 @@ test('piano output compressor is connected with a safe fallback',()=>{
 
 
 test('quiet sung notes detected in recording mode, without inventing silent/noise pitches',()=>{
- const sampleCode=snippet('function pitchYin(s,sr,recording=false){','function updateDetection(', '\npitchYin');
+ const sampleCode=snippet("function pitchYin(s,sr,recording=false,sensitivity='sensitive'){",'function updateDetection(', '\npitchYin');
  const pitchYin=runInContext(sampleCode,{Math,Float32Array,clamp:clip});
  const sr=44100;
  // Quiet singing at 0.005 amplitude was below the previous hard 0.009 threshold.
@@ -161,8 +162,8 @@ test('quiet sung notes detected in recording mode, without inventing silent/nois
   return ((seed/0x100000000)*2-1)*.018;
  });
  assert.equal(pitchYin(noise,sr,true),null,'unvoiced random noise must not become a note');
- assert.equal(pitchYin(Float32Array.from({length:4096},(_,i)=>.006*Math.sin(2*Math.PI*220*i/sr)),sr),null,
-  'other modes retain the more conservative silence gate');
+ assert.equal(pitchYin(Float32Array.from({length:4096},(_,i)=>.006*Math.sin(2*Math.PI*220*i/sr)),sr,false,'standard'),null,
+  'standard sensitivity retains the previous conservative silence gate');
 });
 
 test('brief missed note links are dashed estimates, long gaps remain open',()=>{

@@ -31,6 +31,7 @@ body.portrait-layout .exercise-panel{grid-area:exercise;gap:5px;padding:0;min-he
 body.portrait-layout .exercise-panel .mode-heading-row{min-height:29px;gap:6px}
 body.portrait-layout .exercise-panel .mode-heading-row #modeTitle{font-size:15px;max-width:calc(100% - 66px)}
 body.portrait-layout .exercise-panel .mode-guide-button{min-height:28px;min-width:54px;font-size:11px}
+body.portrait-layout .exercise-panel .mic-sensitivity-button{min-height:28px;padding:3px 7px;font-size:11px}
 body.portrait-layout .exercise-panel .mode-live-status{display:none}
 body.portrait-layout .record-storage-info{font-size:10px;line-height:1.2}
 body.portrait-layout .practice-scroll-shell{display:block;min-height:0;max-height:none;flex:none}
