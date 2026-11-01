@@ -22,19 +22,19 @@ with zipfile.ZipFile(bundle) as archive:
             count += 1
 report = root / 'release-review'
 report.mkdir(exist_ok=True)
-target = report / 'VoiceLine-Local54-UNSIGNED-REVIEW.aab'
+target = report / 'VoiceLine-Local55-UNSIGNED-REVIEW.aab'
 shutil.copyfile(bundle, target)
 text = '\n'.join([
-    'VoiceLine Local54 release build review - NOT READY FOR PLAY UPLOAD',
+    'VoiceLine Local55 release build review - NOT READY FOR PLAY UPLOAD',
     'Commit: ' + os.environ['GITHUB_SHA'],
     'Release application ID: com.voiceline.app',
     'Target SDK: 36; minimum SDK: 26',
     'AGP: 8.10.1; Gradle: 8.11.1; Java: 17',
-    'Unsigned release AAB generated successfully; production upload key is still required.',
+    'Unsigned CI AAB generated successfully; the prepared owner-held upload key is applied locally after download.',
     'Offline assets verified byte-for-byte: ' + str(count),
     'No bundled native .so libraries; no app-owned 16 KB ELF alignment work identified.',
     'SHA-256: ' + hashlib.sha256(target.read_bytes()).hexdigest(),
-    'Remaining: owner-controlled signing key, public privacy policy + developer contact, store listing assets, Console declarations and required testing.',
+    'Public privacy policy and store material sources are prepared. Remaining owner steps: Console contact/details/declarations, package ID confirmation, required testers and physical-device checks.',
     'Android lint results accompany this report. Real Android 16 device and Play pre-launch tests remain required.',
 ]) + '\n'
 (report / 'RELEASE_REVIEW.txt').write_text(text)

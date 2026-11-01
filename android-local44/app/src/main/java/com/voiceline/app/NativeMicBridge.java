@@ -132,7 +132,7 @@ public final class NativeMicBridge {
         if(disposed||!foreground||!wantsCapture||requestedId==null)return;
         String id=requestedId;
         if(granted)startNative(id);
-        else {cancelRequest(false);dispatch("denied","마이크 사용 권한이 거부됨 · 설정 > 애플리케이션 > 보이스라인 > 권한 > 마이크에서 허용해 주세요.",id,0);}
+        else {cancelRequest(false);dispatch("denied","마이크 사용 권한이 거부됨 · 설정 > 애플리케이션 > VoiceLine > 권한 > 마이크에서 허용해 주세요.",id,0);}
     }
     private void startNative(String id) {
         if(disposed||!foreground||!wantsCapture||!id.equals(requestedId))return;

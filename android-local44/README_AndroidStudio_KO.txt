@@ -1,12 +1,16 @@
-VOICE LINE / 보이스라인 Android Studio 프로젝트 (Local54)
+VoiceLine Android Studio 프로젝트 (Local55)
 ============================================================
-버전: 2.0.0-local54 / versionCode 69
+정식 버전: 2.0.0 / CI: 2.0.0-local55-ci / versionCode 70
 이번 변경: CHANGES_LOCAL53_KO.txt
 검사 결과: 해당 버전 GitHub Actions의 Test/ Layout Report 및 BUILD_INFO.txt
 이전 변경 안내: docs/archive
 이전 점검 보고서: REVIEWS (각 보고서에 적힌 당시 버전 기준)
 
 [이번 버전 및 유지 기능]
+- 앱 표시 이름을 VoiceLine으로 통일했습니다.
+- 메뉴와 사용법에서 개인정보처리방침을 오프라인으로 읽고 공개 웹페이지·개발자 문의를 열 수 있습니다.
+- 정식 배포용 AAB는 2.0.0 (70), 테스트 APK는 기존 CI45 앱과 같은 식별자·서명을 사용합니다.
+- 스토어 소개·이미지 원본·콘솔 작성 가이드·테스터 안내를 store-kit에 준비했습니다.
 - 강약·발성 유지·비브라토 시작 전에 기준음 듣기 1.8초와 들이쉬기 3초를 안내합니다.
 - 청음은 매 음마다 들이쉬기 3초를 제공하고, 음정 연습 반복 사이에는 3초 회복 시간을 둡니다.
 - 호흡 준비는 측정·강약 기준·채점에서 제외하며, 진행 중 화면 회전이나 그래프 숨김에도 타이밍을 유지합니다.
@@ -225,7 +229,7 @@ VOICE LINE / 보이스라인 Android Studio 프로젝트 (Local54)
    androidx.webkit 1.12.1과 파일 공유용 androidx.core 1.15.0을 사용합니다.
    첫 Sync에서는 Maven 의존성을 받기 위한 인터넷 연결이 필요합니다.
 5. USB 디버깅을 켠 기기를 연결하고 Run > Run 'app'으로 실행합니다.
-6. 메뉴 하단 버전 2.0.0-local54를 확인합니다.
+6. 메뉴 하단 버전 2.0.0-local55를 확인합니다.
 
 [검사와 한계]
 - Node.js가 설치된 PC에서 run-tests.bat를 실행합니다. npm 설치는 필요하지 않습니다.

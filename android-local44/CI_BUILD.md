@@ -1,6 +1,6 @@
-# Local54 APK build
+# Local55 APK build
 
-This directory contains the complete Local54 Android project, including its
+This directory contains the complete Local55 Android project, including its
 offline piano engine, samples, and regression tests. The Local44 baseline source archive
 is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 `2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1`.
@@ -8,11 +8,11 @@ is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 Pushing changes to `build/android-apk` runs `.github/workflows/build-local44-apk.yml`.
 The workflow runs the tests, builds the CI45 APK, verifies their signatures
 and package metadata, and compares every bundled asset to the source bytes.
-Download the `VoiceLine-Local54-APKs` artifact from the completed run.
+Download the `VoiceLine-Local55-APKs` artifact from the completed run.
 
 | APK | Application ID | Installation |
 | --- | --- | --- |
-| VoiceLine-Local54-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46/47/48 installation and preserves its recordings and practice history. |
+| VoiceLine-Local55-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46/47/48 installation and preserves its recordings and practice history. |
 
 Do not uninstall an existing app to work around a signature mismatch: its local
 recordings and history may be lost. This CI build does not import recordings
@@ -23,7 +23,7 @@ Local44 CI keys were not retained, so CI45 has its own application ID and keeps
 those earlier installations intact. A durable release signing key is required
 before distributing long-term updates.
 
-The build uses version code 69 and target Android 36 with Android 26 minimum.
+The build uses version code 70 and target Android 36 with Android 26 minimum.
 It preserves the portrait keyboard geometry and restores the earlier landscape UI.
 
 ## Local45 sensitivity update
@@ -102,13 +102,18 @@ The first weak phase establishes a robust personal RMS reference; later phases k
 
 Stepped pitch patterns show a separate horizontal stroke per note, with no vertical pitch-change connectors. Smooth slide paths remain continuous. The target calculation, note timing, audio scheduling, tolerance shading, detected voice trace and scoring remain unchanged.
 
-## Local54 volume endpoints and dynamics courses
+## Local55 volume endpoints and dynamics courses
 
 Three volume controls paint their tracks from the actual percentage, including a fully filled 100 percent endpoint. Seven dynamics methods share immutable per-session timelines for target bands, phase labels, cue scheduling and grading. Each starts with a three-second weak reference and completes in twelve seconds. Regression checks cover each method, gradual contours, per-segment coverage, selected-method persistence and real slider endpoints.
 
 
-## Local54 preparation, exercise duration and release review
+## Local55 preparation, exercise duration and release review
 
 Dynamics and sustain sessions listen for 1.8 seconds, then inhale for three seconds before measurement. Vibrato uses the same preparation; each ear response has its own ungraded three-second inhale. Direct pitch-phrase repeats provide three seconds of recovery. Dynamic durations are 8, 12, 16, 20 or 24 seconds; the weak reference stays three seconds and subsequent segments scale to fit.
 
 Compile/target SDK 36 uses AGP 8.10.1 and Gradle 8.11.1. Android 13+ back handling uses OnBackInvokedDispatcher while the existing inset handling protects Android 16 content. The workflow builds an unsigned production AAB, runs release lint, and verifies all embedded assets. This review bundle is deliberately not a signed Play upload artifact. See PLAY_STORE_READINESS_KO.md for remaining owner and Console requirements.
+
+
+## Local55 Play preparation
+
+The Android display name, web title and installed PWA name are VoiceLine. A canonical policy generates the offline app document and its public website. Production bundles use 2.0.0 (70); CI updates retain com.voiceline.app.local18.ci45 and the pinned CI key. The owner upload key remains outside the repository and runner. The workflow validates bundle metadata with checksum-pinned official bundletool, builds a temporary CI-signed production runtime APK, tests it on an Android16 emulator, and exports store screenshots and brand graphics. That temporary runtime APK is not the owner-signed Play upload.

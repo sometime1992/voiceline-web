@@ -356,6 +356,23 @@ async function checkVolumeRange(page,id,valueId){
   assert.equal(await page.locator('#trainingOverlay').isVisible(),true,'hidden graph removed breathing instructions');assert.equal(await page.locator('#graphToggle').isVisible(),false);
   await choose(page,'metronome');assert.equal(await page.locator('#keyboard').isVisible(),false);assert.equal(await page.locator('#metronomePanel').isVisible(),true);assert.equal(await page.locator('#graphToggle').isVisible(),false);
   await checkVolumeRange(page,'metroVolume','metroVolumeValue');await page.screenshot({path:path.join(output,'landscape-metronome-volume-100.png')});
+  // The full policy opens locally without a network request. External pages
+  // require a separate deliberate click and only fixed native destinations.
+  await page.setViewportSize(viewports[0]);await choose(page,'piano');const beforePrivacy=await geometry(page);
+  const policyRequests=[],policyOrigin=new URL(page.url()).origin;page.on('request',request=>{if(new URL(request.url()).origin!==policyOrigin)policyRequests.push(request.url());});
+  await page.evaluate(()=>{window.__publicLinks=[];window.VoiceLinePublicLinks={openPrivacyPolicy(){window.__publicLinks.push('privacy');},openSupport(){window.__publicLinks.push('support');}};});
+  await page.locator('#menuOpen').click();await page.locator('[data-screen="privacy"]').click();
+  assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');
+  assert.match(await page.locator('#infoBody').textContent(),/VoiceLine Android 앱/);
+  assert.match(await page.locator('#infoBody').textContent(),/마이크 권한/);
+  assert.deepEqual(await page.evaluate(()=>window.__publicLinks),[]);assert.deepEqual(policyRequests,[],'policy reading contacted a server');
+  await page.screenshot({path:path.join(output,'portrait-privacy-policy.png')});
+  await page.locator('#privacyWebOpen').click();await page.locator('#privacySupportOpen').click();
+  assert.deepEqual(await page.evaluate(()=>window.__publicLinks),['privacy','support']);
+  await page.locator('#infoClose').click();assert.deepEqual((await geometry(page)).keyboard,beforePrivacy.keyboard);
+  await page.locator('#menuOpen').click();await page.locator('[data-screen="help"]').click();await page.locator('#helpPrivacyOpen').click();
+  assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');await page.locator('#infoClose').click();
+  assert.equal(await page.title(),'VoiceLine');assert.equal(await page.locator('.brand').getAttribute('aria-label'),'VoiceLine');
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
   console.log('PASS: '+report.length+' mode/viewport layouts and '+patternReport.length+' dynamics method previews; complete stepped and crescendo exercises, 0/50/100% volume endpoints, pattern persistence, hidden phase/countdown, rotation and retained results; graph toggles, unified practice, real pixels and recording save.');

@@ -22,6 +22,11 @@ body.portrait-layout{--keyboard-height:clamp(96px,25dvh,220px)}
 .graph-toggle[aria-expanded=false]{border-color:#d0bcff8c;background:#353047;color:#e9dcff}
 .graph-toggle:focus-visible{outline:2px solid #e4d6ff;outline-offset:2px}
 .graph-hidden-status{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:#b7f6e7;font-variant-numeric:tabular-nums}
+.privacy-menu-tile{grid-column:1/-1}
+.privacy-policy-date{font-size:12px;color:#c1c8d7}
+.privacy-policy-summary{padding:12px;border:1px solid #8deed355;border-radius:10px;background:#183c354f;line-height:1.7}
+.privacy-policy-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
+.privacy-policy-actions button,.privacy-policy-help{min-height:40px;padding:8px 14px;color:#c4ffeb}
 .dynamic-readout{display:flex;flex-direction:column;gap:3px;flex:none;min-width:0}
 .dynamic-current-row,.dynamic-detail-row{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0}
 .dynamic-current-row strong{font-size:clamp(16px,1.9vw,23px);line-height:1.15;color:#b9ffe7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}

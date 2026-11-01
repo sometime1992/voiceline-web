@@ -2822,9 +2822,28 @@ $all('[data-screen]').forEach(b=>b.addEventListener('click',async()=>{
  const mode=b.dataset.screen;modalClose('menuDialog');
  if(mode==='history')await showHistory();
  else if(mode==='help')showHelp();
+ else if(mode==='privacy')showPrivacyPolicy();
  else await switchMode(mode);
 }));
 function plain(node,tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;node.append(el);return el;}
+function openPublicAppPage(kind){
+ const policy=window.VoiceLinePrivacy;if(!policy)return;
+ try{
+  if(window.VoiceLinePublicLinks){if(kind==='privacy')window.VoiceLinePublicLinks.openPrivacyPolicy();else window.VoiceLinePublicLinks.openSupport();}
+  else window.open(kind==='privacy'?policy.publicUrl:policy.supportUrl,'_blank','noopener,noreferrer');
+ }catch(_){notify('브라우저를 열지 못했습니다. 공개 웹 주소를 확인해 주세요.');}
+}
+function showPrivacyPolicy(){
+ const policy=window.VoiceLinePrivacy;if(!policy){notify('개인정보처리방침을 불러오지 못했습니다.');return;}
+ $('infoTitle').textContent='개인정보처리방침';const body=$('infoBody');body.replaceChildren();
+ plain(body,'p','privacy-policy-date',policy.appName+' · 시행일 '+policy.effectiveDate);
+ plain(body,'p','privacy-policy-summary',policy.summary);
+ const actions=plain(body,'div','privacy-policy-actions');
+ const web=plain(actions,'button','','공개 웹페이지');web.id='privacyWebOpen';web.type='button';web.onclick=()=>openPublicAppPage('privacy');
+ const contact=plain(actions,'button','','개발자 문의');contact.id='privacySupportOpen';contact.type='button';contact.onclick=()=>openPublicAppPage('support');
+ for(const section of policy.sections){plain(body,'h3','',section.title);for(const paragraph of section.paragraphs)plain(body,'p','',paragraph);}
+ modalOpen('infoDialog');
+}
 // Each practice mode has its own on-demand guidance. Nothing instructional
 // scrolls inside the narrow header; tap the small button beside its title.
 // Keep guidance factual: these are app detection thresholds, not health advice.
@@ -2911,6 +2930,7 @@ function showHelp(){
   ['주의','목이 아프거나 어지러우면 중단하세요. 측정은 참고용이며 의료적 진단이 아닙니다.']
  );
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
+ const privacy=plain(b,'button','privacy-policy-help','개인정보처리방침 보기');privacy.id='helpPrivacyOpen';privacy.type='button';privacy.onclick=showPrivacyPolicy;
  modalOpen('infoDialog');
 }
 // Use an app-designed confirmation instead of window.confirm(). Android WebView
@@ -3443,6 +3463,7 @@ app.metronome=window.VoiceLineMetronome?.mount(document,{
  }
 });
 restorePracticeOptions();restoreTrainingSettings();if(window.VoiceLineGuideTraining)guideOptions();applyResponsiveLayout(true);modeControls();progress(0,'건반 연주 준비');updateMicToggle();syncPitchGraphOverlay();syncVibratoOverlay();syncRecordPitchOverlay();syncTrainingOverlay();
+try{const version=window.VoiceLinePublicLinks?.appVersion?.();if(version)$('appVersion').textContent='버전 '+String(version);}catch(_){}
 if(window.VoiceLineToneEngine)updateToneEngineStatus();
 importLegacyRecords();void cleanupDeletedNativeFiles();
 store('recordSessions','getAll').then(sessions=>{if(sessions.length)notify('저장하지 못한 녹음이 있습니다. 나의 기록에서 확인해 주세요.');}).catch(()=>{});

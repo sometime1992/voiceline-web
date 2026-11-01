@@ -512,7 +512,7 @@ test('Local25 history deletion uses own confirmation without WebView URL',()=>{
  assert.match(css,/\.history-delete-backdrop/);
 });
 test('Local26 brand wordmark is a single line and stays inside header',()=>{
- assert.match(html,/<span class="brand-word"><span class="brand-title">VOICE<span>LINE<\/span><\/span><small>보이스라인<\/small><\/span>/);
+ assert.match(html,/<span class="brand-word"><span class="brand-title">Voice<span>Line<\/span><\/span><\/span>/);
  assert.match(css,/\.toolbar \.brand-title\{[^}]*white-space:nowrap/);
  assert.match(css,/\.toolbar \.brand-title>span\{color:var\(--mint\)\}/);
  assert.match(css,/@media\(max-width:640px\), \(max-height:360px\)/);

@@ -6,3 +6,8 @@ local.properties
 .idea/
 .DS_Store
 *.log
+*.keystore
+*.jks
+*.p12
+signing-password*
+.signing/

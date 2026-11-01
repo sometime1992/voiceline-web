@@ -1,4 +1,4 @@
-name: VoiceLine Local54 APK
+name: VoiceLine Local55 APK
 
 on:
   push:
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       VOICELINE_CI_KEYSTORE: ${{ github.workspace }}/.ci-signing/debug.keystore
     steps:
@@ -38,12 +38,15 @@ jobs:
         timeout-minutes: 3
         working-directory: android-local44
         shell: bash
-        run: node --test --test-concurrency=1 --test-timeout=60000 local_tests/*.test.cjs 2>&1 | tee local44-tests.log
+        run: |
+          node ../ci/build-privacy-policy.cjs
+          git diff --exit-code -- app/src/main/assets/www/privacy-policy.js app/src/main/assets/www/privacy.html
+          node --test --test-concurrency=1 --test-timeout=60000 local_tests/*.test.cjs 2>&1 | tee local44-tests.log
       - name: Keep regression test report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local54-Test-Report
+          name: VoiceLine-Local55-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -58,11 +61,12 @@ jobs:
           export CHROME_BIN="$(command -v google-chrome || command -v chromium || true)"
           test -n "$CHROME_BIN"
           node ci/check-piano-layout.cjs
+          node ci/render-store-graphic.cjs
       - name: Keep keyboard layout and graph report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local54-Layout-Report
+          name: VoiceLine-Local55-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -102,11 +106,47 @@ jobs:
         run: gradle --no-daemon :app:bundleRelease :app:lintRelease
       - name: Verify release-review bundle assets
         run: python3 ci/verify-release-readiness.py
+      - name: Validate production bundle and prepare emulator review APK
+        shell: bash
+        run: |
+          bundletool_jar="$RUNNER_TEMP/bundletool-all-1.18.2.jar"
+          curl --fail --location --retry 3 --output "$bundletool_jar" https://github.com/google/bundletool/releases/download/1.18.2/bundletool-all-1.18.2.jar
+          echo "378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584  $bundletool_jar" | sha256sum --check
+          export VOICELINE_BUNDLETOOL_JAR="$bundletool_jar"
+          python3 ci/verify-app-bundle.py
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 16 production smoke test and store screenshots
+        timeout-minutes: 12
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: python3 ci/android-release-smoke.py
+      - name: Verify store media dimensions
+        run: python3 ci/verify-store-media.py
+      - name: Keep Android runtime and store media reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local55-Store-Media
+          path: |
+            store-media/
+            android-smoke/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Keep release-readiness report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local54-Release-Readiness
+          name: VoiceLine-Local55-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*
@@ -115,7 +155,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local54-APKs
+          name: VoiceLine-Local55-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0

@@ -33,6 +33,8 @@ import java.util.Map;
 public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
+    private static final String PUBLIC_PRIVACY_URL = "https://voiceline-privacy-sometime1992.quantum4870.chatgpt.site/";
+    private static final String PUBLIC_SUPPORT_URL = "https://github.com/sometime1992/voiceline-web/issues/new";
     private WebView web;
     private PermissionRequest pendingAudioRequest;
     private WebViewAssetLoader assetLoader;
@@ -60,6 +62,7 @@ public class MainActivity extends Activity {
         nativeMic = new NativeMicBridge(this, web,actions);
         recordingDocuments=new RecordingDocuments(this,nativeMic.recordings(),(job,status,detail)->nativeMic.documentResult(job,status,detail));
         web.addJavascriptInterface(nativeMic, "VoiceLineNative");
+        web.addJavascriptInterface(new PublicAppLinks(), "VoiceLinePublicLinks");
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16, 15, 27));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -123,6 +126,22 @@ public class MainActivity extends Activity {
         }
     }
 
+    public final class PublicAppLinks {
+        @android.webkit.JavascriptInterface public void openPrivacyPolicy() { openApprovedPage(PUBLIC_PRIVACY_URL); }
+        @android.webkit.JavascriptInterface public void openSupport() { openApprovedPage(PUBLIC_SUPPORT_URL); }
+        @android.webkit.JavascriptInterface public String appVersion() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (PackageManager.NameNotFoundException error) { return "2.0.0"; }
+        }
+    }
+    private void openApprovedPage(String url) {
+        runOnUiThread(() -> {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+            catch (android.content.ActivityNotFoundException error) {
+                android.widget.Toast.makeText(this, "웹페이지를 열 수 있는 브라우저가 없습니다.", android.widget.Toast.LENGTH_LONG).show();
+            }
+        });
+    }
     private WebResourceResponse recordingResponse(WebResourceRequest request) {
         Map<String,String> headers=new HashMap<>();headers.put("Cache-Control","no-store");headers.put("Accept-Ranges","bytes");
         try {
@@ -241,7 +260,7 @@ public class MainActivity extends Activity {
         if(recordingDocuments!=null)recordingDocuments.dispose();
         if (nativeMic != null) nativeMic.dispose();
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}
-        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.loadUrl("about:blank");web.destroy();web = null;}
+        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.loadUrl("about:blank");web.destroy();web = null;}
         super.onDestroy();
     }
 }

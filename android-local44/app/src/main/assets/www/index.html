@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#100f1c">
-<meta name="description" content="피아노 건반을 연주하며 음정을 측정하고 연습하는 보이스라인">
-<title>보이스라인 · VOICE LINE</title>
+<meta name="description" content="피아노 건반과 실시간 그래프로 음정을 확인하고 연습하는 VoiceLine">
+<title>VoiceLine</title>
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="piano.css">
@@ -17,12 +17,13 @@
 <script src="recording-tools.js" defer></script>
 <script src="guide-training.js" defer></script>
 <script src="dynamic-training.js" defer></script>
+<script src="privacy-policy.js" defer></script>
 <script src="piano.js" defer></script>
 </head>
 <body>
 <div id="app" class="app">
 <header class="toolbar">
-  <div class="brand" aria-label="보이스라인"><img class="brand-logo" src="icon-192.png" alt="" aria-hidden="true"><span class="brand-word"><span class="brand-title">VOICE<span>LINE</span></span><small>보이스라인</small></span></div>
+  <div class="brand" aria-label="VoiceLine"><img class="brand-logo" src="icon-192.png" alt="" aria-hidden="true"><span class="brand-word"><span class="brand-title">Voice<span>Line</span></span></span></div>
   <aside id="micNotice" class="mic-notice" role="status" aria-live="polite" aria-atomic="true" hidden>
     <span class="mic-notice-symbol" id="micNoticeSymbol" aria-hidden="true">●</span>
     <div class="mic-notice-copy"><strong id="micNoticeTitle">마이크 상태</strong><p id="micNoticeBody"></p></div>
@@ -169,8 +170,9 @@
    <button data-screen="warmupVoice" class="menu-tile"><span class="tile-icon">◎</span><span><strong>호흡·워밍업</strong><small>편안한 호흡과 허밍 안내</small></span></button>
    <button data-screen="history" class="menu-tile"><span class="tile-icon">▤</span><span><strong>나의 기록</strong><small>측정 기록과 녹음 재생·삭제</small></span></button>
    <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
+   <button data-screen="privacy" class="menu-tile privacy-menu-tile"><span class="tile-icon">ⓘ</span><span><strong>개인정보처리방침</strong><small>마이크·녹음·기록 및 개발자 문의</small></span></button>
   </div>
-  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version">버전 2.0.0-local54</span></p>
+  <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version" id="appVersion">버전 2.0.0</span></p>
  </section>
 </div>
 <div id="recordToolsDialog" class="modal-backdrop record-tools-backdrop" hidden>

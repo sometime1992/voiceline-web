@@ -8,8 +8,8 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 36
-        versionCode 69
-        versionName '2.0.0-local54'
+        versionCode 70
+        versionName '2.0.0'
     }
 
     signingConfigs {
@@ -22,19 +22,32 @@ android {
                 keyPassword 'android'
             }
         }
+        if (System.getenv('VOICELINE_UPLOAD_KEYSTORE')) {
+            uploadSigning {
+                storeFile file(System.getenv('VOICELINE_UPLOAD_KEYSTORE'))
+                storePassword System.getenv('VOICELINE_UPLOAD_STORE_PASSWORD')
+                keyAlias System.getenv('VOICELINE_UPLOAD_KEY_ALIAS') ?: 'voiceline-upload'
+                keyPassword System.getenv('VOICELINE_UPLOAD_KEY_PASSWORD') ?: System.getenv('VOICELINE_UPLOAD_STORE_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
         debug {
             // Standalone debug install; does not alter previous Beta15 recordings.
             applicationIdSuffix '.local18'
+            versionNameSuffix '-local55'
         }
-        release { minifyEnabled false }
+        release {
+            minifyEnabled false
+            debuggable false
+            if (System.getenv('VOICELINE_UPLOAD_KEYSTORE')) signingConfig signingConfigs.uploadSigning
+        }
         // Separate CI installation keeps a PC-signed app and its recordings intact.
         ciDebug {
             initWith debug
             applicationIdSuffix '.local18.ci45'
-            versionNameSuffix '-ci'
+            versionNameSuffix '-local55-ci'
             matchingFallbacks = ['debug']
             if (System.getenv('VOICELINE_CI_KEYSTORE')) {
                 signingConfig signingConfigs.ciSigning
