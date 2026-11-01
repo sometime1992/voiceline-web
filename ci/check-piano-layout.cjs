@@ -156,14 +156,14 @@ async function checkVolumeRange(page,id,valueId){
   await page.locator('#pianoVolume').evaluate((el,n)=>{el.value=n;el.dispatchEvent(new Event('input',{bubbles:true}));},pianoVolume);
   await page.locator('#mainButton').click();await phase('answer');
   assert.match(await page.locator('#mainButton').textContent(),/중단/);
-  await sendTone(page,261.625565);const pixels=await graphPixels(page,'guidePhraseGraph');
+  await sendTone(page,130.812783);const pixels=await graphPixels(page,'guidePhraseGraph');
   assert.ok(pixels.voice>5,'unified practice voice missing');assert.ok(pixels.goal>5,'unified practice target missing');
   await page.screenshot({path:path.join(output,'portrait-practice.png')});
-  const request=await page.evaluate(()=>window.__micRequest);await page.setViewportSize(viewports[5]);await frames(page);await sendTone(page,293.664768);
+  const request=await page.evaluate(()=>window.__micRequest);await page.setViewportSize(viewports[5]);await frames(page);await sendTone(page,146.832384);
   assert.equal(await page.evaluate(()=>window.__micRequest),request,'rotation restarted microphone');
   const landscape=await geometry(page);assert.equal(landscape.panelPosition,'absolute');
   await page.screenshot({path:path.join(output,'landscape-practice.png')});
-  await page.locator('#graphToggle').click();await frames(page);await sendTone(page,293.664768);
+  await page.locator('#graphToggle').click();await frames(page);await sendTone(page,146.832384);
   assert.equal(await page.evaluate(()=>window.__micRequest),request,'hiding restarted practice microphone');
   assert.equal(await page.locator('#guideVoicePanel').isVisible(),false);
   assert.match(await page.locator('#graphHiddenStatus').textContent(),/목표/);
@@ -180,14 +180,14 @@ async function checkVolumeRange(page,id,valueId){
   await page.setViewportSize(viewports[0]);await frames(page);await stop();
   await settings({guideListenFirst:'on',guideNoteSeconds:'1.2',guideRounds:'1'});
   await page.locator('#guidePattern').selectOption('triad');await page.locator('#mainButton').click();await phase('listen');
-  await sendTone(page,261.625565);assert.equal(await page.locator('#guideAccuracy').textContent(),'—','listening was scored');
+  await sendTone(page,130.812783);assert.equal(await page.locator('#guideAccuracy').textContent(),'—','listening was scored');
   await phase('handoff');assert.equal(await page.locator('#guideStartCue').isVisible(),true);
   assert.match(await page.locator('#guidePhaseTitle').textContent(),/숨을 들이쉬세요/);
-  await phase('answer');await sendTone(page,261.625565);assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5);await stop();
+  await phase('answer');await sendTone(page,130.812783);assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5);await stop();
   await page.locator('#guideKind').selectOption('smooth');await frames(page);
   assert.equal(await page.locator('#guidePattern option').count(),4);
   await settings({guideListenFirst:'off',guideRounds:'1'});
-  await page.setViewportSize(viewports[5]);await frames(page);await page.locator('#mainButton').click();await phase('answer');await sendTone(page,277.182631);
+  await page.setViewportSize(viewports[5]);await frames(page);await page.locator('#mainButton').click();await phase('answer');await sendTone(page,138.591315);
   await page.screenshot({path:path.join(output,'landscape-slide.png')});await stop();
   // Every activity uses its primary action to stop. Recording still saves data.
   for(const mode of ['vibrato','sustainVoice','earVoice','dynamicVoice','warmupVoice','record']){
