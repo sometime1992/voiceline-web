@@ -56,7 +56,8 @@ for variant, app_id, version, filename in variants:
     certificates.append(digest.group(1))
     with zipfile.ZipFile(apk) as archive:
         assert archive.testzip() is None
-        dex=archive.read("classes.dex")
+        dex=b"".join(archive.read(name) for name in archive.namelist()
+                     if name.startswith("classes") and name.endswith(".dex") and "/" not in name)
         for url in ["https://mindup-studio.pages.dev/", "https://mindup-studio.pages.dev/apps/voiceline/privacy.html", "https://mindup-studio.pages.dev/support.html?app=voiceline"]:
             assert url.encode() in dex, "Native public destination missing: "+url
         count = 0

@@ -12,7 +12,8 @@ assets = project / 'app/src/main/assets/www'
 count = 0
 with zipfile.ZipFile(bundle) as archive:
     assert archive.testzip() is None
-    dex=archive.read('base/dex/classes.dex')
+    dex=b''.join(archive.read(name) for name in archive.namelist()
+                 if name.startswith('base/dex/') and name.endswith('.dex'))
     for url in ['https://mindup-studio.pages.dev/','https://mindup-studio.pages.dev/apps/voiceline/privacy.html','https://mindup-studio.pages.dev/support.html?app=voiceline']:
         assert url.encode() in dex, 'Native public destination missing: '+url
     assert 'base/manifest/AndroidManifest.xml' in archive.namelist()
