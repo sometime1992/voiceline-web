@@ -33,8 +33,9 @@ import java.util.Map;
 public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
-    private static final String PUBLIC_PRIVACY_URL = "https://voiceline-privacy-sometime1992.quantum4870.chatgpt.site/";
-    private static final String PUBLIC_SUPPORT_URL = "https://github.com/sometime1992/voiceline-web/issues/new";
+    private static final String PUBLIC_PRIVACY_URL = "https://mindup-studio.pages.dev/apps/voiceline/privacy.html";
+    private static final String PUBLIC_SUPPORT_URL = "https://mindup-studio.pages.dev/support.html?app=voiceline";
+    private static final String PUBLIC_HOME_URL = "https://mindup-studio.pages.dev/";
     private WebView web;
     private PermissionRequest pendingAudioRequest;
     private WebViewAssetLoader assetLoader;
@@ -129,6 +130,7 @@ public class MainActivity extends Activity {
     public final class PublicAppLinks {
         @android.webkit.JavascriptInterface public void openPrivacyPolicy() { openApprovedPage(PUBLIC_PRIVACY_URL); }
         @android.webkit.JavascriptInterface public void openSupport() { openApprovedPage(PUBLIC_SUPPORT_URL); }
+        @android.webkit.JavascriptInterface public void openHomepage() { openApprovedPage(PUBLIC_HOME_URL); }
         @android.webkit.JavascriptInterface public String appVersion() {
             try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
             catch (PackageManager.NameNotFoundException error) { return "2.0.0"; }

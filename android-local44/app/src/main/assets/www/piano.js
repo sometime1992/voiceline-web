@@ -2827,10 +2827,11 @@ $all('[data-screen]').forEach(b=>b.addEventListener('click',async()=>{
 }));
 function plain(node,tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;node.append(el);return el;}
 function openPublicAppPage(kind){
+ if(!['privacy','support','home'].includes(kind))return;
  const policy=window.VoiceLinePrivacy;if(!policy)return;
  try{
-  if(window.VoiceLinePublicLinks){if(kind==='privacy')window.VoiceLinePublicLinks.openPrivacyPolicy();else window.VoiceLinePublicLinks.openSupport();}
-  else window.open(kind==='privacy'?policy.publicUrl:policy.supportUrl,'_blank','noopener,noreferrer');
+  if(window.VoiceLinePublicLinks){if(kind==='privacy')window.VoiceLinePublicLinks.openPrivacyPolicy();else if(kind==='home')window.VoiceLinePublicLinks.openHomepage();else window.VoiceLinePublicLinks.openSupport();}
+  else window.open(kind==='privacy'?policy.publicUrl:kind==='home'?policy.websiteUrl:policy.supportUrl,'_blank','noopener,noreferrer');
  }catch(_){notify('브라우저를 열지 못했습니다. 공개 웹 주소를 확인해 주세요.');}
 }
 function showPrivacyPolicy(){
@@ -2841,6 +2842,7 @@ function showPrivacyPolicy(){
  const actions=plain(body,'div','privacy-policy-actions');
  const web=plain(actions,'button','','공개 웹페이지');web.id='privacyWebOpen';web.type='button';web.onclick=()=>openPublicAppPage('privacy');
  const contact=plain(actions,'button','','개발자 문의');contact.id='privacySupportOpen';contact.type='button';contact.onclick=()=>openPublicAppPage('support');
+ const home=plain(actions,'button','','개발자 홈페이지');home.id='privacyHomeOpen';home.type='button';home.onclick=()=>openPublicAppPage('home');
  for(const section of policy.sections){plain(body,'h3','',section.title);for(const paragraph of section.paragraphs)plain(body,'p','',paragraph);}
  modalOpen('infoDialog');
 }

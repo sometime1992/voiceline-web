@@ -1,4 +1,4 @@
-name: VoiceLine Local56 APK
+name: VoiceLine Local57 APK
 
 on:
   push:
@@ -35,6 +35,13 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Verify public studio homepage, privacy and support
+        shell: bash
+        run: |
+          for page in '' apps/voiceline/privacy.html 'support.html?app=voiceline'; do
+            curl --fail --location --proto '=https' --retry 2 --max-time 45 --output "$RUNNER_TEMP/studio-page.html" "https://mindup-studio.pages.dev/$page"
+            grep -q '마인드업 스튜디오' "$RUNNER_TEMP/studio-page.html"
+          done
       - name: Test recording, dynamics calibration, training and adaptive layout
         timeout-minutes: 3
         working-directory: android-local44
@@ -47,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local56-Test-Report
+          name: VoiceLine-Local57-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -67,7 +74,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local56-Layout-Report
+          name: VoiceLine-Local57-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -105,7 +112,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local56-APKs
+          name: VoiceLine-Local57-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -123,8 +130,8 @@ jobs:
           echo "378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584  $bundletool_jar" | sha256sum --check
           export VOICELINE_BUNDLETOOL_JAR="$bundletool_jar"
           python3 ci/verify-app-bundle.py
-          curl --fail --location --retry 3 --output release-review/previous-Local55-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local55-ci/VoiceLine-Local55-CI.apk
-          echo '2c3c7d90e15ef38cbbb9f83c94c75726e82255856df4c9a3a87905f403a21886  release-review/previous-Local55-CI.apk' | sha256sum --check
+          curl --fail --location --retry 3 --output release-review/previous-Local56-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local56-ci/VoiceLine-Local56-CI.apk
+          echo 'e727d2d36e20ae018eae4192e5e50163e7a4b39040b97785673f6410129a586d  release-review/previous-Local56-CI.apk' | sha256sum --check
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -147,7 +154,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local56-Store-Media
+          name: VoiceLine-Local57-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -157,7 +164,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local56-Release-Readiness
+          name: VoiceLine-Local57-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*

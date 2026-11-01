@@ -25,9 +25,11 @@
 
 | 항목 | 현재 상태 | 필요한 작업 |
 | --- | --- | --- |
-| 개발자 표시명·계정 정보 | 미확인 | 계정 소유자가 콘솔에서 실제 정보 확인 |
-| 지원 이메일 | 미입력 | 실제로 문의를 받을 공개 이메일 입력. GitHub 문의 링크가 이 필수 이메일 항목을 대신하지 않음 |
-| 개인정보처리방침 URL | 공개 페이지 확인 완료 | https://voiceline-privacy-sometime1992.quantum4870.chatgpt.site/ 입력 |
+| 개발자 표시명·계정 정보 | 표시명은 마인드업 스튜디오 | 실제 계정 정보는 소유자가 콘솔에서 확인 |
+| 개발자 웹사이트 | 회사 홈페이지 | https://mindup-studio.pages.dev/ |
+| 고객지원 웹사이트 | VoiceLine 문의 선택 | https://mindup-studio.pages.dev/support.html?app=voiceline |
+| 지원 이메일 | 기존 공개 문의 주소 확인 | grand4870@gmail.com 입력 |
+| 개인정보처리방침 URL | 공개 페이지 확인 완료 | https://mindup-studio.pages.dev/apps/voiceline/privacy.html 입력 |
 | 앱 패키지 이름 | 최종 AAB 대조 필요 | 업로드한 패키지는 이후 변경할 수 없으므로 기존 콘솔 앱과 먼저 대조 |
 | 대상 연령 | 미확정 | 실제 사용자층을 선택. 아동 대상에 포함하면 해당 가족 정책도 검토 |
 | 건강 앱 선언 | 운영자 검토 필요 | 보컬 연습 목적과 호흡·워밍업 타이머의 실제 기능을 설문 설명과 대조. 건강 기능이 없는 경우에도 양식 작성 필요 |

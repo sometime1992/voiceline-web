@@ -101,20 +101,20 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local55-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local56-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local55-ci' in old_package
+    assert 'versionName=2.0.0-local56-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
-    wait_visible('보이스라인 CI45', timeout=60)
+    wait_visible('VoiceLine', timeout=60)
     screenshot('ci-before-update-app-info.png', False)
     adb('shell', 'run-as', ci_package, 'mkdir', '-p', 'files')
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local56-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local57-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local56-ci' in installed and 'versionCode=71' in installed
+    assert 'versionName=2.0.0-local57-ci' in installed and 'versionCode=72' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -124,8 +124,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local55-ci (70)',
-        'before_app_info_label': '보이스라인 CI45', 'after_version': '2.0.0-local56-ci (71)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local56-ci (71)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local57-ci (72)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -148,7 +148,7 @@ try:
     screenshot('01-piano-portrait.png')
     choose('개인정보처리방침')
     assert visible('개인정보처리방침')
-    assert visible('공개 웹페이지') and visible('개발자 문의')
+    assert visible('공개 웹페이지') and visible('개발자 문의') and visible('개발자 홈페이지')
     screenshot('privacy-android16.png', False)
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(1)

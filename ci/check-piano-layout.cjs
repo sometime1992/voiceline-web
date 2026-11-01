@@ -360,15 +360,15 @@ async function checkVolumeRange(page,id,valueId){
   // require a separate deliberate click and only fixed native destinations.
   await page.setViewportSize(viewports[0]);await choose(page,'piano');const beforePrivacy=await geometry(page);
   const policyRequests=[],policyOrigin=new URL(page.url()).origin;page.on('request',request=>{if(new URL(request.url()).origin!==policyOrigin)policyRequests.push(request.url());});
-  await page.evaluate(()=>{window.__publicLinks=[];window.VoiceLinePublicLinks={openPrivacyPolicy(){window.__publicLinks.push('privacy');},openSupport(){window.__publicLinks.push('support');}};});
+  await page.evaluate(()=>{window.__publicLinks=[];window.VoiceLinePublicLinks={openPrivacyPolicy(){window.__publicLinks.push('privacy');},openSupport(){window.__publicLinks.push('support');},openHomepage(){window.__publicLinks.push('home');}};});
   await page.locator('#menuOpen').click();await page.locator('[data-screen="privacy"]').click();
   assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');
   assert.match(await page.locator('#infoBody').textContent(),/VoiceLine Android 앱/);
   assert.match(await page.locator('#infoBody').textContent(),/마이크 권한/);
   assert.deepEqual(await page.evaluate(()=>window.__publicLinks),[]);assert.deepEqual(policyRequests,[],'policy reading contacted a server');
   await page.screenshot({path:path.join(output,'portrait-privacy-policy.png')});
-  await page.locator('#privacyWebOpen').click();await page.locator('#privacySupportOpen').click();
-  assert.deepEqual(await page.evaluate(()=>window.__publicLinks),['privacy','support']);
+  await page.locator('#privacyWebOpen').click();await page.locator('#privacySupportOpen').click();await page.locator('#privacyHomeOpen').click();
+  assert.deepEqual(await page.evaluate(()=>window.__publicLinks),['privacy','support','home']);
   await page.locator('#infoClose').click();assert.deepEqual((await geometry(page)).keyboard,beforePrivacy.keyboard);
   await page.locator('#menuOpen').click();await page.locator('[data-screen="help"]').click();await page.locator('#helpPrivacyOpen').click();
   assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');await page.locator('#infoClose').click();
