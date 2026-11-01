@@ -24,9 +24,9 @@
  function patternId(value){return Object.prototype.hasOwnProperty.call(PATTERNS,value)?value:'steps';}
  function getPattern(value){return PATTERNS[patternId(value)];}
  function timeline(value,duration=12000,custom=null){
-  if(Array.isArray(custom)&&custom.length===getPattern(value).segments.length&&custom.every(n=>Number.isFinite(n)&&n>=1&&n<=60)){let at=0;return getPattern(value).segments.map((s,i)=>{const start=at;at+=custom[i]*1000;return Object.freeze({...s,start,end:at});});}
+  if(Array.isArray(custom)&&custom.length===getPattern(value).segments.length&&custom.every(n=>Number.isFinite(n)&&n>=1&&n<=60)){let at=0;return getPattern(value).segments.map((s,i)=>{const start=at;at=Math.round(at+custom[i]*1000);return Object.freeze({...s,start,end:at});});}
   const reference=Math.min(3000,duration/2);
-  let at=0;return getPattern(value).segments.map((s,i)=>{const start=at;at+=i===0?reference:s.ms*(duration-reference)/9000;return Object.freeze({...s,start,end:at});});
+  let at=0;const segments=getPattern(value).segments;return segments.map((s,i)=>{const start=at;at=i===segments.length-1?Math.round(duration):Math.round(at+(i===0?reference:s.ms*(duration-reference)/9000));return Object.freeze({...s,start,end:at});});
  }
  function create({start=0,duration=12000,pattern='steps',segmentSeconds=null}={}){
   duration=Number.isFinite(duration)&&duration>0?duration:12000;pattern=patternId(pattern);
@@ -139,7 +139,7 @@
   const cursor=left+elapsed/duration*(right-left);
   ctx.beginPath();ctx.moveTo(cursor,top);ctx.lineTo(cursor,bottom);ctx.strokeStyle='#ffd67f';ctx.lineWidth=1.5;ctx.stroke();
   ctx.fillStyle='#d6d0df';ctx.font='9px system-ui';ctx.textAlign='center';
-  for(let i=0;i<=4;i++){ctx.textAlign=i===0?'left':i===4?'right':'center';ctx.fillText(String(duration/4000*i)+'초',left+i*step,h-5);}
+  for(let i=0;i<=4;i++){ctx.textAlign=i===0?'left':i===4?'right':'center';ctx.fillText(String(Math.round(duration/4000*i*10)/10)+'초',left+i*step,h-5);}
   return {baseline:baseline??null,cursor,points:model?.samples.length??0};
  }
  return Object.freeze({STAGES,PATTERNS,patternId,getPattern,timeline,state,STEP_RATIO,BAND_RATIO,MIN_REFERENCE_MS,create,receive,bounds,inBand,metrics,feedback,draw});
