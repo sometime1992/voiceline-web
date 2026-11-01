@@ -105,8 +105,7 @@ try:
     assert adb('shell', 'getprop', 'ro.build.version.sdk').strip() == '36'
     adb('shell', 'wm', 'size', '1080x1920')
     adb('shell', 'wm', 'density', '420')
-    adb('shell', 'settings', 'put', 'system', 'accelerometer_rotation', '0')
-    adb('shell', 'settings', 'put', 'system', 'user_rotation', '0')
+    adb('shell', 'wm', 'user-rotation', 'lock', '0')
     adb('install', '-r', str(root / 'release-review/release-runtime-review.apk'))
     adb('logcat', '-c')
     console_process = subprocess.Popen(['adb', 'logcat', '-v', 'time', 'VoiceLineWeb:W', 'AndroidRuntime:E', '*:S'],
@@ -136,15 +135,17 @@ try:
     checks.append('Guided warmup starts without microphone permission')
     start()
     choose('음정 연습')
-    adb('shell', 'settings', 'put', 'system', 'user_rotation', '1')
-    time.sleep(2)
+    # Ask WindowManager to rotate the device; setting a preference alone did
+    # not rotate this API36 image. Wait for the actual app layout before capture.
+    adb('shell', 'wm', 'user-rotation', 'lock', '1')
+    wait_visible('그래프 숨기기', timeout=30)
     screenshot('05-practice-landscape.png')
     assert visible('그래프 숨기기')
     tap('그래프 숨기기', 'graphToggle')
     assert visible('그래프 보기')
     tap('그래프 보기', 'graphToggle')
     checks.append('Landscape layout and graph toggle work on Android16')
-    adb('shell', 'settings', 'put', 'system', 'user_rotation', '0')
+    adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
@@ -155,6 +156,7 @@ except Exception:
     web_errors = adb('logcat', '-d', '-s', 'VoiceLineWeb:W', 'AndroidRuntime:E')
     (qa / 'web-errors.txt').write_text(web_errors)
     (qa / 'webview-provider.txt').write_text(adb('shell', 'dumpsys', 'webviewupdate'))
+    (qa / 'window-displays.txt').write_text(adb('shell', 'dumpsys', 'window', 'displays'))
     print(web_errors)
     raise
 finally:
