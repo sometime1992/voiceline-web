@@ -6,6 +6,7 @@ on:
     paths:
       - android-local44/**
       - ci/**
+      - store-kit/**
       - .github/workflows/build-local44-apk.yml
   workflow_dispatch:
 

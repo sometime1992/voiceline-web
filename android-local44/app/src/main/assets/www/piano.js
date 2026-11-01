@@ -1,5 +1,5 @@
 'use strict';
-/* VOICE LINE v2 — piano-first offline vocal trainer.
+/* VoiceLine v2 — piano-first offline vocal trainer.
    Native recordings stream to one private WAV; history and playback metadata stay in IndexedDB. */
 (() => {
 const $ = id => document.getElementById(id);
@@ -105,7 +105,7 @@ const dbPromise=new Promise((resolve,reject)=>{
     req.result.onversionchange=()=>req.result.close();
     resolve(req.result);
   };
-  req.onblocked=()=>notify('기록 저장소를 갱신하려면 다른 보이스라인 창을 닫아 주세요.');
+  req.onblocked=()=>notify('기록 저장소를 갱신하려면 다른 VoiceLine 창을 닫아 주세요.');
   req.onerror=()=>reject(req.error||new Error('저장소 오류'));
 });
 dbPromise.catch(()=>notify('기기 저장 공간을 열 수 없습니다. 브라우저 설정을 확인해 주세요.'));

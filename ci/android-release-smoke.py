@@ -30,13 +30,17 @@ def visible(label, document=None):
     document = tree() if document is None else document
     return any(label in (n.attrib.get('text', ''), n.attrib.get('content-desc', '')) for n in document.iter('node'))
 
-def tap(label, identifier=None):
+def tap(label, identifier=None, partial=False):
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         document = tree()
         candidates = [n for n in document.iter('node') if
                       n.attrib.get('text') == label or n.attrib.get('content-desc') == label or
                       identifier and n.attrib.get('resource-id', '').endswith(identifier)]
+        if partial:
+            candidates += [n for n in document.iter('node') if n not in candidates and
+                           n.attrib.get('clickable') == 'true' and
+                           any(label in n.attrib.get(key, '') for key in ('text', 'content-desc'))]
         for node in candidates:
             values = list(map(int, re.findall(r'\d+', node.attrib.get('bounds', ''))))
             if len(values) == 4 and values[2] > values[0] and values[3] > values[1]:
@@ -53,11 +57,20 @@ def start():
 
 def choose(label):
     tap('메뉴 열기', 'menuOpen')
-    tap(label)
+    # WebView exposes a menu button's title and description as one accessible label.
+    tap(label, partial=True)
     time.sleep(1)
 
 def screenshot(name, store=True):
     (out if store else qa).joinpath(name).write_bytes(adb('exec-out', 'screencap', '-p', binary=True))
+
+def wait_visible(label, timeout=25):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if visible(label):
+            return
+        time.sleep(.5)
+    raise AssertionError('Android UI not ready: ' + label)
 
 try:
     assert adb('shell', 'getprop', 'ro.build.version.sdk').strip() == '36'
@@ -66,8 +79,10 @@ try:
     adb('shell', 'settings', 'put', 'system', 'accelerometer_rotation', '0')
     adb('shell', 'settings', 'put', 'system', 'user_rotation', '0')
     adb('install', '-r', str(root / 'release-review/release-runtime-review.apk'))
+    adb('logcat', '-c')
     start()
     assert visible('VoiceLine')
+    wait_visible('C3 · 1옥 도')
     checks.append('API36 production build starts and displays VoiceLine')
     screenshot('01-piano-portrait.png')
     choose('개인정보처리방침')
@@ -107,4 +122,7 @@ try:
 except Exception:
     screenshot('failure.png', False)
     (qa / 'logcat.txt').write_text(adb('logcat','-d','-t','1500'))
+    web_errors = adb('logcat', '-d', '-s', 'VoiceLineWeb:W', 'AndroidRuntime:E')
+    (qa / 'web-errors.txt').write_text(web_errors)
+    print(web_errors)
     raise
