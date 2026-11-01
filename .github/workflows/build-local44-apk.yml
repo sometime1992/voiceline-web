@@ -1,4 +1,4 @@
-name: VoiceLine Local53 APK
+name: VoiceLine Local54 APK
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local53-Test-Report
+          name: VoiceLine-Local54-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -62,20 +62,20 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local53-Layout-Report
+          name: VoiceLine-Local54-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
-      - name: Ensure Android SDK 35 packages
+      - name: Ensure Android SDK 36 packages
         shell: bash
         run: |
           sdk_manager=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)
           test -x "$sdk_manager"
           yes | "$sdk_manager" --licenses >/dev/null || true
-          "$sdk_manager" --install "platforms;android-35" "build-tools;35.0.0"
+          "$sdk_manager" --install "platforms;android-36" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '8.10.2'
+          gradle-version: '8.11.1'
       - name: Restore CI debug signing key
         uses: actions/cache@v6
         with:
@@ -97,10 +97,25 @@ jobs:
         run: gradle --no-daemon :app:assembleCiDebug
       - name: Verify signatures, package IDs, version and every offline asset
         run: python3 ci/verify-local44-apks.py
+      - name: Check unsigned release AAB and Android lint
+        working-directory: android-local44
+        run: gradle --no-daemon :app:bundleRelease :app:lintRelease
+      - name: Verify release-review bundle assets
+        run: python3 ci/verify-release-readiness.py
+      - name: Keep release-readiness report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local54-Release-Readiness
+          path: |
+            release-review/
+            android-local44/app/build/reports/lint-results-release.*
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local53-APKs
+          name: VoiceLine-Local54-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0

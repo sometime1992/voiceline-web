@@ -13,18 +13,19 @@
  const segment=(key,label,short,ms,from,to=from,phase=label)=>Object.freeze({key,label,short,ms,from,to,phase});
  const base=segment('soft','약하게','약 · 기준',3000,0,0,'작게');
  const PATTERNS=Object.freeze({
-  steps:Object.freeze({label:'기본 4단계',tip:'약 → 중 → 강 → 약 · 각 3초',segments:Object.freeze([base,segment('medium','중간 세기','중',3000,1,1,'조금 크게'),segment('strong','강하게','강',3000,2,2,'가장 크게'),segment('softAgain','다시 약하게','약',3000,0,0,'다시 작게')])}),
-  crescendo:Object.freeze({label:'점점 크게',tip:'약하게 기준 3초 → 9초 동안 점점 크게',segments:Object.freeze([base,segment('rise','점점 크게','점점 크게',9000,0,2)])}),
-  decrescendo:Object.freeze({label:'점점 작게',tip:'기준 3초 → 강하게 2초 → 7초 동안 작게',segments:Object.freeze([base,segment('strong','강하게 유지','강',2000,2),segment('fall','점점 작게','점점 작게',7000,2,0)])}),
+  steps:Object.freeze({label:'기본 4단계',tip:'기준 3초 → 중 → 강 → 약',segments:Object.freeze([base,segment('medium','중간 세기','중',3000,1,1,'조금 크게'),segment('strong','강하게','강',3000,2,2,'가장 크게'),segment('softAgain','다시 약하게','약',3000,0,0,'다시 작게')])}),
+  crescendo:Object.freeze({label:'점점 크게',tip:'약하게 기준 3초 → 점점 크게',segments:Object.freeze([base,segment('rise','점점 크게','점점 크게',9000,0,2)])}),
+  decrescendo:Object.freeze({label:'점점 작게',tip:'기준 3초 → 강하게 유지 → 점점 작게',segments:Object.freeze([base,segment('strong','강하게 유지','강',2000,2),segment('fall','점점 작게','점점 작게',7000,2,0)])}),
   swell:Object.freeze({label:'커졌다 작아지기',tip:'기준 3초 → 점점 크게 → 점점 작게',segments:Object.freeze([base,segment('rise','점점 크게','크게',4500,0,2),segment('fall','점점 작게','작게',4500,2,0)])}),
   alternating:Object.freeze({label:'강약 반복',tip:'약 → 강 → 약 → 강 → 약',segments:Object.freeze([base,segment('strong1','강하게','강',2000,2),segment('soft1','약하게','약',2000,0),segment('strong2','다시 강하게','강',2000,2),segment('softAgain','다시 약하게','약',3000,0)])}),
-  steady:Object.freeze({label:'일정하게 유지',tip:'기준 3초 → 중간 세기로 9초 유지',segments:Object.freeze([base,segment('steady','중간 세기 유지','중간 유지',9000,1)])}),
-  accents:Object.freeze({label:'짧게 강조',tip:'기준 3초 → 강 1.5초·약 3초를 두 번',segments:Object.freeze([base,segment('accent1','짧게 강하게','강',1500,2),segment('soft1','약하게 회복','약',3000,0),segment('accent2','다시 짧게 강하게','강',1500,2),segment('softAgain','약하게 회복','약',3000,0)])})
+  steady:Object.freeze({label:'일정하게 유지',tip:'기준 3초 → 중간 세기로 유지',segments:Object.freeze([base,segment('steady','중간 세기 유지','중간 유지',9000,1)])}),
+  accents:Object.freeze({label:'짧게 강조',tip:'기준 3초 → 짧게 강·길게 약을 두 번',segments:Object.freeze([base,segment('accent1','짧게 강하게','강',1500,2),segment('soft1','약하게 회복','약',3000,0),segment('accent2','다시 짧게 강하게','강',1500,2),segment('softAgain','약하게 회복','약',3000,0)])})
  });
  function patternId(value){return Object.prototype.hasOwnProperty.call(PATTERNS,value)?value:'steps';}
  function getPattern(value){return PATTERNS[patternId(value)];}
  function timeline(value,duration=12000){
-  let at=0;return getPattern(value).segments.map(s=>{const start=at;at+=s.ms*duration/12000;return Object.freeze({...s,start,end:at});});
+  const reference=Math.min(3000,duration/2);
+  let at=0;return getPattern(value).segments.map((s,i)=>{const start=at;at+=i===0?reference:s.ms*(duration-reference)/9000;return Object.freeze({...s,start,end:at});});
  }
  function create({start=0,duration=12000,pattern='steps'}={}){
   duration=Number.isFinite(duration)&&duration>0?duration:12000;pattern=patternId(pattern);
@@ -47,8 +48,8 @@
   const correct=value!==null&&onPitch,phaseStart=model.start+model.segments[phase].start;
   const dt=correct&&previous?.onPitch&&gap>0&&gap<=160?Math.max(0,Math.min(gap,t-phaseStart)):0;
   const sample={t,rms:value,onPitch:correct,cue,phase,dt};model.lastAt=t;model.samples.push(sample);
-  // At most 546 detector points for the complete twelve-second exercise.
-  if(model.samples.length>600)model.samples.shift();
+  // Retain the entire selected exercise, even at the fastest accepted cadence.
+  if(model.samples.length>Math.ceil(model.duration/22)+2)model.samples.shift();
   if(phase>0)model.locked=true;
   if(phase===0&&!model.locked&&correct){
    model.referenceMs+=dt;model.softSamples.push(value);
@@ -79,7 +80,7 @@
  function feedback(model,now){
   if(!model)return {text:'첫 약 단계에서 내 소리 기준을 잡아요',match:'idle'};
   if(now<model.start)return {text:'같은 음을 약하게 낼 준비를 하세요',match:'ready'};
-  if(now<model.start+model.duration/4)return {text:'약하게 유지 · 내 소리 기준 잡는 중',match:'calibrating'};
+  if(now<model.start+model.segments[0].end)return {text:'약하게 유지 · 내 소리 기준 잡는 중',match:'calibrating'};
   if(!model.baseline)return {text:'약 단계의 목소리 부족 · 다시 시작해 주세요',match:'missing'};
   const p=model.samples.at(-1);
   if(!p||now-p.t>250||p.rms===null)return {text:p?.cue&&now-p.t<=250?'단계 전환 안내음':'같은 음으로 소리를 내보세요',match:'waiting'};

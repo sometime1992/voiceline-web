@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     private WebViewAssetLoader assetLoader;
     private NativeMicBridge nativeMic;
     private RecordingDocuments recordingDocuments;
+    private android.window.OnBackInvokedCallback backCallback;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -115,6 +116,11 @@ public class MainActivity extends Activity {
             }
         });
         web.loadUrl(APP_ORIGIN + "/assets/www/index.html");
+        if (Build.VERSION.SDK_INT >= 33) {
+            backCallback = this::handleAppBack;
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCallback);
+        }
     }
 
     private WebResourceResponse recordingResponse(WebResourceRequest request) {
@@ -178,14 +184,17 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        handleAppBack();
+    }
+    private void handleAppBack() {
         if(recordingDocuments!=null&&recordingDocuments.isBusy()){
             web.evaluateJavascript("window.VoiceLineDocuments&&window.VoiceLineDocuments.onBusy()",null);return;
         }
-        if (web == null) { super.onBackPressed(); return; }
+        if (web == null) { finish(); return; }
         web.evaluateJavascript("Boolean(window.VoiceLineLifecycle&&window.VoiceLineLifecycle.onBack())", handled -> {
             if (isFinishing() || isDestroyed() || "true".equals(handled)) return;
             if (web != null && web.canGoBack()) web.goBack();
-            else MainActivity.super.onBackPressed();
+            else finish();
         });
     }
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
@@ -225,6 +234,10 @@ public class MainActivity extends Activity {
             "window.VoiceLineLifecycle&&window.VoiceLineLifecycle.onResume()", null);
     }
     @Override protected void onDestroy() {
+        if (Build.VERSION.SDK_INT >= 33 && backCallback != null) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
+            backCallback = null;
+        }
         if(recordingDocuments!=null)recordingDocuments.dispose();
         if (nativeMic != null) nativeMic.dispose();
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}

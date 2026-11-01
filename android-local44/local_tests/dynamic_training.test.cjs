@@ -100,6 +100,20 @@ test('Every method grades its own time-varying targets accurately without changi
   assert.equal(stats.phaseMatchedMs.length,m.segments.length);assert.ok(stats.phaseMatchedMs.every((ms,i)=>ms>=stats.phaseDurations[i]*.8),id);
  }
 });
+test('Five exercise lengths retain three seconds of calibration and every detector point until the end',()=>{
+ for(const duration of [8000,12000,16000,20000,24000])for(const id of Object.keys(api.PATTERNS)){
+  const m=api.create({pattern:id,duration});assert.equal(m.segments[0].end,3000);
+  assert.ok(Math.abs(m.segments.at(-1).end-duration)<1e-8);
+  for(let t=0;t<duration;t+=22){
+   const canonical=t<3000?t:3000+(t-3000)*9000/(duration-3000);
+   api.receive(m,t,.0042*Math.pow(1.8,expectedLevel(id,canonical)));
+  }
+  const stats=api.metrics(m);assert.equal(stats.accuracy,100,id+' '+duration);
+  assert.equal(m.baseline,.0042);assert.ok(m.samples[0].t<22);assert.ok(m.samples.at(-1).t>duration-23);
+  assert.ok(stats.voicedMs>duration*.98);assert.ok(stats.phaseMatchedMs.every((ms,i)=>ms>stats.phaseDurations[i]*.95));
+  assert.equal(api.feedback(m,2999).match,'calibrating');assert.notEqual(api.feedback(m,3000).match,'calibrating');
+ }
+});
 test('Crescendo, decrescendo and swell move continuously while alternating and accent methods retain their boundaries',()=>{
  for(const [id,t,level]of [['crescendo',7500,1],['decrescendo',8500,1],['swell',5250,1],['swell',9750,1]]){
   const m=api.create({pattern:id}),p=api.state(m,t);assert.ok(Math.abs(p.level-level)<1e-12,id);

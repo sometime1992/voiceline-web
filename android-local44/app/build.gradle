@@ -2,14 +2,14 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'com.voiceline.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.voiceline.app'
         minSdk 26
-        targetSdk 35
-        versionCode 68
-        versionName '2.0.0-local53'
+        targetSdk 36
+        versionCode 69
+        versionName '2.0.0-local54'
     }
 
     signingConfigs {

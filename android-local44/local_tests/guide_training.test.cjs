@@ -210,6 +210,18 @@ test('Voice during the old 0.8-second handoff and the rest of the countdown is n
  guide.receive(s,end+3150,60);assert.equal(s.voicedMs,50);assert.equal(s.goodMs,50);
  assert.equal(s.bins[0][0].voiced,50);
 });
+test('Direct repeat breathes for three seconds, previews the next root, and never cues another breath after the final answer',()=>{
+ for(const rounds of [0,2]){
+  const s=session({listenFirst:false,rounds,shift:rounds?1:0});
+  const rest=s.start+s.phraseMs;assert.equal(s.cycleMs-s.phraseMs,3000);
+  for(const [offset,count]of [[0,3],[1000,2],[2000,1]]){
+   const cue=guide.startCue(s,rest+offset);assert.equal(cue.visible,true);assert.equal(cue.count,count);
+   assert.equal(cue.firstMidi,rounds?61:60);guide.receive(s,rest+offset,60);
+  }
+  assert.equal(s.valid,0);assert.equal(s.voicedMs,0);
+  if(rounds){const end=s.start+s.cycleMs+s.phraseMs;assert.equal(guide.startCue(s,end).visible,false);}
+ }
+});
 test('The guide UI displays countdown, start and first-note hints, then clears the cue on stop',()=>{
  const s=session({pattern:'down'}),end=s.start+s.phraseMs,nodes=new Map(),app={training:s,trainingLastDraw:0};
  const $=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:'',dataset:{},getBoundingClientRect:()=>({width:0,height:0})});return nodes.get(id);};
@@ -217,7 +229,7 @@ test('The guide UI displays countdown, start and first-note hints, then clears t
   app,$,window:{VoiceLineGuideTraining:guide},...labels,guideOptions:()=>s.settings,Math,Number,landscapeGraphHidden:()=>false
  });
  render(end,true);assert.equal($('guideStartCue').hidden,false);assert.equal($('guideStartCount').textContent,'3');
- assert.match($('guideStartText').textContent,/첫 음 G4 · 2옥 솔/);assert.match($('guidePhaseTitle').textContent,/준비/);
+ assert.match($('guideStartText').textContent,/숨 들이쉬기/);assert.match($('guidePhaseTitle').textContent,/숨을 들이쉬세요/);
  render(end+1000,true);assert.equal($('guideStartCount').textContent,'2');
  render(end+2000,true);assert.equal($('guideStartCount').textContent,'1');
  render(end+3000,true);assert.equal($('guideStartCount').textContent,'시작!');assert.match($('guidePhaseTitle').textContent,/지금 시작/);

@@ -88,7 +88,7 @@ test('Local34 vibrato clears stale current values and records valid time separat
  const app={vibratoStart:1,vibratoRoot:60,vibratoSamples:wave(0,2800),vibratoValidMs:0,vibratoValidUntil:0};
  let now=2800;const events=[];
  const api=run(part('function analyzeVibrato(','// Recording mode uses')+part('async function finishVibrato(){','async function stopActivity(')+'\n({vibratoStatus,finishVibrato})',{
-  app,performance:{now:()=>now},setMessage(){},$:()=>({}),notify(){},addEvent:async(...e)=>events.push(e)
+  app,performance:{now:()=>now},updateVocalPreparation(){},setMessage(){},$:()=>({}),notify(){},addEvent:async(...e)=>events.push(e)
  });
  api.vibratoStatus();assert.ok(app.vibratoLast);const valid=app.vibratoValidMs;assert.ok(valid>900&&valid<=2800);
  now=60001;app.vibratoSamples.push({t:60001,midi:null});api.vibratoStatus();assert.equal(app.vibratoLast,null);

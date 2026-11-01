@@ -58,10 +58,10 @@ test('Local43 isolated pitch detections never fill preceding silence in voice tr
 });
 test('Local43 ear-training coverage starts at the response boundary',()=>{
  const h=trainingHarness(),a=h.app.training=h.newTrainingSession('earVoice',0,settings);
- h.receiveTrainingSample(a.start+1460,a.earNotes[0],.05);
- h.receiveTrainingSample(a.start+1540,a.earNotes[0],.05);
- assert.equal(a.answerVoicedMs,40,'listening time must not enter the response score');
- h.receiveTrainingSample(a.start+1620,a.earNotes[0],.05);assert.equal(a.answerVoicedMs,120);
+ h.receiveTrainingSample(a.start+4460,a.earNotes[0],.05);
+ h.receiveTrainingSample(a.start+4540,a.earNotes[0],.05);
+ assert.equal(a.answerVoicedMs,0,'inhale time must not enter the response score');
+ h.receiveTrainingSample(a.start+4620,a.earNotes[0],.05);assert.equal(a.answerVoicedMs,80);
 });
 test('Local43 the 65 percent training threshold never rounds up a lower result',()=>{
  for(const mode of ['sustainVoice','earVoice','dynamicVoice']){
@@ -342,7 +342,7 @@ test('Local32 web permission granted after cancellation stops the late stream',a
 test('Local32 help derives every mode from the same guide data and live scoring constants',()=>{
  const rule=evaluate(chunk('function dynamicRuleText(){','function showTrainingResult(')+'\ndynamicRuleText');
  const guides=evaluate(chunk('const MODE_GUIDES={','let modeGuideReturnFocus=')+'\nMODE_GUIDES',{dynamicRuleText:rule});
- assert.match(guides.practice.rule,/측정 부족/);assert.match(guides.dynamicVoice.rule,/4.8초/);assert.match(guides.guideVoice.steps.join(' '),/아래로 왕복/);
+ assert.match(guides.practice.rule,/측정 부족/);assert.match(guides.dynamicVoice.rule,/40%/);assert.match(guides.guideVoice.steps.join(' '),/아래로 왕복/);
  assert.match(chunk('function showHelp(){','let historyDeletePending='),/Object\.entries\(MODE_GUIDES\)/);
 });
 test('Local32 service worker precaches all 28 piano recordings and preserves unrelated caches',async()=>{

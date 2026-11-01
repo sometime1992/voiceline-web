@@ -34,7 +34,7 @@
  const DEFAULTS=Object.freeze({pattern:'five',root:60,bpm:80,noteSeconds:0,rounds:3,shift:1,sound:'piano',volume:70,tolerance:50,listenFirst:true});
  const PRACTICE_DEFAULTS=Object.freeze({...DEFAULTS,noteSeconds:1.8,rounds:2,shift:0,tolerance:35,listenFirst:false});
  const LEGACY_PATTERNS=Object.freeze({scale:'five',triad:'triad',sustain:'hold',down:'down',scaleUp:'octaveUp',pentatonic:'pentatonic',chromatic:'chromatic',majorThird:'thirds',fifth:'fifth',octave:'octave',arpeggio:'arpeggio',minor:'minor',returnToRoot:'return'});
- const TIMING=Object.freeze({prepare:1800,handoff:3000,rest:1400});
+ const TIMING=Object.freeze({prepare:1800,handoff:3000,rest:3000});
  const number=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==''&&value!==null?clamp(Math.round(Number(value)),min,max):fallback;
  function normalize(value={}){
   if(!value||typeof value!=='object')value={};
@@ -120,9 +120,11 @@
  function startCue(s,t){
   const p=position(s,t),starting=p.phase==='answer'&&p.offset<Math.min(900,s.noteMs*.8);
   const ready=!s.settings.listenFirst&&p.phase==='ready';
-  const visible=p.phase==='handoff'||ready||starting;
-  return {visible,phase:p.phase,count:p.phase==='handoff'||ready?clamp(Math.ceil((ready?p.remaining:p.answerIn)/1000),1,3):0,
-   starting,firstMidi:s.roots[s.infinite?0:p.round]+s.pattern.steps[0]};
+  const nextRound=!s.settings.listenFirst&&p.phase==='rest'&&(s.infinite||p.round+1<s.rounds);
+  const visible=p.phase==='handoff'||ready||starting||nextRound;
+  const until=ready?p.remaining:nextRound?s.start+(p.round+1)*s.cycleMs-t:p.answerIn;
+  return {visible,phase:p.phase,count:p.phase==='handoff'||ready||nextRound?clamp(Math.ceil(until/1000),1,3):0,
+   starting,firstMidi:s.roots[s.infinite?0:p.round+(nextRound?1:0)]+s.pattern.steps[0]};
  }
  function advance(s,t){
   if(!s.infinite)return;

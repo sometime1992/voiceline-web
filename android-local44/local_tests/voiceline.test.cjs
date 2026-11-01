@@ -576,8 +576,8 @@ test('Local28: training duration, target path and phases are deterministic',()=>
  const settings={root:60,sustainSeconds:8,glideSpan:7,glideStyle:'smooth',glideStepSeconds:3,earCount:4,tempo:80,rounds:2};
  settings.guide={pattern:'smooth7',root:60,rounds:1,shift:0};
  assert.equal(f.trainingDuration('sustainVoice',settings),8000);
- assert.equal(f.trainingDuration('guideVoice',settings),28400);
- assert.equal(f.trainingDuration('earVoice',settings),18800);
+ assert.equal(f.trainingDuration('guideVoice',settings),30000);
+ assert.equal(f.trainingDuration('earVoice',settings),30800);
  assert.equal(f.trainingDuration('dynamicVoice',settings),12000);
  assert.equal(f.trainingDuration('warmupVoice',settings),38000);
  const glide=f.newTrainingSession('guideVoice',2000,settings);
@@ -585,7 +585,7 @@ test('Local28: training duration, target path and phases are deterministic',()=>
  assert.equal(f.trainingTargetAt(glide,6000),67);
  assert.equal(f.trainingTargetAt(glide,12000),60);
  assert.equal(f.trainingPhase(f.newTrainingSession('earVoice',2000,settings),300),'listen');
- assert.equal(f.trainingPhase(f.newTrainingSession('earVoice',2000,settings),1600),'answer');
+ assert.equal(f.trainingPhase(f.newTrainingSession('earVoice',2000,settings),1600),'inhale');
  const breath=f.newTrainingSession('warmupVoice',2000,settings);
  assert.equal(f.trainingPhase(breath,0),'들이쉬기');
  assert.equal(f.trainingPhase(breath,5000),'내쉬기');
@@ -598,8 +598,8 @@ test('Pitch exercises score actual samples without inventing voice coverage',()=
  const f=runInContext(scope,ctx);
  const opt={root:60,sustainSeconds:8,glideSpan:7,glideStyle:'smooth',glideStepSeconds:3,earCount:4,tempo:80,rounds:2};
  const a=f.newTrainingSession('sustainVoice',0,opt);ctx.app={training:a};
- f.receiveTrainingSample(1820,60.13,.08);f.receiveTrainingSample(1900,60.12,.08);
- f.receiveTrainingSample(2020,61.0,.08);f.receiveTrainingSample(2100,null,.08);
+ f.receiveTrainingSample(a.start+20,60.13,.08);f.receiveTrainingSample(a.start+100,60.12,.08);
+ f.receiveTrainingSample(a.start+220,61.0,.08);f.receiveTrainingSample(a.start+300,null,.08);
  assert.equal(a.valid,3);assert.equal(a.good,2);assert.equal(a.history.length,4);
 
 });
@@ -690,12 +690,12 @@ test('Stepped and continuous patterns now share the merged slide session',()=>{
  const m=runInContext(source,ctx);
  const cfg={guide:{pattern:'step3',root:60,noteSeconds:3,rounds:1,shift:0}};
  const a=m.newTrainingSession('guideVoice',0,cfg);
- assert.equal(a.phraseMs,21000);assert.equal(a.duration,46400);
+ assert.equal(a.phraseMs,21000);assert.equal(a.duration,48000);
  const notes=Array.from({length:7},(_,i)=>m.trainingTargetAt(a,i*3000));
  assert.deepEqual([...notes],[60,61,62,63,62,61,60]);
  assert.equal(m.trainingTargetAt(a,2999),60);
  assert.equal(m.trainingTargetAt(a,3000),61);
- cfg.guide.pattern='smooth3';assert.equal(m.trainingDuration('guideVoice',cfg),28400);
+ cfg.guide.pattern='smooth3';assert.equal(m.trainingDuration('guideVoice',cfg),30000);
  assert.equal(m.trainingTargetAt(m.newTrainingSession('guideVoice',0,cfg),6000),63);
  assert.match(html,/id="guideNoteSeconds"/);
  assert.doesNotMatch(js,/trainingGlideSeconds|trainingGlideStyle/);

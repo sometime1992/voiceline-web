@@ -7,10 +7,10 @@ function fixture(stored=null){
  const nodes=new Map(),saved=new Map(),draws=[];
  const $=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:'',attrs:{},classList:{toggle(){}},setAttribute(k,v){this.attrs[k]=v;}});return nodes.get(id);};
  const app={mode:'pitch',layoutPortrait:false,landscapeGraphHidden:false,graphStatusLast:0,mic:true,vibratoRoot:60};
- const context={app,$,localStorage:{getItem:()=>stored,setItem:(k,v)=>saved.set(k,v)},performance:{now:()=>1000},window:{},Math,Number,Boolean,String,
+ const context={app,$,localStorage:{getItem:()=>stored,setItem:(k,v)=>saved.set(k,v)},performance:{now:()=>1000},window:{},Math,Number,Boolean,String,dynamicSeconds:()=>12,
   noteLabel:m=>'C4 · 2옥 도 ('+m+')',guideOptions:()=>({root:60}),trainingPhase:()=> 'listen',
   renderPitchGraphOverlay:()=>draws.push('pitch'),renderVibratoOverlay:()=>draws.push('vibrato'),renderRecordPitchOverlay:()=>draws.push('record'),renderTrainingOverlay:()=>draws.push('training')};
- const api=vm.runInNewContext(chunk("const LANDSCAPE_GRAPH_KEY=",'function readPianoVolume(')+chunk('const DYNAMIC_STEPS=','function updateDynamicGuide(')+chunk('function landscapeGraphHidden(){',"$('graphToggle')?.addEventListener")+'\n({readLandscapeGraphHidden,landscapeGraphHidden,syncGraphVisibility,toggleLandscapeGraph,graphHiddenSummary})',context);
+ const api=vm.runInNewContext(chunk("const LANDSCAPE_GRAPH_KEY=",'function readPianoVolume(')+chunk('function vocalPreparationState(', '// One source of timing')+chunk('const DYNAMIC_STEPS=','function updateDynamicGuide(')+chunk('function landscapeGraphHidden(){',"$('graphToggle')?.addEventListener")+'\n({readLandscapeGraphHidden,landscapeGraphHidden,syncGraphVisibility,toggleLandscapeGraph,graphHiddenSummary})',context);
  return {...api,app,$,saved,draws,context};
 }
 test('A hidden landscape graph preserves the recording, microphone, piano pointers and scoring history',()=>{

@@ -20,7 +20,7 @@ function fixture(cues=true){
   renderTrainingOverlay(){},setMessage(){},progress(){},syncKeyColors(){},drawKeys(){},playReference:m=>references.push(m),noteLabel:m=>String(m)};
  const code=chunk('const TRAINING_MODES=new Set(','function startTraining(t){')+
   chunk('function receiveTrainingSample(t,midi,rms){','function showTrainingResult(')+
-  '\n({dynamicGuideState,updateDynamicGuide,newTrainingSession,trainingPhase,receiveTrainingSample,trainingEvaluation,scheduleTrainingCues,cancelTrainingCues,updateTraining})';
+  '\n({dynamicGuideState,updateDynamicGuide,newTrainingSession,trainingPhase,receiveTrainingSample,trainingEvaluation,scheduleTrainingCues,cancelTrainingCues,updateTraining,vocalPreparationState,trainingDuration,dynamicSeconds})';
  const api=vm.runInNewContext(code,context),session=api.newTrainingSession('dynamicVoice',0,app.trainingSettings);app.training=session;
  return {...api,app,session,audio,sources,gains,events,$,steps,references,context,clock:t=>clock=t,gate:p=>gate=p};
 }
@@ -29,7 +29,7 @@ test('Local46 dynamics guide follows exactly the four three-second scoring phase
  for(const [elapsed,key,seconds,phase] of [[0,'soft',3,'작게'],[2999,'soft',1,'작게'],[3000,'medium',3,'조금 크게'],[5999,'medium',1,'조금 크게'],[6000,'strong',3,'가장 크게'],[8999,'strong',1,'가장 크게'],[9000,'softAgain',3,'다시 작게'],[11999,'softAgain',1,'다시 작게']]){
   const state=h.dynamicGuideState(s,s.start+elapsed);assert.equal(state.key,key);assert.equal(state.seconds,seconds+'초');assert.equal(h.trainingPhase(s,elapsed),phase);
  }
- assert.equal(h.dynamicGuideState(s,0).key,'ready');assert.equal(h.dynamicGuideState(s,s.start+12000).key,'done');
+ assert.equal(h.dynamicGuideState(s,0).key,'reference');assert.equal(h.dynamicGuideState(s,s.start+12000).key,'done');
 });
 test('Local46 dynamics cards show current stage, countdown and next stage without repeating announcements each second',()=>{
  const h=fixture(),s=h.session;h.updateDynamicGuide(s,s.start+3000);
@@ -43,7 +43,7 @@ test('Local46 dynamics queues one short cue at each displayed phase boundary',()
  const h=fixture();h.scheduleTrainingCues(h.session);h.scheduleTrainingCues(h.session);
  assert.equal(h.sources.length,4);assert.deepEqual(h.sources.map(o=>o.hz),[440,660,880,440]);
  for(const [index,source]of h.sources.entries()){
-  assert.ok(Math.abs(source.startAt-(1.8+index*3))<1e-10);
+  assert.ok(Math.abs(source.startAt-(h.session.start/1000+index*3))<1e-10);
   assert.equal(h.dynamicGuideState(h.session,source.startAt*1000).step,index);
  }
  assert.equal(h.session.dynamicCueWindows.length,4);
@@ -59,8 +59,8 @@ test('Local46 stopping dynamics cancels queued cues and a late audio unlock cann
  assert.ok(running.sources.every(o=>o.cancelled));assert.equal(running.session.dynamicCueWindows.length,0);
 });
 test('Local46 resumed guidance does not replay dynamics transitions that already passed',()=>{
- const h=fixture();h.scheduleTrainingCues(h.session);h.clock(6500);h.audio.state='suspended';h.events.get('statechange')();
- h.audio.state='running';h.audio.currentTime=6.5;h.events.get('statechange')();
+ const h=fixture();h.scheduleTrainingCues(h.session);h.clock(h.session.start+4700);h.audio.state='suspended';h.events.get('statechange')();
+ h.audio.state='running';h.audio.currentTime=(h.session.start+4700)/1000;h.events.get('statechange')();
  assert.deepEqual(h.sources.slice(4).map(o=>o.hz),[880,440]);
 });
 test('Local46 cue sound is excluded from scoring and quiet valid dynamics still succeed',()=>{
@@ -97,7 +97,7 @@ test('No initial reference fails with a clear reason even if the last three stag
  const h=fixture();for(let i=30;i<120;i++)h.receiveTrainingSample(h.session.start+i*100,60,[.0042,.008,.014,.0042][Math.floor(i/30)]);
  assert.equal(h.trainingEvaluation(h.session,true).status,'미달성');assert.match(h.trainingEvaluation(h.session,true).reason,/약 단계 기준 부족/);
 });
-test('All selected methods can succeed using their actual contour, phase lengths and scheduled cue exclusions',()=>{
+test('All seven methods and five lengths succeed with the actual contour, phase lengths and scheduled cue exclusions',()=>{
  const level=(id,t)=>{
   if(t<3000)return 0;
   if(id==='steps')return [0,1,2,0][Math.min(3,Math.floor(t/3000))];
@@ -108,13 +108,45 @@ test('All selected methods can succeed using their actual contour, phase lengths
   if(id==='steady')return 1;
   return t<4500?2:t<7500?0:t<9000?2:0;
  };
- for(const id of Object.keys(dynamics.PATTERNS)){
-  const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:id});h.app.training=s;h.scheduleTrainingCues(s);
+ for(const seconds of [8,12,16,20,24])for(const id of Object.keys(dynamics.PATTERNS)){
+  const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:id,dynamicSeconds:seconds});h.app.training=s;h.scheduleTrainingCues(s);
   assert.equal(h.sources.length,s.dynamicModel.segments.length,id+' cue count');
-  for(let t=0;t<12000;t+=40)h.receiveTrainingSample(s.start+t,60,.0042*Math.pow(1.8,level(id,t)));
-  assert.equal(h.trainingEvaluation(s,true).status,'성공',id);
+  for(let t=0;t<s.duration;t+=40){const canonical=t<3000?t:3000+(t-3000)*9000/(s.duration-3000);h.receiveTrainingSample(s.start+t,60,.0042*Math.pow(1.8,level(id,canonical)));}
+  assert.equal(h.trainingEvaluation(s,true).status,'성공',id+' '+seconds);
   assert.equal(h.trainingEvaluation(s,false).status,'중단',id);
  }
+});
+test('Listening and a full 3-2-1 inhale precede dynamics and sustain, excluding all preparation voice',()=>{
+ const h=fixture();
+ for(const mode of ['dynamicVoice','sustainVoice']){
+  const s=h.newTrainingSession(mode,100,h.app.trainingSettings);h.app.training=s;
+  assert.equal(s.start,4900);assert.equal(h.vocalPreparationState(s,100).key,'reference');
+  for(const [t,n]of [[1900,3],[2900,2],[3900,1]]){const p=h.vocalPreparationState(s,t);assert.equal(p.key,'inhale');assert.equal(p.seconds,n);}
+  for(let t=100;t<s.start;t+=40)h.receiveTrainingSample(t,60,.9);
+  assert.equal(s.valid,0);assert.equal(s.voicedMs,0);assert.equal(s.history.length,0);
+  if(s.dynamicModel)assert.equal(s.dynamicModel.baseline,null);
+  assert.equal(h.vocalPreparationState(s,s.start).key,'begin');assert.equal(h.vocalPreparationState(s,s.start+800),null);
+ }
+});
+test('Every ear note has an ungraded inhale without revealing its target before the response',()=>{
+ const h=fixture(),s=h.newTrainingSession('earVoice',0,h.app.trainingSettings);h.app.training=s;
+ assert.equal(s.duration,s.earNotes.length*7700);
+ for(let i=0;i<s.earNotes.length;i++){
+  const start=s.start+i*7700;assert.equal(h.trainingPhase(s,i*7700+1499),'listen');
+  for(const [offset,count]of [[1500,3],[2500,2],[3500,1]]){
+   h.updateTraining(start+offset);assert.equal(s.target,null);
+   assert.equal(h.vocalPreparationState(s,start+offset).seconds,count);
+   h.receiveTrainingSample(start+offset,s.earNotes[i],.9);
+  }
+  assert.equal(s.valid,i*2);h.updateTraining(start+4500);assert.equal(s.target,s.earNotes[i]);
+  h.receiveTrainingSample(start+4540,s.earNotes[i],.05);h.receiveTrainingSample(start+4620,s.earNotes[i],.05);
+ }
+ assert.equal(s.valid,s.earNotes.length*2);assert.equal(s.answerVoicedMs,s.earNotes.length*80);
+});
+test('Only supported durations restore and an active session keeps its captured length',()=>{
+ const h=fixture();for(const value of [null,0,9,NaN,Infinity,'bad'])assert.equal(h.dynamicSeconds({dynamicSeconds:value}),12);
+ const s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicSeconds:24});
+ h.app.trainingSettings.dynamicSeconds=8;assert.equal(s.duration,24000);assert.equal(s.dynamicModel.duration,24000);
 });
 test('A constant soft voice cannot complete any method and a selected course remains fixed during a session',()=>{
  for(const id of Object.keys(dynamics.PATTERNS)){

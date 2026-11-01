@@ -182,6 +182,7 @@ async function checkVolumeRange(page,id,valueId){
   await page.locator('#guidePattern').selectOption('triad');await page.locator('#mainButton').click();await phase('listen');
   await sendTone(page,261.625565);assert.equal(await page.locator('#guideAccuracy').textContent(),'—','listening was scored');
   await phase('handoff');assert.equal(await page.locator('#guideStartCue').isVisible(),true);
+  assert.match(await page.locator('#guidePhaseTitle').textContent(),/숨을 들이쉬세요/);
   await phase('answer');await sendTone(page,261.625565);assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5);await stop();
   await page.locator('#guideKind').selectOption('smooth');await frames(page);
   assert.equal(await page.locator('#guidePattern option').count(),4);
@@ -193,6 +194,12 @@ async function checkVolumeRange(page,id,valueId){
    await choose(page,mode);await page.locator('#mainButton').click();
    await page.waitForFunction(()=>/중단|중지/.test(document.querySelector('#mainButton').textContent));
    assert.equal(await page.locator('#stopButton').isVisible(),false,mode+' duplicated stop action');
+   if(['vibrato','sustainVoice','earVoice'].includes(mode)){
+    const id=mode==='vibrato'?'vibratoPreparation':'trainingPreparation';
+    await page.waitForFunction(id=>{const e=document.getElementById(id);return !e.hidden&&e.dataset.phase==='inhale';},id,{timeout:6500});
+    assert.match(await page.locator('#'+id).textContent(),/숨을 들이쉬세요/);
+    await page.screenshot({path:path.join(output,'landscape-'+mode+'-inhale.png')});
+   }
    if(mode==='record'){
     await page.setViewportSize(viewports[3]);await frames(page);const recordingRequest=await page.evaluate(()=>window.__micRequest);
     await sendTone(page,261.625565);await page.locator('#graphToggle').click();await sendTone(page,293.664768);
@@ -214,6 +221,17 @@ async function checkVolumeRange(page,id,valueId){
   await page.locator('#dynamicCueVolume').selectOption('100');await page.locator('#dynamicCuePreview').click();await page.waitForTimeout(200);
   assert.equal(await page.locator('#micToggle').getAttribute('aria-pressed'),'false','preview started capture');
   await page.locator('#dynamicCueVolume').selectOption('70');await page.locator('#mainButton').click();
+  await page.waitForFunction(()=>!document.querySelector('#trainingPreparation').hidden&&document.querySelector('#trainingPreparation').dataset.phase==='inhale',{},{timeout:5000});
+  const breathRequest=await page.evaluate(()=>window.__micRequest);await sendTone(page,261.625565);
+  assert.equal((await graphPixels(page,'trainingGraph')).voice,0,'breathing entered the dynamics voice graph');
+  assert.equal(await page.locator('#trainingMetric3').textContent(),'준비','breathing set the personal reference');
+  await page.setViewportSize(viewports[2]);await frames(page);await page.screenshot({path:path.join(output,'small-portrait-dynamics-inhale.png')});
+  await page.setViewportSize(viewports[3]);await frames(page);await page.locator('#graphToggle').click();await frames(page);
+  assert.match(await page.locator('#graphHiddenStatus').textContent(),/숨을 들이쉬세요/);
+  await page.screenshot({path:path.join(output,'landscape-dynamics-hidden-inhale.png')});
+  await page.locator('#graphToggle').click();await page.setViewportSize(viewports[0]);await frames(page);
+  assert.equal(await page.evaluate(()=>window.__micRequest),breathRequest,'preparation rotation restarted capture');
+  await page.screenshot({path:path.join(output,'portrait-dynamics-inhale.png')});
   await page.waitForFunction(()=>document.querySelector('#trainingOverlay').dataset.dynamicPhase==='soft',{},{timeout:6000});
   assert.equal(await page.locator('#dynamicCueVolume').isDisabled(),true);
   const dynamicRequest=await page.evaluate(()=>{
@@ -260,25 +278,27 @@ async function checkVolumeRange(page,id,valueId){
   const patternReport=[];
   for(const viewport of [viewports[0],viewports[2],viewports[3]]){
    await page.setViewportSize(viewport);await frames(page);const keyboard=(await geometry(page)).keyboard;
-   for(const id of patterns){
-    await page.locator('#dynamicPattern').selectOption(id);await frames(page);
+   for(const seconds of ['8','12','16','20','24'])for(const id of patterns){
+    await page.locator('#dynamicDuration').selectOption(seconds);await page.locator('#dynamicPattern').selectOption(id);await frames(page);
     const g=await geometry(page);assert.deepEqual(g.keyboard,keyboard,id+' moved the keys');assert.equal(g.scroll,false,id+' scrolls');
     assert.equal(await page.locator('#trainingOverlay').getAttribute('data-dynamic-pattern'),id);
+    assert.match(await page.locator('#dynamicLegend').textContent(),new RegExp(seconds+'초'));
     assert.ok(g.canvas.height>=32,id+' graph is too short');assert.ok((await graphPixels(page,'trainingGraph')).goal>5,id+' target missing');
-    patternReport.push({viewport,pattern:id,...g});
-    if(viewport.width===390&&['crescendo','swell','alternating','steady'].includes(id))await page.screenshot({path:path.join(output,'portrait-dynamics-'+id+'.png')});
+    patternReport.push({viewport,pattern:id,seconds:Number(seconds),...g});
+    if(viewport.width===390&&seconds==='12'&&['crescendo','swell','alternating','steady'].includes(id))await page.screenshot({path:path.join(output,'portrait-dynamics-'+id+'.png')});
    }
   }
   // A complete gradual exercise must succeed with its moving target, rather
   // than being evaluated as the previous fixed four-step sequence.
-  await page.locator('#dynamicPattern').selectOption('crescendo');await page.locator('#mainButton').click();
+  await page.locator('#dynamicPattern').selectOption('crescendo');await page.locator('#dynamicDuration').selectOption('8');await page.locator('#mainButton').click();
   await page.waitForFunction(()=>document.querySelector('#trainingOverlay').dataset.dynamicPhase==='soft',{},{timeout:6000});
   assert.equal(await page.locator('#dynamicPattern').isDisabled(),true);
+  assert.equal(await page.locator('#dynamicDuration').isDisabled(),true);
   const crescendoRequest=await page.evaluate(()=>{
    const start=performance.now(),request=window.__micRequest;
    const send=()=>{
     if(window.__micRequest!==request)return;
-    const elapsed=Math.max(0,performance.now()-start),level=elapsed<3000?0:Math.min(2,2*(elapsed-3000)/9000),amplitude=.08*Math.pow(1.8,level);
+    const elapsed=Math.max(0,performance.now()-start),level=elapsed<3000?0:Math.min(2,2*(elapsed-3000)/5000),amplitude=.08*Math.pow(1.8,level);
     const pcm=new Int16Array(4096);for(let i=0;i<pcm.length;i++)pcm[i]=Math.round(amplitude*32767*Math.sin(2*Math.PI*261.625565*i/44100));
     let raw='';for(const b of new Uint8Array(pcm.buffer))raw+=String.fromCharCode(b);
     window.VoiceLineNativeAudio.onAudioChunk(btoa(raw),44100,request);
@@ -293,9 +313,10 @@ async function checkVolumeRange(page,id,valueId){
   await page.waitForFunction(()=>!document.querySelector('#trainingResultDialog').hidden,{},{timeout:10000});
   await page.evaluate(()=>clearInterval(window.__dynamicSignal));assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공','gradual dynamics failed');
   await page.locator('#trainingResultClose').click();await page.screenshot({path:path.join(output,'portrait-dynamics-crescendo-result.png')});
-  await page.locator('#dynamicPattern').selectOption('accents');await page.reload();await page.waitForSelector('#keyboard .white-key');
+  await page.locator('#dynamicPattern').selectOption('accents');await page.locator('#dynamicDuration').selectOption('24');await page.reload();await page.waitForSelector('#keyboard .white-key');
   await choose(page,'dynamicVoice');assert.equal(await page.locator('#dynamicPattern').inputValue(),'accents','pattern selection was not restored');
-  await page.locator('#dynamicPattern').selectOption('steps');
+  assert.equal(await page.locator('#dynamicDuration').inputValue(),'24','duration was not restored');
+  await page.locator('#dynamicPattern').selectOption('steps');await page.locator('#dynamicDuration').selectOption('12');
   fs.writeFileSync(path.join(output,'dynamics-patterns.json'),JSON.stringify(patternReport,null,2));
   const stored=await page.evaluate(()=>new Promise((resolve,reject)=>{
    const request=indexedDB.open('voiceline-local-v2',4);request.onerror=()=>reject(request.error);
