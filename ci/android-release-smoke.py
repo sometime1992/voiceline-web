@@ -13,6 +13,10 @@ qa = root / 'android-smoke'
 qa.mkdir(exist_ok=True)
 package = 'com.voiceline.app'
 checks = []
+hierarchy_number = 0
+
+class HierarchyUnavailable(RuntimeError):
+    pass
 
 def adb(*args, binary=False, timeout=50):
     result = subprocess.run(['adb', *args], capture_output=True, timeout=timeout)
@@ -21,10 +25,25 @@ def adb(*args, binary=False, timeout=50):
     return result.stdout if binary else result.stdout.decode(errors='replace')
 
 def tree():
-    adb('shell', 'uiautomator', 'dump', '/sdcard/voiceline-window.xml')
-    text = adb('exec-out', 'cat', '/sdcard/voiceline-window.xml')
-    (qa / 'last-window.xml').write_text(text)
-    return ET.fromstring(text)
+    global hierarchy_number
+    for attempt in range(2):
+        hierarchy_number += 1
+        remote = '/sdcard/voiceline-window-' + str(hierarchy_number) + '.xml'
+        dump = adb('shell', 'uiautomator', 'dump', '--compressed', remote)
+        text = adb('exec-out', 'cat', remote)
+        # During cold WebView startup, uiautomator can return success without
+        # creating its file. Never parse cat's diagnostic or reuse an old tree.
+        begin = text.find('<?xml')
+        if begin >= 0:
+            try:
+                document = ET.fromstring(text[begin:])
+                (qa / 'last-window.xml').write_text(text[begin:])
+                return document
+            except ET.ParseError:
+                pass
+        (qa / 'hierarchy-retry.txt').write_text(dump + '\n' + text)
+        time.sleep(.5)
+    raise HierarchyUnavailable('Android hierarchy temporarily unavailable; see hierarchy-retry.txt')
 
 def visible(label, document=None):
     document = tree() if document is None else document
@@ -33,7 +52,10 @@ def visible(label, document=None):
 def tap(label, identifier=None, partial=False):
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
-        document = tree()
+        try:
+            document = tree()
+        except HierarchyUnavailable:
+            continue
         candidates = [n for n in document.iter('node') if
                       n.attrib.get('text') == label or n.attrib.get('content-desc') == label or
                       identifier and n.attrib.get('resource-id', '').endswith(identifier)]
@@ -69,11 +91,16 @@ def screenshot(name, store=True):
 def wait_visible(label, timeout=25):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if visible(label):
-            return
+        try:
+            if visible(label):
+                return
+        except HierarchyUnavailable:
+            pass
         time.sleep(.5)
     raise AssertionError('Android UI not ready: ' + label)
 
+console_file = (qa / 'web-console-live.txt').open('w')
+console_process = None
 try:
     assert adb('shell', 'getprop', 'ro.build.version.sdk').strip() == '36'
     adb('shell', 'wm', 'size', '1080x1920')
@@ -82,6 +109,8 @@ try:
     adb('shell', 'settings', 'put', 'system', 'user_rotation', '0')
     adb('install', '-r', str(root / 'release-review/release-runtime-review.apk'))
     adb('logcat', '-c')
+    console_process = subprocess.Popen(['adb', 'logcat', '-v', 'time', 'VoiceLineWeb:W', 'AndroidRuntime:E', '*:S'],
+                                       stdout=console_file, stderr=subprocess.STDOUT)
     start()
     assert visible('VoiceLine')
     checks.append('API36 production build starts and displays VoiceLine')
@@ -128,3 +157,10 @@ except Exception:
     (qa / 'webview-provider.txt').write_text(adb('shell', 'dumpsys', 'webviewupdate'))
     print(web_errors)
     raise
+finally:
+    if console_process:
+        console_process.terminate()
+        console_process.wait(timeout=5)
+    console_file.close()
+    if (qa / 'web-console-live.txt').stat().st_size:
+        print((qa / 'web-console-live.txt').read_text())

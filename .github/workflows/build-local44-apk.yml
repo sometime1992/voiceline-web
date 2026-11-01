@@ -102,6 +102,14 @@ jobs:
         run: gradle --no-daemon :app:assembleCiDebug
       - name: Verify signatures, package IDs, version and every offline asset
         run: python3 ci/verify-local44-apks.py
+      - name: Upload APKs and verification report
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local55-APKs
+          path: dist/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
       - name: Check unsigned release AAB and Android lint
         working-directory: android-local44
         run: gradle --no-daemon :app:bundleRelease :app:lintRelease
@@ -152,12 +160,4 @@ jobs:
             release-review/
             android-local44/app/build/reports/lint-results-release.*
           if-no-files-found: warn
-          retention-days: 7
-      - name: Upload APKs and verification report
-        uses: actions/upload-artifact@v7
-        with:
-          name: VoiceLine-Local55-APKs
-          path: dist/
-          if-no-files-found: error
-          compression-level: 0
           retention-days: 7
