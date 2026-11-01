@@ -53,7 +53,9 @@ def tap(label, identifier=None, partial=False):
 def start():
     adb('shell', 'am', 'force-stop', package)
     adb('shell', 'am', 'start', '-W', '-n', package + '/com.voiceline.app.MainActivity')
-    time.sleep(4)
+    # A cold emulator can still be starting WebView after the Activity is visible.
+    wait_visible('VoiceLine', timeout=60)
+    wait_visible('C3 · 1옥 도', timeout=40)
 
 def choose(label):
     tap('메뉴 열기', 'menuOpen')
@@ -82,7 +84,6 @@ try:
     adb('logcat', '-c')
     start()
     assert visible('VoiceLine')
-    wait_visible('C3 · 1옥 도')
     checks.append('API36 production build starts and displays VoiceLine')
     screenshot('01-piano-portrait.png')
     choose('개인정보처리방침')
@@ -124,5 +125,6 @@ except Exception:
     (qa / 'logcat.txt').write_text(adb('logcat','-d','-t','1500'))
     web_errors = adb('logcat', '-d', '-s', 'VoiceLineWeb:W', 'AndroidRuntime:E')
     (qa / 'web-errors.txt').write_text(web_errors)
+    (qa / 'webview-provider.txt').write_text(adb('shell', 'dumpsys', 'webviewupdate'))
     print(web_errors)
     raise
