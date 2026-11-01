@@ -10,17 +10,41 @@
  ]);
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const median=values=>{const a=[...values].sort((x,y)=>x-y),i=Math.floor(a.length/2);return a.length%2?a[i]:(a[i-1]+a[i])/2;};
- function create({start=0,duration=12000}={}){
+ const segment=(key,label,short,ms,from,to=from,phase=label)=>Object.freeze({key,label,short,ms,from,to,phase});
+ const base=segment('soft','약하게','약 · 기준',3000,0,0,'작게');
+ const PATTERNS=Object.freeze({
+  steps:Object.freeze({label:'기본 4단계',tip:'약 → 중 → 강 → 약 · 각 3초',segments:Object.freeze([base,segment('medium','중간 세기','중',3000,1,1,'조금 크게'),segment('strong','강하게','강',3000,2,2,'가장 크게'),segment('softAgain','다시 약하게','약',3000,0,0,'다시 작게')])}),
+  crescendo:Object.freeze({label:'점점 크게',tip:'약하게 기준 3초 → 9초 동안 점점 크게',segments:Object.freeze([base,segment('rise','점점 크게','점점 크게',9000,0,2)])}),
+  decrescendo:Object.freeze({label:'점점 작게',tip:'기준 3초 → 강하게 2초 → 7초 동안 작게',segments:Object.freeze([base,segment('strong','강하게 유지','강',2000,2),segment('fall','점점 작게','점점 작게',7000,2,0)])}),
+  swell:Object.freeze({label:'커졌다 작아지기',tip:'기준 3초 → 점점 크게 → 점점 작게',segments:Object.freeze([base,segment('rise','점점 크게','크게',4500,0,2),segment('fall','점점 작게','작게',4500,2,0)])}),
+  alternating:Object.freeze({label:'강약 반복',tip:'약 → 강 → 약 → 강 → 약',segments:Object.freeze([base,segment('strong1','강하게','강',2000,2),segment('soft1','약하게','약',2000,0),segment('strong2','다시 강하게','강',2000,2),segment('softAgain','다시 약하게','약',3000,0)])}),
+  steady:Object.freeze({label:'일정하게 유지',tip:'기준 3초 → 중간 세기로 9초 유지',segments:Object.freeze([base,segment('steady','중간 세기 유지','중간 유지',9000,1)])}),
+  accents:Object.freeze({label:'짧게 강조',tip:'기준 3초 → 강 1.5초·약 3초를 두 번',segments:Object.freeze([base,segment('accent1','짧게 강하게','강',1500,2),segment('soft1','약하게 회복','약',3000,0),segment('accent2','다시 짧게 강하게','강',1500,2),segment('softAgain','약하게 회복','약',3000,0)])})
+ });
+ function patternId(value){return Object.prototype.hasOwnProperty.call(PATTERNS,value)?value:'steps';}
+ function getPattern(value){return PATTERNS[patternId(value)];}
+ function timeline(value,duration=12000){
+  let at=0;return getPattern(value).segments.map(s=>{const start=at;at+=s.ms*duration/12000;return Object.freeze({...s,start,end:at});});
+ }
+ function create({start=0,duration=12000,pattern='steps'}={}){
+  duration=Number.isFinite(duration)&&duration>0?duration:12000;pattern=patternId(pattern);
   return {start:Number.isFinite(start)?start:0,duration:Number.isFinite(duration)&&duration>0?duration:12000,
+   patternId:pattern,segments:timeline(pattern,duration),
    baseline:null,locked:false,softSamples:[],referenceMs:0,samples:[],lastAt:null};
  }
- function stageAt(model,t){return Math.min(3,Math.max(0,Math.floor((t-model.start)/(model.duration/4))));}
+ function stageAt(model,t){const index=model.segments.findIndex(s=>t-model.start<s.end);return index<0?model.segments.length-1:index;}
+ function state(model,t){
+  const elapsed=t-model.start,index=stageAt(model,t),s=model.segments[index];
+  const progress=clamp((elapsed-s.start)/(s.end-s.start),0,1),level=s.from+(s.to-s.from)*progress;
+  return {...s,index,step:index,level,seconds:Math.max(0,Math.ceil((s.end-elapsed)/1000)),remaining:Math.max(0,Math.ceil((model.duration-elapsed)/1000)),
+   next:model.segments[index+1]?.label||'종료',preparing:elapsed<0,done:elapsed>=model.duration};
+ }
  function receive(model,t,rms,{voiced=true,onPitch=true,cue=false}={}){
   if(!model||!Number.isFinite(t)||t<model.start||t>=model.start+model.duration)return;
   if(model.lastAt!==null&&t-model.lastAt<22)return;
   const phase=stageAt(model,t),previous=model.samples.at(-1),gap=previous?t-previous.t:0;
   const value=!cue&&voiced&&Number.isFinite(rms)&&rms>0?rms:null;
-  const correct=value!==null&&onPitch,phaseStart=model.start+phase*model.duration/4;
+  const correct=value!==null&&onPitch,phaseStart=model.start+model.segments[phase].start;
   const dt=correct&&previous?.onPitch&&gap>0&&gap<=160?Math.max(0,Math.min(gap,t-phaseStart)):0;
   const sample={t,rms:value,onPitch:correct,cue,phase,dt};model.lastAt=t;model.samples.push(sample);
   // At most 546 detector points for the complete twelve-second exercise.
@@ -32,22 +56,24 @@
    if(model.softSamples.length>=5&&model.referenceMs>=MIN_REFERENCE_MS)model.baseline=median(model.softSamples);
   }
  }
- function bounds(model,phase){
+ function bounds(model,phase,t){
   if(!model?.baseline)return null;
-  const target=model.baseline*STAGES[clamp(phase,0,3)].ratio;
+  const s=model.segments[clamp(phase,0,model.segments.length-1)];
+  const elapsed=Number.isFinite(t)?t-model.start:s.start,progress=clamp((elapsed-s.start)/(s.end-s.start),0,1);
+  const target=model.baseline*Math.pow(STEP_RATIO,s.from+(s.to-s.from)*progress);
   return {target,low:target/BAND_RATIO,high:target*BAND_RATIO};
  }
  function inBand(model,sample){
-  const band=bounds(model,sample.phase);
+  const band=bounds(model,sample.phase,sample.t);
   return Boolean(band&&sample.onPitch&&sample.rms>=band.low&&sample.rms<=band.high);
  }
  function metrics(model){
-  let voicedMs=0,matchedMs=0;const phaseMs=[0,0,0,0],phaseMatchedMs=[0,0,0,0];
+  let voicedMs=0,matchedMs=0;const count=model?.segments?.length||4,phaseMs=Array(count).fill(0),phaseMatchedMs=Array(count).fill(0);
   for(const p of model?.samples||[]){
    voicedMs+=p.dt;phaseMs[p.phase]+=p.dt;
    if(inBand(model,p)){matchedMs+=p.dt;phaseMatchedMs[p.phase]+=p.dt;}
   }
-  return {calibrated:Boolean(model?.baseline),voicedMs,matchedMs,phaseMs,phaseMatchedMs,
+  return {calibrated:Boolean(model?.baseline),voicedMs,matchedMs,phaseMs,phaseMatchedMs,phaseDurations:model?.segments.map(s=>s.end-s.start)||[],
    accuracy:model?.baseline&&voicedMs>0?Math.floor(matchedMs/voicedMs*100+1e-9):null};
  }
  function feedback(model,now){
@@ -58,7 +84,7 @@
   const p=model.samples.at(-1);
   if(!p||now-p.t>250||p.rms===null)return {text:p?.cue&&now-p.t<=250?'단계 전환 안내음':'같은 음으로 소리를 내보세요',match:'waiting'};
   if(!p.onPitch)return {text:'목표 음높이도 함께 유지하세요',match:'pitch'};
-  const band=bounds(model,stageAt(model,Math.min(now,model.start+model.duration-1)));
+  const band=bounds(model,stageAt(model,Math.min(now,model.start+model.duration-1)),now);
   if(p.rms<band.low)return {text:'조금 더 크게',match:'low'};
   if(p.rms>band.high)return {text:'조금 더 작게',match:'high'};
   return {text:'목표 범위 안이에요',match:'near'};
@@ -72,18 +98,18 @@
   const compact=h<72,left=25,right=w-8,top=compact?3:17,bottom=h-(h<55?12:17),step=(right-left)/4;
   if(bottom<=top)return null;
   const start=model?.start??now,duration=model?.duration??12000,baseline=model?.baseline;
-  const elapsed=clamp(now-start,0,duration),current=stageAt({start,duration},now);
+  const segments=model?.segments||timeline('steps',duration),elapsed=clamp(now-start,0,duration),current=stageAt({start,duration,segments},now);
   const xFor=t=>left+clamp((t-start)/duration,0,1)*(right-left);
   const yForLevel=level=>bottom-clamp((level+.7)/3.4,0,1)*(bottom-top);
   const levelFor=value=>Math.log(value/baseline)/Math.log(STEP_RATIO);
-  const targetLevels=[0,1,2,0],bandWidth=Math.log(BAND_RATIO)/Math.log(STEP_RATIO);
+  const bandWidth=Math.log(BAND_RATIO)/Math.log(STEP_RATIO);
   ctx.font='10px system-ui';ctx.textBaseline='middle';
-  for(let i=0;i<4;i++){
-   const x=left+i*step,y=yForLevel(targetLevels[i]);
-   ctx.fillStyle=i===current?'rgba(105,236,208,.07)':'rgba(255,255,255,.025)';ctx.fillRect(x,top,step,bottom-top);
+  for(const [i,s]of segments.entries()){
+   const x=xFor(start+s.start),end=xFor(start+s.end),width=end-x;
+   ctx.fillStyle=i===current?'rgba(105,236,208,.07)':'rgba(255,255,255,.025)';ctx.fillRect(x,top,width,bottom-top);
    ctx.fillStyle=i===current?'rgba(105,236,208,.22)':'rgba(105,236,208,.10)';
-   const a=yForLevel(targetLevels[i]+bandWidth),b=yForLevel(targetLevels[i]-bandWidth);ctx.fillRect(x,a,step,b-a);
-   if(!compact){ctx.fillStyle=i===current?'#a4ffe7':'#c0c6d6';ctx.textAlign='center';ctx.fillText(STAGES[i].short,x+step/2,7,step-4);}
+   ctx.beginPath();ctx.moveTo(x,yForLevel(s.from+bandWidth));ctx.lineTo(end,yForLevel(s.to+bandWidth));ctx.lineTo(end,yForLevel(s.to-bandWidth));ctx.lineTo(x,yForLevel(s.from-bandWidth));ctx.closePath();ctx.fill();
+   if(!compact){ctx.fillStyle=i===current?'#a4ffe7':'#c0c6d6';ctx.textAlign='center';ctx.fillText(s.short,x+width/2,7,width-4);}
    ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.strokeStyle='rgba(217,220,243,.16)';ctx.lineWidth=1;ctx.stroke();
   }
   for(const [index,label]of ['약','중','강'].entries()){
@@ -91,7 +117,7 @@
    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.strokeStyle='rgba(220,220,240,.12)';ctx.stroke();
   }
   ctx.beginPath();
-  for(let i=0;i<4;i++){const x=left+i*step,y=yForLevel(targetLevels[i]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);ctx.lineTo(x+step,y);}
+  for(const [i,s]of segments.entries()){const x=xFor(start+s.start),end=xFor(start+s.end),y=yForLevel(s.from);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);ctx.lineTo(end,yForLevel(s.to));}
   ctx.strokeStyle='#69ecd0';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
   // A stable personal scale starts in the first weak phase and remains fixed.
   if(baseline){
@@ -113,5 +139,5 @@
   for(let i=0;i<=4;i++){ctx.textAlign=i===0?'left':i===4?'right':'center';ctx.fillText(String(duration/4000*i)+'초',left+i*step,h-5);}
   return {baseline:baseline??null,cursor,points:model?.samples.length??0};
  }
- return Object.freeze({STAGES,STEP_RATIO,BAND_RATIO,MIN_REFERENCE_MS,create,receive,bounds,inBand,metrics,feedback,draw});
+ return Object.freeze({STAGES,PATTERNS,patternId,getPattern,timeline,state,STEP_RATIO,BAND_RATIO,MIN_REFERENCE_MS,create,receive,bounds,inBand,metrics,feedback,draw});
 });

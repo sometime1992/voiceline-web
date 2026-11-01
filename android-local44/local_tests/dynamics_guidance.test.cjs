@@ -97,3 +97,30 @@ test('No initial reference fails with a clear reason even if the last three stag
  const h=fixture();for(let i=30;i<120;i++)h.receiveTrainingSample(h.session.start+i*100,60,[.0042,.008,.014,.0042][Math.floor(i/30)]);
  assert.equal(h.trainingEvaluation(h.session,true).status,'미달성');assert.match(h.trainingEvaluation(h.session,true).reason,/약 단계 기준 부족/);
 });
+test('All selected methods can succeed using their actual contour, phase lengths and scheduled cue exclusions',()=>{
+ const level=(id,t)=>{
+  if(t<3000)return 0;
+  if(id==='steps')return [0,1,2,0][Math.min(3,Math.floor(t/3000))];
+  if(id==='crescendo')return 2*(t-3000)/9000;
+  if(id==='decrescendo')return t<5000?2:2*(12000-t)/7000;
+  if(id==='swell')return t<7500?2*(t-3000)/4500:2*(12000-t)/4500;
+  if(id==='alternating')return t<5000?2:t<7000?0:t<9000?2:0;
+  if(id==='steady')return 1;
+  return t<4500?2:t<7500?0:t<9000?2:0;
+ };
+ for(const id of Object.keys(dynamics.PATTERNS)){
+  const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:id});h.app.training=s;h.scheduleTrainingCues(s);
+  assert.equal(h.sources.length,s.dynamicModel.segments.length,id+' cue count');
+  for(let t=0;t<12000;t+=40)h.receiveTrainingSample(s.start+t,60,.0042*Math.pow(1.8,level(id,t)));
+  assert.equal(h.trainingEvaluation(s,true).status,'성공',id);
+  assert.equal(h.trainingEvaluation(s,false).status,'중단',id);
+ }
+});
+test('A constant soft voice cannot complete any method and a selected course remains fixed during a session',()=>{
+ for(const id of Object.keys(dynamics.PATTERNS)){
+  const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:id});h.app.training=s;
+  h.app.trainingSettings.dynamicPattern='steady';
+  for(let t=0;t<12000;t+=40)h.receiveTrainingSample(s.start+t,60,.0042);
+  assert.equal(s.dynamicModel.patternId,id);assert.equal(h.trainingEvaluation(s,true).status,'미달성',id);
+ }
+});

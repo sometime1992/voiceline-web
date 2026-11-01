@@ -1,12 +1,14 @@
-VOICE LINE / 보이스라인 Android Studio 프로젝트 (Local52)
+VOICE LINE / 보이스라인 Android Studio 프로젝트 (Local53)
 ============================================================
-버전: 2.0.0-local52 / versionCode 67
-이번 변경: CHANGES_LOCAL52_KO.txt
+버전: 2.0.0-local53 / versionCode 68
+이번 변경: CHANGES_LOCAL53_KO.txt
 검사 결과: 해당 버전 GitHub Actions의 Test/ Layout Report 및 BUILD_INFO.txt
 이전 변경 안내: docs/archive
 이전 점검 보고서: REVIEWS (각 보고서에 적힌 당시 버전 기준)
 
 [이번 버전 및 유지 기능]
+- 기준음·피아노·메트로놈 음량 막대는 0~100% 실제 값과 끝부분 채움을 일치시킵니다.
+- 발성 강약은 기본 단계, 점점 크게/작게, 커졌다 작아지기, 반복, 유지, 짧은 강조의 7가지 방법을 선택합니다.
 - 음계·도약은 음마다 독립된 가로선으로, 연속 슬라이드는 이어진 목표선으로 표시합니다. 음정·시간·음원·채점 기준은 유지합니다.
 - 강약 조절은 12초 전체 목표·허용 범위와 내 목소리를 겹쳐 표시합니다. 첫 약 단계로 개인 기준을 잡고 이후 고정합니다.
 - 현재 단계·남은 시간·다음 단계와 크게/작게 안내를 표시하고 같은 목표 범위로 채점합니다.
@@ -219,7 +221,7 @@ VOICE LINE / 보이스라인 Android Studio 프로젝트 (Local52)
    androidx.webkit 1.12.1과 파일 공유용 androidx.core 1.15.0을 사용합니다.
    첫 Sync에서는 Maven 의존성을 받기 위한 인터넷 연결이 필요합니다.
 5. USB 디버깅을 켠 기기를 연결하고 Run > Run 'app'으로 실행합니다.
-6. 메뉴 하단 버전 2.0.0-local52를 확인합니다.
+6. 메뉴 하단 버전 2.0.0-local53를 확인합니다.
 
 [검사와 한계]
 - Node.js가 설치된 PC에서 run-tests.bat를 실행합니다. npm 설치는 필요하지 않습니다.

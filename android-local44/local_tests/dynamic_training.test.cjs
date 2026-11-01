@@ -1,6 +1,17 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const api=require('../app/src/main/assets/www/dynamic-training.js');
+function expectedLevel(id,t){
+ if(t<3000)return 0;
+ if(id==='steps')return [0,1,2,0][Math.min(3,Math.floor(t/3000))];
+ if(id==='crescendo')return 2*(t-3000)/9000;
+ if(id==='decrescendo')return t<5000?2:2*(12000-t)/7000;
+ if(id==='swell')return t<7500?2*(t-3000)/4500:2*(12000-t)/4500;
+ if(id==='alternating')return t<5000?2:t<7000?0:t<9000?2:0;
+ if(id==='steady')return 1;
+ if(id==='accents')return t<4500?2:t<7500?0:t<9000?2:0;
+ throw Error(id);
+}
 function sing({base=.0042,ratios=[1,1.8,3.24,1],omit=()=>false,cue=()=>false}={}){
  const model=api.create();
  for(let t=0;t<12000;t+=40){const phase=Math.floor(t/3000);api.receive(model,t,base*ratios[phase],{voiced:!omit(t,phase),onPitch:!omit(t,phase),cue:cue(t,phase)});}
@@ -59,7 +70,7 @@ test('Out-of-order and invalid times cannot change calibration or exceed the com
 });
 test('The graph shows all twelve seconds, the same personal target and a bounded current-time line without changing data',()=>{
  const m=sing(),text=[],strokes=[],lines=[];
- const ctx={setTransform(){},clearRect(){},fillRect(){},beginPath(){},moveTo(x,y){lines.push([x,y]);},lineTo(x,y){lines.push([x,y]);},stroke(){strokes.push(this.strokeStyle);},fillText(s){text.push(s);},save(){},rect(){},clip(){},restore(){},arc(){},fill(){}};
+ const ctx={setTransform(){},clearRect(){},fillRect(){},beginPath(){},closePath(){},moveTo(x,y){lines.push([x,y]);},lineTo(x,y){lines.push([x,y]);},stroke(){strokes.push(this.strokeStyle);},fillText(s){text.push(s);},save(){},rect(){},clip(){},restore(){},arc(){},fill(){}};
  const canvas={width:0,height:0,getBoundingClientRect:()=>({width:360,height:180}),getContext:()=>ctx};
  const snapshot=JSON.stringify(m),view=api.draw(canvas,m,12000,{dpr:3});
  assert.equal(canvas.width,720);assert.equal(canvas.height,360);assert.equal(view.cursor,352);assert.equal(view.points,300);
@@ -69,4 +80,30 @@ test('The graph shows all twelve seconds, the same personal target and a bounded
  canvas.getBoundingClientRect=()=>({width:300,height:42});
  assert.ok(api.draw(canvas,m,12000),'short landscape canvas must still draw its target and voice');
  canvas.getBoundingClientRect=()=>({width:0,height:0});assert.equal(api.draw(canvas,m,12000),null);
+});
+test('Seven distinct methods preserve an initial reference and exact complete-session duration',()=>{
+ assert.equal(Object.keys(api.PATTERNS).length,7);
+ const signatures=new Set();
+ for(const id of Object.keys(api.PATTERNS)){
+  const m=api.create({pattern:id});assert.equal(m.patternId,id);assert.equal(m.segments[0].start,0);assert.equal(m.segments[0].end,3000);assert.equal(m.segments.at(-1).end,12000);
+  for(let i=1;i<m.segments.length;i++)assert.equal(m.segments[i].start,m.segments[i-1].end);
+  signatures.add(JSON.stringify(m.segments.map(s=>[s.start,s.end,s.from,s.to])));
+ }
+ assert.equal(signatures.size,7);
+ for(const bad of ['__proto__','constructor','missing',null,undefined])assert.equal(api.create({pattern:bad}).patternId,'steps');
+});
+test('Every method grades its own time-varying targets accurately without changing the initial reference',()=>{
+ for(const id of Object.keys(api.PATTERNS)){
+  const m=api.create({pattern:id});
+  for(let t=0;t<12000;t+=40)api.receive(m,t,.0042*Math.pow(1.8,expectedLevel(id,t)));
+  const stats=api.metrics(m);assert.equal(stats.accuracy,100,id);assert.equal(m.baseline,.0042,id);assert.equal(m.locked,true);
+  assert.equal(stats.phaseMatchedMs.length,m.segments.length);assert.ok(stats.phaseMatchedMs.every((ms,i)=>ms>=stats.phaseDurations[i]*.8),id);
+ }
+});
+test('Crescendo, decrescendo and swell move continuously while alternating and accent methods retain their boundaries',()=>{
+ for(const [id,t,level]of [['crescendo',7500,1],['decrescendo',8500,1],['swell',5250,1],['swell',9750,1]]){
+  const m=api.create({pattern:id}),p=api.state(m,t);assert.ok(Math.abs(p.level-level)<1e-12,id);
+  assert.ok(Math.abs(api.state(m,t+1).level-p.level)<.001,id);
+ }
+ for(const [id,t]of [['alternating',5000],['accents',4500]]){const m=api.create({pattern:id});assert.equal(api.state(m,t-1).level,2);assert.equal(api.state(m,t).level,0);}
 });

@@ -43,6 +43,19 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
  for(let i=0;i<pixels.length;i+=4){if(pixels[i]===212&&pixels[i+1]===166&&pixels[i+2]===255||pixels[i]===239&&pixels[i+1]===180&&pixels[i+2]===255)voice++;if(pixels[i]===105&&pixels[i+1]===236&&pixels[i+2]===208||pixels[i]===131&&pixels[i+1]===245&&pixels[i+2]===214)goal++;}
  return {voice,goal};
  });}
+async function checkVolumeRange(page,id,valueId){
+ const input=page.locator('#'+id),original=await input.inputValue();
+ await input.focus();await input.press('Home');assert.equal(await input.inputValue(),'0',id+' keyboard minimum');
+ for(const value of [0,50,100]){
+  if(value===100)await input.press('End');
+  else await input.evaluate((el,n)=>{el.value=String(n);el.dispatchEvent(new Event('input',{bubbles:true}));},value);
+  await frames(page);
+  assert.equal((await page.locator('#'+valueId).textContent()).trim(),value+'%',id+' label');
+  const style=await input.evaluate(el=>({fill:el.style.getPropertyValue('--volume-fill'),left:getComputedStyle(el).paddingLeft,right:getComputedStyle(el).paddingRight}));
+  assert.equal(style.fill,value+'%',id+' fill must match its value');assert.equal(style.left,'0px',id+' start padding');assert.equal(style.right,'0px',id+' end padding');
+ }
+ return original;
+}
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  let browser;const report=[],errors=[];
@@ -134,7 +147,14 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
    for(const [id,value]of Object.entries(values))await page.locator('#'+id).selectOption(value);
    await page.locator('#guideSettingsSave').click();await frames(page);
   };
-  await choose(page,'practice');await page.locator('#mainButton').click();await phase('answer');
+  await choose(page,'practice');
+  await page.locator('#guideSettingsOpen').click();const guideVolume=await checkVolumeRange(page,'guideVolume','guideVolumeValue');
+  await page.screenshot({path:path.join(output,'portrait-guide-volume-100.png')});
+  await page.locator('#guideVolume').evaluate((el,n)=>{el.value=n;el.dispatchEvent(new Event('input',{bubbles:true}));},guideVolume);
+  await page.locator('#guideSettingsClose').click();
+  const pianoVolume=await checkVolumeRange(page,'pianoVolume','pianoVolumeValue');await page.screenshot({path:path.join(output,'portrait-piano-volume-100.png')});
+  await page.locator('#pianoVolume').evaluate((el,n)=>{el.value=n;el.dispatchEvent(new Event('input',{bubbles:true}));},pianoVolume);
+  await page.locator('#mainButton').click();await phase('answer');
   assert.match(await page.locator('#mainButton').textContent(),/중단/);
   await sendTone(page,261.625565);const pixels=await graphPixels(page,'guidePhraseGraph');
   assert.ok(pixels.voice>5,'unified practice voice missing');assert.ok(pixels.goal>5,'unified practice target missing');
@@ -235,6 +255,48 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
   await page.locator('#dynamicCueVolume').selectOption('45');await page.reload();await page.waitForSelector('#keyboard .white-key');
   await choose(page,'dynamicVoice');assert.equal(await page.locator('#dynamicCueVolume').inputValue(),'45','cue volume not restored');
   await page.locator('#dynamicCueVolume').selectOption('70');
+  const patterns=await page.evaluate(()=>Object.keys(window.VoiceLineDynamics.PATTERNS));assert.equal(patterns.length,7);
+  assert.equal(await page.locator('#dynamicPattern option').count(),7);
+  const patternReport=[];
+  for(const viewport of [viewports[0],viewports[2],viewports[3]]){
+   await page.setViewportSize(viewport);await frames(page);const keyboard=(await geometry(page)).keyboard;
+   for(const id of patterns){
+    await page.locator('#dynamicPattern').selectOption(id);await frames(page);
+    const g=await geometry(page);assert.deepEqual(g.keyboard,keyboard,id+' moved the keys');assert.equal(g.scroll,false,id+' scrolls');
+    assert.equal(await page.locator('#trainingOverlay').getAttribute('data-dynamic-pattern'),id);
+    assert.ok(g.canvas.height>=32,id+' graph is too short');assert.ok((await graphPixels(page,'trainingGraph')).goal>5,id+' target missing');
+    patternReport.push({viewport,pattern:id,...g});
+    if(viewport.width===390&&['crescendo','swell','alternating','steady'].includes(id))await page.screenshot({path:path.join(output,'portrait-dynamics-'+id+'.png')});
+   }
+  }
+  // A complete gradual exercise must succeed with its moving target, rather
+  // than being evaluated as the previous fixed four-step sequence.
+  await page.locator('#dynamicPattern').selectOption('crescendo');await page.locator('#mainButton').click();
+  await page.waitForFunction(()=>document.querySelector('#trainingOverlay').dataset.dynamicPhase==='soft',{},{timeout:6000});
+  assert.equal(await page.locator('#dynamicPattern').isDisabled(),true);
+  const crescendoRequest=await page.evaluate(()=>{
+   const start=performance.now(),request=window.__micRequest;
+   const send=()=>{
+    if(window.__micRequest!==request)return;
+    const elapsed=Math.max(0,performance.now()-start),level=elapsed<3000?0:Math.min(2,2*(elapsed-3000)/9000),amplitude=.08*Math.pow(1.8,level);
+    const pcm=new Int16Array(4096);for(let i=0;i<pcm.length;i++)pcm[i]=Math.round(amplitude*32767*Math.sin(2*Math.PI*261.625565*i/44100));
+    let raw='';for(const b of new Uint8Array(pcm.buffer))raw+=String.fromCharCode(b);
+    window.VoiceLineNativeAudio.onAudioChunk(btoa(raw),44100,request);
+   };
+   send();window.__dynamicSignal=setInterval(send,40);return request;
+  });
+  await page.waitForFunction(()=>document.querySelector('#trainingOverlay').dataset.dynamicPhase==='rise',{},{timeout:6000});
+  await page.waitForTimeout(1800);await page.setViewportSize(viewports[0]);await frames(page);
+  assert.equal(await page.evaluate(()=>window.__micRequest),crescendoRequest,'gradual dynamics rotation restarted capture');
+  assert.ok((await graphPixels(page,'trainingGraph')).voice>5,'gradual voice missing');
+  await page.screenshot({path:path.join(output,'portrait-dynamics-crescendo-live.png')});
+  await page.waitForFunction(()=>!document.querySelector('#trainingResultDialog').hidden,{},{timeout:10000});
+  await page.evaluate(()=>clearInterval(window.__dynamicSignal));assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공','gradual dynamics failed');
+  await page.locator('#trainingResultClose').click();await page.screenshot({path:path.join(output,'portrait-dynamics-crescendo-result.png')});
+  await page.locator('#dynamicPattern').selectOption('accents');await page.reload();await page.waitForSelector('#keyboard .white-key');
+  await choose(page,'dynamicVoice');assert.equal(await page.locator('#dynamicPattern').inputValue(),'accents','pattern selection was not restored');
+  await page.locator('#dynamicPattern').selectOption('steps');
+  fs.writeFileSync(path.join(output,'dynamics-patterns.json'),JSON.stringify(patternReport,null,2));
   const stored=await page.evaluate(()=>new Promise((resolve,reject)=>{
    const request=indexedDB.open('voiceline-local-v2',4);request.onerror=()=>reject(request.error);
    request.onsuccess=()=>{const db=request.result,tx=db.transaction(['events','recordings']),events=tx.objectStore('events').getAll(),recordings=tx.objectStore('recordings').getAll();tx.oncomplete=()=>{db.close();resolve({events:events.result.map(e=>({mode:e.mode,title:e.title})),recordings:recordings.result.length});};};
@@ -271,9 +333,10 @@ async function graphPixels(page,id='pitchGraph'){return page.locator('#'+id).eva
   await page.setViewportSize(viewports[3]);await frames(page);await choose(page,'warmupVoice');
   assert.equal(await page.locator('#trainingOverlay').isVisible(),true,'hidden graph removed breathing instructions');assert.equal(await page.locator('#graphToggle').isVisible(),false);
   await choose(page,'metronome');assert.equal(await page.locator('#keyboard').isVisible(),false);assert.equal(await page.locator('#metronomePanel').isVisible(),true);assert.equal(await page.locator('#graphToggle').isVisible(),false);
+  await checkVolumeRange(page,'metroVolume','metroVolumeValue');await page.screenshot({path:path.join(output,'landscape-metronome-volume-100.png')});
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
-  console.log('PASS: '+report.length+' mode/viewport layouts; full dynamics reference/target/voice exercise and score, stronger independent cue volume, hidden phase/countdown, rotation and retained result; graph toggles, unified practice, real pixels, single start/stop/cancel and recording save.');
+  console.log('PASS: '+report.length+' mode/viewport layouts and '+patternReport.length+' dynamics method previews; complete stepped and crescendo exercises, 0/50/100% volume endpoints, pattern persistence, hidden phase/countdown, rotation and retained results; graph toggles, unified practice, real pixels and recording save.');
  }catch(error){fs.writeFileSync(path.join(output,'failure.txt'),error.stack+'\n'+errors.join('\n'));fs.writeFileSync(path.join(output,'partial-geometry.json'),JSON.stringify(report,null,2));if(browser){const pages=browser.contexts().flatMap(c=>c.pages());if(pages[0])await pages[0].screenshot({path:path.join(output,'failure.png')}).catch(()=>{});}throw error;}
  finally{await browser?.close();server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

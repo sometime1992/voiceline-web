@@ -253,6 +253,7 @@
    $('metroMinus').disabled=settings.bpm<=20;$('metroPlus').disabled=settings.bpm>=300;
    $('metroInterval').textContent='한 박 '+beatSeconds(settings).toFixed(3)+'초 · 한 마디 '+(beatSeconds(settings)*settings.numerator).toFixed(2)+'초';
    $('metroVolumeValue').textContent=settings.volume+'%';
+   $('metroVolume').style?.setProperty?.('--volume-fill',settings.volume+'%');
    paintBeats();
    callbacks.onSettings?.(settings);
   }

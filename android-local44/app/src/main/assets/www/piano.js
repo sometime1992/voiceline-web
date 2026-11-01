@@ -66,7 +66,7 @@ const app={
   micGeneration:0,nativeRequestId:null,micStartPromise:null,micCancelResolve:null,backgrounded:false,
   micError:'',micStatusText:'마이크 꺼짐',busy:false,detected:null,lastAnalyze:0,notes:[],
   sessionStart:0,sessionLow:null,sessionHigh:null,sessionSamples:0,sessionMode:null,record:null,
-  training:null,trainingSettings:{root:60,sustainSeconds:8,earCount:4,rounds:2,dynamicCues:true,dynamicCueVolume:70},dynamicLastResult:null,
+  training:null,trainingSettings:{root:60,sustainSeconds:8,earCount:4,rounds:2,dynamicCues:true,dynamicCueVolume:70,dynamicPattern:'steps'},dynamicLastResult:null,
   trainingLastDraw:0,
   pitchGraphSamples:[],pitchGraphLast:0,pitchGraphFrozenAt:null,
   exercise:null,exercisePattern:'scale',exerciseRoot:60,exerciseSpeed:1800,exerciseRepeats:2,
@@ -280,7 +280,7 @@ function applyPianoVolume(level,save=true){
  const n=clamp(Math.round(Number(level)||0),0,100);
  app.pianoVolume=n;
  const slider=$('pianoVolume'),out=$('pianoVolumeValue');
- if(slider){slider.value=String(n);slider.setAttribute('aria-valuetext',n+'퍼센트');}
+ if(slider){slider.value=String(n);slider.setAttribute('aria-valuetext',n+'퍼센트');slider.style?.setProperty?.('--volume-fill',n+'%');}
  if(out)out.textContent=n+'%';
  try{if(save)localStorage.setItem(PIANO_VOLUME_KEY,String(n));}catch(_){/* optional preference */}
  try{window.VoiceLineToneEngine?.setVolume?.(n);}catch(e){console.warn('Piano volume engine',e);}
@@ -1676,6 +1676,16 @@ const DYNAMIC_STEPS=Object.freeze([
  {key:'softAgain',label:'다시 약하게',short:'약',hz:440}
 ]);
 function dynamicGuideState(session,now){
+ const api=window.VoiceLineDynamics;
+ if(api){
+  if(!session){const p=api.getPattern(app.trainingSettings?.dynamicPattern);return {key:'idle',step:-1,label:'시작 대기',seconds:'12초',next:p.tip,remaining:'12초'};}
+  if(session.dynamicModel){
+   const p=api.state(session.dynamicModel,now);
+   if(p.preparing)return {key:'ready',step:-1,label:'시작 준비',seconds:Math.ceil((session.start-now)/1000)+'초',next:'약하게 기준 잡기',remaining:Math.ceil(session.duration/1000)+'초'};
+   if(p.done)return {key:'done',step:-1,label:'훈련 완료',seconds:'0초',next:'편안하게 쉬세요',remaining:'0초'};
+   return {key:p.key,step:p.index,label:p.label,seconds:p.seconds+'초',next:p.next+' · '+p.seconds+'초 뒤',remaining:p.remaining+'초'};
+  }
+ }
  if(!session)return {key:'idle',step:-1,label:'시작 대기',seconds:'3초씩',next:'약 → 중 → 강 → 약',remaining:'12초'};
  const elapsed=now-session.start;
  if(elapsed<0)return {key:'ready',step:-1,label:'시작 준비',seconds:Math.ceil(-elapsed/1000)+'초',next:'약하게 시작',remaining:'12초'};
@@ -1691,6 +1701,13 @@ function updateDynamicGuide(session,now){
  const finished=session&&!session.active,feedback=finished?{text:session.completed?'마친 그래프를 확인하세요':'중단한 지점까지 표시합니다',match:'done'}:api?.feedback(model,now);
  $('trainingOverlay').setAttribute('data-dynamic-phase',state.key);
  const plan=$('dynamicGuide');
+ const patternId=model?.patternId||api?.patternId(app.trainingSettings?.dynamicPattern)||'steps';
+ $('trainingOverlay').setAttribute('data-dynamic-pattern',patternId);
+ if(api&&plan.dataset.patternId!==patternId){
+  const segments=model?.segments||api.timeline(patternId);
+  plan.innerHTML=segments.map(s=>'<span data-dynamic-step="'+s.key+'">'+s.short+'</span>').join('');
+  plan.setAttribute('aria-label',api.getPattern(patternId).tip);plan.dataset.patternId=patternId;
+ }
  for(const [index,node] of [...plan.querySelectorAll('[data-dynamic-step]')].entries()){
   node.classList.toggle('active',index===state.step);node.setAttribute('aria-current',index===state.step?'step':'false');
  }
@@ -1745,7 +1762,7 @@ function scheduleTrainingCues(session){
   session.trainingCueScheduled=true;
   const elapsed=performance.now()-session.start,base=ac.currentTime;
   try{
-   const stages=dynamic?DYNAMIC_STEPS.map((stage,index)=>({start:index*session.duration/4,end:(index+1)*session.duration/4,tones:[stage.hz]})):(session.warmupSteps||WARMUP_STEPS);
+   const stages=dynamic?(session.dynamicModel?session.dynamicModel.segments.map(s=>({start:s.start,end:s.end,tones:[s.from!==s.to?660:s.from>=2?880:s.from>=1?660:440]})):DYNAMIC_STEPS.map((stage,index)=>({start:index*session.duration/4,end:(index+1)*session.duration/4,tones:[stage.hz]}))):(session.warmupSteps||WARMUP_STEPS);
    const cycle=dynamic?session.duration:(session.warmupCycleMs||WARMUP_CYCLE_MS);
    for(let round=0;round<(dynamic?1:session.rounds);round++)for(const stage of stages){
     if(stage.end<=stage.start)continue;
@@ -1773,6 +1790,7 @@ function restoreTrainingSettings(){
   app.trainingSettings.warmup=normalizeWarmup(r.warmup);
   app.trainingSettings.dynamicCues=r.dynamicCues!==false;
   app.trainingSettings.dynamicCueVolume=dynamicCueVolume(r);
+  app.trainingSettings.dynamicPattern=window.VoiceLineDynamics?.patternId(r.dynamicPattern)||'steps';
   for(const [key,values] of Object.entries({root:null,sustainSeconds:[5,8,12],earCount:[3,4,5],rounds:[1,2,3]})){
    if(key==='root'){
     if(Number.isInteger(r[key])&&r[key]>=48&&r[key]<=84)app.trainingSettings[key]=r[key];
@@ -1797,6 +1815,14 @@ function trainingSelect(c,id,title,options,value,convert){
 function renderTrainingControls(c){
  if(app.mode==='practice'||app.mode==='guideVoice'){renderGuideControls(c);return;}
  const v=app.trainingSettings,notes=Array.from({length:37},(_,i)=>[48+i,noteLabel(48+i)]);
+ if(app.mode==='dynamicVoice'&&window.VoiceLineDynamics){
+  const api=window.VoiceLineDynamics,label=document.createElement('label');label.className='practice-setting dynamic-pattern-setting';label.textContent='연습 방법 ';
+  const select=document.createElement('select');select.id='dynamicPattern';select.setAttribute('aria-label','강약 연습 방법');
+  for(const [id,p]of Object.entries(api.PATTERNS)){const option=document.createElement('option');option.value=id;option.textContent=p.label;select.append(option);}
+  select.value=api.patternId(v.dynamicPattern);select.disabled=Boolean(app.training?.active);
+  select.onchange=()=>{if(app.training?.active)return;v.dynamicPattern=api.patternId(select.value);app.dynamicLastResult=null;saveTrainingSettings();renderTrainingOverlay(performance.now(),true);updateGraphHiddenStatus(performance.now(),true);};
+  label.append(select);c.append(label);
+ }
  if(['sustainVoice','earVoice','dynamicVoice'].includes(app.mode))
   trainingSelect(c,'trainingRoot','기준음',notes,v.root,'root');
  if(app.mode==='sustainVoice')trainingSelect(c,'trainingDuration','유지 시간',[[5,'5초'],[8,'8초'],[12,'12초']],v.sustainSeconds,'sustainSeconds');
@@ -1836,6 +1862,7 @@ function trainingPhase(session,ms){
  if(session.mode==='earVoice')return ms%4700<1500?'listen':'answer';
  if(session.mode==='warmupVoice')return warmupPhaseAt(ms,session).label;
  if(session.mode==='dynamicVoice'){
+  if(session.dynamicModel&&window.VoiceLineDynamics)return window.VoiceLineDynamics.state(session.dynamicModel,session.start+ms).phase;
   const q=ms/session.duration;
   return q<.25?'작게':q<.5?'조금 크게':q<.75?'가장 크게':'다시 작게';
  }
@@ -1854,7 +1881,7 @@ function newTrainingSession(mode,t,settings=app.trainingSettings){
   valid:0,good:0,rmsMax:0,
   low:null,high:null,lastSampleAt:null,
   phaseLevels:{},phaseCounts:{},phaseVoicedMs:{},history:[],referenceAt:-Infinity,referenceMidi:null};
- if(mode==='dynamicVoice'&&window.VoiceLineDynamics)session.dynamicModel=window.VoiceLineDynamics.create({start:session.start,duration});
+ if(mode==='dynamicVoice'&&window.VoiceLineDynamics)session.dynamicModel=window.VoiceLineDynamics.create({start:session.start,duration,pattern:settings.dynamicPattern});
  return session;
 }
 function startTraining(t){
@@ -1904,7 +1931,7 @@ function receiveTrainingSample(t,midi,rms){
   if(validMidi){a.valid++;a.voicedMs+=coverageDelta;}
   if(validMidi&&Math.abs(v-target)*100<=SCORE_RULES.dynamicTolerance){
    a.good++;
-   const phaseStart=a.start+Math.floor(elapsed/(a.duration/4))*(a.duration/4);
+   const phaseStart=a.dynamicModel?a.start+window.VoiceLineDynamics.state(a.dynamicModel,t).start:a.start+Math.floor(elapsed/(a.duration/4))*(a.duration/4);
    a.phaseVoicedMs[phase]=(a.phaseVoicedMs[phase]||0)+Math.min(coverageDelta,t-phaseStart);
    a.rmsMax=Math.max(a.rmsMax,level);
    // Relative dynamics only: no absolute dB SPL conclusions on phone mics.
@@ -1965,9 +1992,9 @@ function trainingEvaluation(a,completed){
   const ready=['작게','조금 크게','가장 크게','다시 작게'].every(x=>(a.phaseCounts[x]||0)>=3&&
    (a.phaseVoicedMs[x]||0)>=a.duration/4*SCORE_RULES.dynamicPhaseCoverage);
   const ratio=SCORE_RULES.dynamicRatio;
-  const shape=ready&&avg('조금 크게')>=avg('작게')*ratio&&avg('가장 크게')>=avg('조금 크게')*ratio&&avg('가장 크게')>=avg('다시 작게')*ratio;
   const guide=a.dynamicModel?window.VoiceLineDynamics.metrics(a.dynamicModel):null;
-  const eachTarget=!guide||guide.phaseMatchedMs.every(ms=>ms>=a.duration/4*SCORE_RULES.dynamicPhaseCoverage);
+  const eachTarget=!guide||guide.phaseMatchedMs.every((ms,i)=>ms>=guide.phaseDurations[i]*SCORE_RULES.dynamicPhaseCoverage);
+  const shape=guide?eachTarget:ready&&avg('조금 크게')>=avg('작게')*ratio&&avg('가장 크게')>=avg('조금 크게')*ratio&&avg('가장 크게')>=avg('다시 작게')*ratio;
   const matched=!guide||(guide.calibrated&&guide.accuracy>=SCORE_RULES.percent&&eachTarget);
   const passed=shape&&matched&&score>=SCORE_RULES.percent&&a.voicedMs>=SCORE_RULES.trainingCoverage*a.duration;
   return {status:passed?'성공':'미달성',kind:passed?'success':'failure',rule:dynamicRuleText(),
@@ -1982,8 +2009,8 @@ function trainingEvaluation(a,completed){
   reason:'일치율 '+(a.valid>=SCORE_RULES.minSamples?score+'%':'측정 부족')+' · 유효 발성 '+(covered/1000).toFixed(1)+'초'};
 }
 function dynamicRuleText(){
- return '첫 약 단계로 개인 기준 설정 · 목표 범위 일치 '+SCORE_RULES.percent+'% 이상 · 작게→중간→크게→작게 (단계 평균 음량비 '+SCORE_RULES.dynamicRatio+'배 이상) · 기준음 ±'+SCORE_RULES.dynamicTolerance+
-  'cent 일치율 '+SCORE_RULES.percent+'% 이상 · 유효 발성 '+Math.round(SCORE_RULES.trainingCoverage*12*10)/10+'초 이상 · 각 단계 목표 범위 안에서 '+(3*SCORE_RULES.dynamicPhaseCoverage).toFixed(2)+'초 이상';
+ return '첫 약 단계로 개인 기준 설정 · 선택한 방법의 목표 범위 일치 '+SCORE_RULES.percent+'% 이상 · 기준음 ±'+SCORE_RULES.dynamicTolerance+
+  'cent 일치율 '+SCORE_RULES.percent+'% 이상 · 유효 발성 '+Math.round(SCORE_RULES.trainingCoverage*12*10)/10+'초 이상 · 각 구간 길이의 '+Math.round(SCORE_RULES.dynamicPhaseCoverage*100)+'% 이상 목표 범위 안에서 발성';
 }
 function showTrainingResult(a,completed,detail){
  const dialog=$('trainingResultDialog');if(!dialog)return;
@@ -2005,7 +2032,7 @@ function trainingSummary(a,completed){
  const accuracy=a.valid>=SCORE_RULES.minSamples?Math.floor(a.good/a.valid*100+1e-9):null;
  if(a.mode==='sustainVoice')return '기준음 '+noteLabel(a.root)+' · '+(accuracy===null?'측정값 부족':accuracy+'% 안정 구간');
  if(a.mode==='earVoice')return a.earNotes.length+'음 청음 · '+(accuracy===null?'측정값 부족':accuracy+'% 근접 음정');
- if(a.mode==='dynamicVoice')return '기준음 '+noteLabel(a.root)+' · '+trainingEvaluation(a,true).reason;
+ if(a.mode==='dynamicVoice')return (window.VoiceLineDynamics?.getPattern(a.dynamicModel?.patternId).label||'강약 연습')+' · 기준음 '+noteLabel(a.root)+' · '+trainingEvaluation(a,true).reason;
  return Math.floor(Math.max(0,Math.min(a.duration,performance.now()-a.start))/(a.warmupCycleMs||WARMUP_CYCLE_MS))+'세트 수행 · 안내형 워밍업';
 }
 function finishTraining(completed){
@@ -2062,7 +2089,7 @@ function renderTrainingOverlay(now=performance.now(),force=false){
    a.valid?Math.floor(100*a.good/a.valid+1e-9)+'%':'측정 중'):'—';
  $('trainingMetric3').textContent=a&&a.low!==null?noteLabel(a.low)+' ~ '+noteLabel(a.high):'—';
  $('trainingMetric4').textContent=a?Math.max(0,Math.ceil((a.duration-Math.max(0,now-a.start))/1000))+'초':'—';
- if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){window.VoiceLineDynamics.draw(canvas,a?.dynamicModel??null,viewNow);return;}}
+ if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){const model=a?.dynamicModel||window.VoiceLineDynamics.create({start:viewNow,pattern:app.trainingSettings.dynamicPattern});window.VoiceLineDynamics.draw(canvas,model,viewNow);return;}}
  if(!rect.width||!rect.height)return;
  const dpr=Math.min(window.devicePixelRatio||1,2),w=rect.width,h=rect.height;
  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){
@@ -2148,6 +2175,7 @@ function updateGuidePlan(){
  $('guideShift').disabled=p.infinite;if(p.infinite)$('guideShift').value='0';
  $('guideToleranceSelect').disabled=p.smooth;$('guideSmoothTolerance').hidden=!p.smooth;$('guideSmoothTolerance').disabled=!p.smooth;$('guideToleranceSelect').value=String(p.tolerance);
  $('guideVolumeValue').textContent=$('guideVolume').value+'%';
+ $('guideVolume').style?.setProperty?.('--volume-fill',$('guideVolume').value+'%');
  $('guidePlanInfo').textContent='음역 '+noteLabel(Math.min(...steps))+' ~ '+noteLabel(Math.max(...steps))+
   ' · '+(p.smooth?'연속 왕복 12초':'한 음 '+(p.noteMs/1000).toFixed(1)+'초')+
   ' · '+(p.infinite?'같은 음역으로 계속 반복':'총 '+Math.ceil((p.duration+(p.settings.listenFirst?1800:3000))/1000)+'초')+
@@ -2766,7 +2794,7 @@ const MODE_GUIDES={
   rule:'듣기·준비·쉬기는 채점하지 않습니다. 일반 패턴은 음마다 처음 0.1초를 제외하고 ±35·50·75cent, 연속 패턴은 응답 처음 0.1초만 제외하고 ±110cent로 측정합니다. 성공은 일치율 65% 이상, 전체 발성 40% 이상, 각 음(연속은 올리기·내리기 각 절반의 4구간) 20% 이상 발성, 측정 12개 이상이 필요합니다. 부족하면 측정 부족으로 표시하고 결과는 연습 기록에만 저장합니다.'},
  sustainVoice:{intro:'하나의 목표음을 안정적으로 유지하는 연습입니다.',steps:['시작음과 5·8·12초 유지 시간을 선택합니다.','기준음을 짧게 들은 뒤 편안하게 같은 음을 유지합니다.','음높이 그래프와 목표 음정 일치율을 확인합니다.'],rule:'기준음 ±35cent 일치율 65% 이상과 충분한 유효 발성 시간이 있어야 성공입니다.'},
  earVoice:{intro:'피아노 음을 귀로 듣고 같은 높이로 따라 부르는 청음 연습입니다.',steps:['먼저 1.5초 동안 정답 건반을 숨긴 채 피아노 음을 듣습니다.','이어지는 약 3.2초 동안 목표 건반이 민트색으로 표시되면 그 음을 따라 부릅니다.','한 회차에 3·4·5개 음을 선택할 수 있습니다.'],rule:'목표음 ±35cent 일치율 65% 이상과 답변 단계의 충분한 유효 발성 시간이 필요합니다.'},
- dynamicVoice:{intro:'같은 음정을 유지하면서 민트색 목표 범위와 보라색 내 목소리를 비교합니다.',steps:['준비 시간에 기준음을 듣고 같은 음높이로 시작합니다.','약하게 3초 → 중간 3초 → 강하게 3초 → 다시 약하게 3초 순서입니다. 첫 약 단계의 목소리로 내 기준을 자동 설정합니다.','그래프의 가로축은 12초 전체 시간, 세로축은 상대 소리 크기입니다. 민트색 선·음영은 목표이고 보라색 선은 내 목소리입니다. 노란 세로선이 현재 위치입니다.','약 단계가 끝나면 그래프 기준은 고정됩니다. 조금 더 크게/작게 안내와 다음 단계·남은 시간을 보며 같은 음높이를 유지하세요.','안내음 크기는 끄기·작게·보통·크게에서 고르고 안내음 듣기로 미리 확인합니다. 피아노 음량과 별도로 적용됩니다. 안내음 구간은 기준 설정과 채점에서 제외됩니다.','그래프를 숨겨도 단계·남은 시간 안내와 측정·채점은 계속됩니다. 훈련이 끝나면 전체 그래프를 다시 확인할 수 있습니다.','휴대폰과 입 사이 거리를 고정하고 편안한 범위에서 발성하세요. 첫 약 단계에서 기준을 잡지 못하면 다시 시작합니다.'],rule:dynamicRuleText()+' (12개 이상 감지). 상대 음량만 비교하며 절대 데시벨이나 성대 상태는 측정하지 않습니다.'},
+ dynamicVoice:{intro:'같은 음정을 유지하면서 선택한 강약 패턴의 민트색 목표와 보라색 내 목소리를 비교합니다.',steps:['연습 방법에서 기본 4단계·점점 크게·점점 작게·커졌다 작아지기·강약 반복·일정하게 유지·짧게 강조 중 하나를 선택합니다.','모든 방법은 먼저 약하게 3초 동안 내 소리 기준을 잡습니다. 현재 음이 표시되는 크기로 같은 음높이를 유지하세요.','점점 크게/작게는 기울어진 목표선을 부드럽게 따라갑니다. 강약 반복과 짧게 강조는 단계가 바뀌는 시점에 소리 크기를 바꿉니다. 일정하게 유지는 기준 설정 후 중간 크기를 유지합니다.','그래프의 가로축은 전체 12초, 세로축은 상대 소리 크기입니다. 민트색 선·음영이 목표이고 보라색은 내 목소리입니다. 노란 세로선은 현재 위치입니다.','약 단계가 끝나면 기준은 고정됩니다. 현재 단계·남은 시간·다음 단계와 조금 더 크게/작게 안내를 확인하세요.','안내음 크기를 고르고 옆의 ▶로 미리 들을 수 있습니다. 안내음 구간은 기준 설정과 채점에서 제외합니다.','그래프를 숨기거나 화면을 회전해도 선택한 패턴과 측정·채점은 유지됩니다. 완료한 그래프를 다시 확인할 수 있습니다.','휴대폰과 입 사이 거리를 고정하고 편안한 범위에서 발성하세요. 처음 약 단계에서 기준을 잡지 못하면 다시 시작합니다.'],rule:dynamicRuleText()+' (12개 이상 감지). 상대 음량만 비교하며 절대 데시벨이나 성대 상태는 측정하지 않습니다.'},
  warmupVoice:{intro:'허밍을 시작할 시점을 화면과 안내음으로 알려주는 호흡·허밍 타이머입니다.',steps:['기본은 4초 들이쉬기 → 6초 내쉬기 → 6초 허밍 → 3초 쉬기입니다. 시간·안내음에서 단계별 초와 소리를 바꿀 수 있습니다. 허밍은 내쉬기를 마친 다음 시작합니다.', '초록색 「지금 허밍하세요」와 딩딩 두 번의 높은 소리가 나오면 입을 가볍게 다물고 편안하게 「음~」 하세요. 설정한 허밍 시간이 지나면 다음 단계 안내에 맞춰 허밍을 멈춥니다. 쉬기 0초는 생략합니다.', '화면에 현재 단계, 남은 초, 다음 단계와 순서가 표시됩니다. 다른 단계는 짧은 안내음 한 번으로 구분합니다. 소리가 나지 않아도 화면 안내로 진행할 수 있습니다.', '원하는 세트 수를 선택합니다. 설정한 쉬기 시간 후 다음 세트의 들이쉬기가 시작되며, 중단하거나 앱을 벗어나면 남은 안내음도 취소합니다.'],rule:'이 기능은 안내형 타이머이며 실제 호흡량이나 발성 건강을 판단하지 않습니다. 통증이나 어지러움이 있다면 중단하세요.'}
 };
 let modeGuideReturnFocus=false;
@@ -3228,7 +3256,7 @@ function graphPanelId(){
 function graphHiddenSummary(now){
  const a=app.training;
  if(app.mode==='dynamicVoice'){
-  const session=a||app.dynamicLastResult;if(!session)return '약 → 중 → 강 → 약 · 각 3초';
+  const session=a||app.dynamicLastResult;if(!session)return window.VoiceLineDynamics?.getPattern(app.trainingSettings?.dynamicPattern).tip||'약 → 중 → 강 → 약 · 각 3초';
   if(!session.active)return session.completed?'강약 훈련 완료 · 그래프 보기로 결과 확인':'강약 훈련 중단';
   const state=dynamicGuideState(session,now),feedback=window.VoiceLineDynamics?.feedback(session.dynamicModel,now);
   return state.label+' '+state.seconds+' · '+(feedback?.text||state.next);
