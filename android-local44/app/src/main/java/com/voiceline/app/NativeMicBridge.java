@@ -136,6 +136,11 @@ public final class NativeMicBridge {
     }
     private void startNative(String id) {
         if(disposed||!foreground||!wantsCapture||!id.equals(requestedId))return;
+        // Recheck at the allocation boundary: the permission callback can race
+        // with a settings change or permission revocation.
+        if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED) {
+            cancelRequest(false);dispatch("denied","마이크 권한이 해제되었습니다. 권한을 다시 허용한 뒤 시작해 주세요.",id,0);return;
+        }
         AudioRecord input=null;
         try {
             int rate=44100;

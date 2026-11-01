@@ -1364,7 +1364,7 @@ function renderVibratoOverlay(now=performance.now(),force=false){
  $('vibratoCenter').textContent=data?(data.centerOffsetCents>0?'+':'')+Math.round(data.centerOffsetCents)+' ¢':'—';
  $('vibratoDepth').textContent=data?'±'+Math.round(data.depthCents)+' ¢':'—';
  $('vibratoRate').textContent=data?.rate!==null&&data?' '+data.rate.toFixed(1)+' Hz':'—';
- $('vibratoRegularity').textContent=data?.regularity||'측정 중';
+ $('vibratoRegularity').textContent=preparation&&preparation.key!=='begin'?'준비':data?.regularity||'측정 중';
  $('vibratoGraphStatus').textContent=feedback.label;
 }
 // Keep pattern configurations data-driven to avoid duplicated option/step rules.
@@ -2133,12 +2133,13 @@ function renderTrainingOverlay(now=performance.now(),force=false){
   a.mode==='earVoice'?(trainingPhase(a,Math.max(0,now-a.start))==='answer'?'민트색 목표 건반을 보고 발성':'정답 숨김 · 기준음 듣기'):
   (Number.isFinite(a.target)?'목표 '+noteLabel(a.target)+' · ':'')+'최근 6초 · 실시간 음정'):'훈련 시작을 누르세요';
  const last=a?.history?.length?a.history[a.history.length-1]:null;
+ const preparation=vocalPreparationState(a,now);
  $('trainingMetric1').textContent=a?(Number.isFinite(last?.midi)?noteLabel(Math.round(last.midi)):'—'):'—';
- $('trainingMetric2').textContent=a?(a.mode==='dynamicVoice'?Math.round(last?.rms*1000||0)+'m':
+ $('trainingMetric2').textContent=preparation&&preparation.key!=='begin'?'준비':a?(a.mode==='dynamicVoice'?Math.round(last?.rms*1000||0)+'m':
    a.valid?Math.floor(100*a.good/a.valid+1e-9)+'%':'측정 중'):'—';
  $('trainingMetric3').textContent=a&&a.low!==null?noteLabel(a.low)+' ~ '+noteLabel(a.high):'—';
  $('trainingMetric4').textContent=a?Math.max(0,Math.ceil((a.duration-Math.max(0,now-a.start))/1000))+'초':'—';
- const preparation=vocalPreparationState(a,now);if(preparation)$('trainingInfo').textContent=preparation.title+' · '+preparation.seconds+'초 · '+preparation.hint;
+ if(preparation)$('trainingInfo').textContent=preparation.title+' · '+preparation.seconds+'초 · '+preparation.hint;
  if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){const model=a?.dynamicModel||window.VoiceLineDynamics.create({start:viewNow,duration:dynamicSeconds()*1000,pattern:app.trainingSettings.dynamicPattern});$('dynamicLegend').querySelector('small').textContent='상대 소리 크기 · '+model.duration/1000+'초';window.VoiceLineDynamics.draw(canvas,model,viewNow);return;}}
  if(!rect.width||!rect.height)return;
  const dpr=Math.min(window.devicePixelRatio||1,2),w=rect.width,h=rect.height;

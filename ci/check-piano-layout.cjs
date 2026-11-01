@@ -198,6 +198,7 @@ async function checkVolumeRange(page,id,valueId){
     const id=mode==='vibrato'?'vibratoPreparation':'trainingPreparation';
     await page.waitForFunction(id=>{const e=document.getElementById(id);return !e.hidden&&e.dataset.phase==='inhale';},id,{timeout:6500});
     assert.match(await page.locator('#'+id).textContent(),/숨을 들이쉬세요/);
+    assert.equal(await page.locator(mode==='vibrato'?'#vibratoRegularity':'#trainingMetric2').textContent(),'준비',mode+' must not show grading during inhale');
     await page.screenshot({path:path.join(output,'landscape-'+mode+'-inhale.png')});
    }
    if(mode==='record'){

@@ -45,6 +45,11 @@ module.exports={
      bridge.resumeFromActivity();check(AudioRecord.created==1,"resume restarted capture without a new request");
      bridge.start("4");check(AudioRecord.created==2,"new request after resume failed");bridge.dispose();
      bridge.start("5");check(AudioRecord.created==2,"disposed bridge accepted start");
+     Activity revoked=new Activity();WebView revokedWeb=new WebView();NativeMicBridge revokedBridge=new NativeMicBridge(revoked,revokedWeb);
+     revokedBridge.start("6");check(revokedBridge.isPermissionPending(),"revoked request did not await permission");
+     revokedBridge.onPermissionResult(true);check(AudioRecord.created==2,"stale granted callback bypassed revoked permission");
+     check(revokedWeb.scripts.stream().anyMatch(s->s.contains("onState(\\\"denied\\\"")),"revoked permission was not reported as denied");
+     revokedBridge.dispose();
      // Emulate delayed UI delivery while the capture thread writes the final read.
      Activity fileActivity=new Activity();fileActivity.allowed=true;WebView fileWeb=new WebView();NativeMicBridge fileBridge=new NativeMicBridge(fileActivity,fileWeb);
      fileBridge.start("20");String begun=fileBridge.beginRecording("20","tail-test");check(begun.contains("startFrame"),"file did not begin");
