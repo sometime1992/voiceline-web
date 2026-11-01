@@ -59,3 +59,11 @@ VoiceLine은 내 목소리의 음높이를 보면서 피아노 기준음을 듣�
 - 전화기·태블릿 등 지원할 기기 유형에 맞는 규격과 개수를 콘솔에서 확인합니다.
 
 [공식 소개 문구 규격](https://support.google.com/googleplay/android-developer/answer/9859152?hl=ko) · [공식 이미지 규격](https://support.google.com/googleplay/android-developer/answer/9866151?hl=ko)
+
+
+## Local58 추가 소개
+
+나의 루틴과 직접 시간 설정
+• 원하는 연습을 순서대로 추가해 여러 루틴을 저장하고, 순서를 바꾸거나 삭제할 수 있습니다.
+• 단계마다 기준음과 시간을 정하고 루틴 전체를 횟수 지정 또는 무한 반복합니다.
+• 기능별 시간·반복 설정에서 초 단위 값을 직접 입력하고, 강약 조절은 단계별 시간도 조절합니다.

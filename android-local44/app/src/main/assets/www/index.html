@@ -12,12 +12,15 @@
 <link rel="stylesheet" href="recording-tools.css">
 <link rel="stylesheet" href="guide-training.css">
 <link rel="stylesheet" href="responsive-layout.css">
+<link rel="stylesheet" href="practice-plans.css">
 <script src="vendor/tone-piano.js" defer></script>
 <script src="metronome.js" defer></script>
 <script src="recording-tools.js" defer></script>
 <script src="guide-training.js" defer></script>
 <script src="dynamic-training.js" defer></script>
 <script src="privacy-policy.js" defer></script>
+<script src="practice-plans.js" defer></script>
+<script src="practice-plans-ui.js" defer></script>
 <script src="piano.js" defer></script>
 </head>
 <body>
@@ -109,7 +112,7 @@
     </section>
     <section id="vibratoOverlay" class="vibrato-overlay" aria-label="비브라토 실시간 음높이 분석" hidden>
       <div class="vibrato-graph-pane">
-        <div class="vibrato-overlay-header"><strong>비브라토 · 음높이 변화</strong><span id="vibratoTargetLabel">기준음 C4 · 2옥 도 · 최근 3초</span></div>
+        <div class="vibrato-overlay-header"><strong>비브라토 · 음높이 변화</strong><span id="vibratoTargetLabel">기준음 C3 · 1옥 도 · 최근 3초</span></div>
         <div id="vibratoFeedback" class="vibrato-feedback" role="status" aria-live="polite">마이크를 켜고 소리를 내보세요</div>
         <div id="vibratoPreparation" class="vocal-preparation" hidden><span data-prep-title></span><strong data-prep-count></strong><small data-prep-hint></small><span data-prep-announcement class="warmup-announcement" role="status" aria-live="polite"></span></div>
         <canvas id="vibratoGraph" aria-label="가로축은 시간, 세로축은 기준음 대비 센트 차이입니다. 기준 음정 선과 실시간 발성 곡선을 표시합니다."></canvas>
@@ -202,17 +205,17 @@
   </div>
   <p id="guidePlanInfo" class="guide-settings-note"></p>
   <p id="guideMethodInfo" class="guide-settings-note"></p>
-  <div class="guide-settings-actions"><button type="button" id="guideSettingsReset">기본값</button><button type="button" id="guideSettingsSave">설정 저장</button></div>
+  <div class="guide-settings-actions"><button type="button" id="guideCustomTiming">시간 직접 입력</button><button type="button" id="guideSettingsReset">기본값</button><button type="button" id="guideSettingsSave">설정 저장</button></div>
  </section>
 </div>
 <div id="warmupSettingsDialog" class="modal-backdrop warmup-settings-backdrop" hidden>
  <section class="modal warmup-settings-modal" role="dialog" aria-modal="true" aria-labelledby="warmupSettingsTitle">
   <div class="modal-heading"><h2 id="warmupSettingsTitle">호흡·허밍 설정</h2><button type="button" id="warmupSettingsClose" class="close-btn" aria-label="워밍업 설정 닫기">✕</button></div>
   <div class="warmup-settings-fields">
-   <label for="warmupInhale">들이쉬기 (초)<input id="warmupInhale" type="number" min="1" max="30" value="4" inputmode="numeric"></label>
-   <label for="warmupExhale">내쉬기 (초)<input id="warmupExhale" type="number" min="1" max="30" value="6" inputmode="numeric"></label>
-   <label for="warmupHum">허밍 (초)<input id="warmupHum" type="number" min="1" max="30" value="6" inputmode="numeric"></label>
-   <label for="warmupRest">쉬기 (초)<input id="warmupRest" type="number" min="0" max="30" value="3" inputmode="numeric"></label>
+   <label for="warmupInhale">들이쉬기 (초)<input id="warmupInhale" type="number" min="1" max="120" step="0.1" value="4" inputmode="numeric"></label>
+   <label for="warmupExhale">내쉬기 (초)<input id="warmupExhale" type="number" min="1" max="120" step="0.1" value="6" inputmode="numeric"></label>
+   <label for="warmupHum">허밍 (초)<input id="warmupHum" type="number" min="1" max="120" step="0.1" value="6" inputmode="numeric"></label>
+   <label for="warmupRest">쉬기 (초)<input id="warmupRest" type="number" min="0" max="120" step="0.1" value="3" inputmode="numeric"></label>
   </div>
   <label class="warmup-cue-option"><input id="warmupCues" type="checkbox" checked> 단계 안내음 켜기</label>
   <p id="warmupSettingsStatus" class="record-tools-info" role="status">기본값: 4초 → 6초 → 6초 → 3초</p>

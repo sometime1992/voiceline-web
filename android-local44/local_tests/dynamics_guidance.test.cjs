@@ -143,8 +143,9 @@ test('Every ear note has an ungraded inhale without revealing its target before 
  }
  assert.equal(s.valid,s.earNotes.length*2);assert.equal(s.answerVoicedMs,s.earNotes.length*80);
 });
-test('Only supported durations restore and an active session keeps its captured length',()=>{
- const h=fixture();for(const value of [null,0,9,NaN,Infinity,'bad'])assert.equal(h.dynamicSeconds({dynamicSeconds:value}),12);
+test('Custom durations restore and an active session keeps its captured length',()=>{
+ const h=fixture();for(const value of [null,0,NaN,Infinity,'bad'])assert.equal(h.dynamicSeconds({dynamicSeconds:value}),12);
+ assert.equal(h.dynamicSeconds({dynamicSeconds:9.5}),9.5);
  const s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicSeconds:24});
  h.app.trainingSettings.dynamicSeconds=8;assert.equal(s.duration,24000);assert.equal(s.dynamicModel.duration,24000);
 });

@@ -29,7 +29,7 @@ test('Unified saved preferences take precedence and old slide-only preferences m
 test('Direct practice has a real three-second countdown and starts at the first target',()=>{
  const s=session();assert.equal(s.start,3000);assert.equal(guide.position(s,s.start).phase,'answer');
  for(const [t,count]of [[0,3],[999,3],[1000,2],[1999,2],[2000,1],[2999,1]]){
-  const cue=guide.startCue(s,t);assert.equal(cue.visible,true);assert.equal(cue.count,count);assert.equal(cue.firstMidi,60);
+  const cue=guide.startCue(s,t);assert.equal(cue.visible,true);assert.equal(cue.count,count);assert.equal(cue.firstMidi,48);
   guide.receive(s,t,60);
  }
  assert.equal(s.valid,0);assert.equal(s.voicedMs,0);assert.equal(guide.startCue(s,3000).starting,true);

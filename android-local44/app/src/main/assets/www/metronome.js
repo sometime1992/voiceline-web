@@ -257,13 +257,13 @@
    paintBeats();
    callbacks.onSettings?.(settings);
   }
-  function update(patch){
+  function update(patch,persistChange=true){
    const next=normalize({...settings,...patch}),issue=timingIssue(next);
    if(issue){$('metroSettingNotice').textContent=issue;callbacks.onError?.(issue);paint();return false;}
    const changedRhythm=rhythmKey(settings)!==rhythmKey(next);
    settings=next;if(changedRhythm){pageIndex=0;pagePinned=false;}
    scheduler.configure(settings);if(settings.volume>0)lastAudibleVolume=settings.volume;
-   $('metroSettingNotice').textContent='';persist();paint();return true;
+   $('metroSettingNotice').textContent='';if(persistChange)persist();paint();return true;
   }
   for(const preset of PRESETS){const option=document.createElement('option');option.value=preset;option.textContent=preset;$('metroPreset').append(option);}
   const custom=document.createElement('option');custom.value='custom';custom.textContent='직접 설정';$('metroPreset').append(custom);
@@ -293,7 +293,7 @@
   $('metroVolume').onchange=()=>update({volume:Number($('metroVolume').value),muted:false});
   $('metroSound').onchange=()=>update({sound:$('metroSound').value});
   $('metroMuteQuick').onclick=()=>update(settings.muted||settings.volume===0?{muted:false,volume:settings.volume||lastAudibleVolume}:{muted:true});
-  $('metroToggle').onclick=()=>scheduler.toggle();
+  $('metroToggle').onclick=()=>callbacks.onToggle?callbacks.onToggle():scheduler.toggle();
   $('metroApplyGroups').onclick=()=>{
    const accents=grouping($('metroGroups').value,settings.numerator);
    if(!accents){$('metroGroupMessage').textContent='합계가 '+settings.numerator+'인 묶음을 입력하세요. 예: 7박 = 2+2+3';return;}
@@ -350,7 +350,7 @@
   };
   if(root.ResizeObserver)new root.ResizeObserver(reflowBeats).observe($('metroBeats'));
   else root.addEventListener?.('resize',reflowBeats);
-  paint();paintPresets();return {toggle:()=>scheduler.toggle(),cancelHolds,stop:()=>{cancelHolds();scheduler.stop();},get running(){return scheduler.running;},get starting(){return scheduler.starting;},get settings(){return settings;}};
+  paint();paintPresets();return {applySettings:value=>update(value,false),toggle:()=>scheduler.toggle(),cancelHolds,stop:()=>{cancelHolds();scheduler.stop();},get running(){return scheduler.running;},get starting(){return scheduler.starting;},get settings(){return settings;}};
  }
  const api={normalize,beatSeconds,grouping,defaults,beatPage,timingIssue,soundProfile,parsePresets,bindRepeatButton,MAX_PRESETS,MAX_PULSE_RATE,PRESETS,DENOMINATORS,SUBDIVISIONS,Scheduler,mount};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.VoiceLineMetronome=api;

@@ -31,18 +31,20 @@
  });
  for(const p of Object.values(PATTERNS)){Object.freeze(p.steps);Object.freeze(p);}
  const SOUNDS=Object.freeze({piano:'피아노',hum:'부드러운 허밍 톤',vowel:'밝은 모음 톤'});
- const DEFAULTS=Object.freeze({pattern:'five',root:60,bpm:80,noteSeconds:0,rounds:3,shift:1,sound:'piano',volume:70,tolerance:50,listenFirst:true});
+ const DEFAULTS=Object.freeze({pattern:'five',root:48,bpm:80,noteSeconds:0,rounds:3,shift:1,sound:'piano',volume:70,tolerance:50,listenFirst:true,prepareSeconds:1.8,breathSeconds:3,restSeconds:3,smoothSeconds:12});
  const PRACTICE_DEFAULTS=Object.freeze({...DEFAULTS,noteSeconds:1.8,rounds:2,shift:0,tolerance:35,listenFirst:false});
  const LEGACY_PATTERNS=Object.freeze({scale:'five',triad:'triad',sustain:'hold',down:'down',scaleUp:'octaveUp',pentatonic:'pentatonic',chromatic:'chromatic',majorThird:'thirds',fifth:'fifth',octave:'octave',arpeggio:'arpeggio',minor:'minor',returnToRoot:'return'});
  const TIMING=Object.freeze({prepare:1800,handoff:3000,rest:3000});
  const number=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==''&&value!==null?clamp(Math.round(Number(value)),min,max):fallback;
+ const seconds=(v,d,min,max)=>v!==''&&v!==null&&v!==undefined&&Number.isFinite(Number(v))?Math.round(clamp(Number(v),min,max)*10)/10:d;
  function normalize(value={}){
   if(!value||typeof value!=='object')value={};
   const pattern=Object.hasOwn(PATTERNS,value.pattern)?value.pattern:DEFAULTS.pattern;
   const entry=PATTERNS[pattern],max=entry.span?0:Math.max(...entry.steps);
   return {pattern,root:number(value.root,DEFAULTS.root,36,94-max),bpm:number(value.bpm,DEFAULTS.bpm,50,120),
-   noteSeconds:[0,1.2,1.8,2,2.8,3,4].includes(Number(value.noteSeconds))?Number(value.noteSeconds):0,
-   rounds:value.rounds===0||value.rounds==='0'?0:number(value.rounds,DEFAULTS.rounds,1,5),
+   noteSeconds:value.noteSeconds!==''&&Number.isFinite(Number(value.noteSeconds))?Math.round(clamp(Number(value.noteSeconds),0,60)*10)/10:0,
+   prepareSeconds:seconds(value.prepareSeconds,1.8,0,120),breathSeconds:seconds(value.breathSeconds,3,0,120),restSeconds:seconds(value.restSeconds,3,0,120),smoothSeconds:seconds(value.smoothSeconds,12,1,300),
+   rounds:value.rounds===0||value.rounds==='0'?0:number(value.rounds,DEFAULTS.rounds,1,99),
    shift:value.rounds===0||value.rounds==='0'?0:[-1,0,1].includes(Number(value.shift))?Number(value.shift):DEFAULTS.shift,
    listenFirst:value.listenFirst!==false,
    sound:Object.hasOwn(SOUNDS,value.sound)?value.sound:DEFAULTS.sound,
@@ -72,7 +74,7 @@
   const direction=entry.span&&settings.root+entry.span>94?-1:1;
   const pattern=direction<0?{...entry,steps:entry.steps.map(offset=>-offset),
    tip:entry.smooth?'높은 시작음에서는 아래로 6초 내린 뒤 6초 동안 시작음으로 돌아옵니다.':'높은 시작음에서는 범위 안에서 반음씩 아래로 왕복합니다.'}:entry;
-  const smooth=Boolean(pattern.smooth),noteMs=smooth?3000:settings.noteSeconds?settings.noteSeconds*1000:60000/settings.bpm;
+  const smooth=Boolean(pattern.smooth),noteMs=smooth?settings.smoothSeconds*250:settings.noteSeconds?settings.noteSeconds*1000:60000/settings.bpm;
   const roots=[];
   const infinite=settings.rounds===0;
   for(let i=0;i<(infinite?1:settings.rounds);i++){
@@ -80,17 +82,17 @@
    if(pattern.steps.some(offset=>root+offset<36||root+offset>94))break;
    roots.push(root);
   }
-  const phraseMs=smooth?12000:pattern.steps.length*noteMs;
-  const cycleMs=phraseMs+(settings.listenFirst?phraseMs+TIMING.handoff:0)+TIMING.rest;
+  const phraseMs=smooth?settings.smoothSeconds*1000:pattern.steps.length*noteMs;
+  const cycleMs=phraseMs+(settings.listenFirst?phraseMs+settings.breathSeconds*1000:0)+settings.restSeconds*1000;
   const attackMs=!settings.listenFirst&&!smooth?Math.min(280,noteMs*.35):100;
   const responsePerRound=smooth?phraseMs-attackMs:pattern.steps.length*(noteMs-attackMs);
-  return {settings,pattern,smooth,direction,infinite,attackMs,responsePerRound,tolerance:smooth?110:settings.tolerance,noteMs,phraseMs,cycleMs,handoffMs:TIMING.handoff,roots,rounds:roots.length,
+  return {settings,pattern,smooth,direction,infinite,attackMs,responsePerRound,tolerance:smooth?110:settings.tolerance,noteMs,phraseMs,cycleMs,handoffMs:settings.breathSeconds*1000,roots,rounds:roots.length,
    duration:infinite?Infinity:cycleMs*roots.length,limited:!infinite&&roots.length<settings.rounds,
    responseMs:roots.length*responsePerRound};
  }
  function create(value,t){
   const p=plan(value);
-  return {mode:'guideVoice',active:true,...p,start:t+(p.settings.listenFirst?TIMING.prepare:TIMING.handoff),root:p.settings.root,target:null,
+  return {mode:'guideVoice',active:true,...p,start:t+(p.settings.listenFirst?p.settings.prepareSeconds:p.settings.breathSeconds)*1000,root:p.settings.root,target:null,
    binRound:0,completedEach:true,
    bins:p.roots.map(root=>(p.smooth?[0,1,2,3]:p.pattern.steps).map((offset,i)=>({
     midi:root+(p.smooth?p.pattern.steps[1]*triangle((i+.5)/4):offset),
@@ -123,7 +125,7 @@
   const nextRound=!s.settings.listenFirst&&p.phase==='rest'&&(s.infinite||p.round+1<s.rounds);
   const visible=p.phase==='handoff'||ready||starting||nextRound;
   const until=ready?p.remaining:nextRound?s.start+(p.round+1)*s.cycleMs-t:p.answerIn;
-  return {visible,phase:p.phase,count:p.phase==='handoff'||ready||nextRound?clamp(Math.ceil(until/1000),1,3):0,
+  return {visible,phase:p.phase,count:p.phase==='handoff'||ready||nextRound?Math.max(1,Math.ceil(until/1000)):0,
    starting,firstMidi:s.roots[s.infinite?0:p.round+(nextRound?1:0)]+s.pattern.steps[0]};
  }
  function advance(s,t){

@@ -23,14 +23,16 @@
  });
  function patternId(value){return Object.prototype.hasOwnProperty.call(PATTERNS,value)?value:'steps';}
  function getPattern(value){return PATTERNS[patternId(value)];}
- function timeline(value,duration=12000){
+ function timeline(value,duration=12000,custom=null){
+  if(Array.isArray(custom)&&custom.length===getPattern(value).segments.length&&custom.every(n=>Number.isFinite(n)&&n>=1&&n<=60)){let at=0;return getPattern(value).segments.map((s,i)=>{const start=at;at+=custom[i]*1000;return Object.freeze({...s,start,end:at});});}
   const reference=Math.min(3000,duration/2);
   let at=0;return getPattern(value).segments.map((s,i)=>{const start=at;at+=i===0?reference:s.ms*(duration-reference)/9000;return Object.freeze({...s,start,end:at});});
  }
- function create({start=0,duration=12000,pattern='steps'}={}){
+ function create({start=0,duration=12000,pattern='steps',segmentSeconds=null}={}){
   duration=Number.isFinite(duration)&&duration>0?duration:12000;pattern=patternId(pattern);
+  const segments=timeline(pattern,duration,segmentSeconds);duration=segments.at(-1).end;
   return {start:Number.isFinite(start)?start:0,duration:Number.isFinite(duration)&&duration>0?duration:12000,
-   patternId:pattern,segments:timeline(pattern,duration),
+   patternId:pattern,segments,
    baseline:null,locked:false,softSamples:[],referenceMs:0,samples:[],lastAt:null};
  }
  function stageAt(model,t){const index=model.segments.findIndex(s=>t-model.start<s.end);return index<0?model.segments.length-1:index;}

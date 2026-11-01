@@ -11,3 +11,6 @@ local.properties
 *.p12
 signing-password*
 .signing/
+
+__pycache__/
+*.pyc

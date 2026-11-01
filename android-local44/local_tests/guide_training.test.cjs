@@ -352,7 +352,7 @@ test('Old slide settings migrate once; valid existing guide choices always take 
   assert.equal(restored.pattern,style+span);assert.equal(restored.root,84);assert.equal(restored.rounds,1);assert.equal(restored.shift,0);
   assert.equal(restored.noteSeconds,style==='step'?4:0);
   const previous={pattern:'triad',root:55,bpm:90,noteSeconds:2,rounds:2,shift:-1,sound:'vowel',volume:50,tolerance:75};
-  assert.deepEqual(guide.restore(previous,legacy),{...previous,listenFirst:true});
+  assert.deepEqual(guide.restore(previous,legacy),{...previous,listenFirst:true,prepareSeconds:1.8,breathSeconds:3,restSeconds:3,smoothSeconds:12});
  }
  assert.equal(guide.restore(null,{glideSpan:7,root:60}).pattern,'step3');
  assert.equal(guide.restore({pattern:'bad'},{glideSpan:5,glideStyle:'step'}).pattern,'step5');

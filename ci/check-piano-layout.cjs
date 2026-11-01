@@ -217,6 +217,7 @@ async function checkVolumeRange(page,id,valueId){
   // One complete dynamics exercise: real native PCM -> personal reference,
   // shaded target bands -> score, including hidden capture and rotation.
   await page.setViewportSize(viewports[0]);await frames(page);await choose(page,'dynamicVoice');
+  await page.locator('#trainingRoot').selectOption('60');
   assert.equal(await page.locator('#dynamicReadout').isVisible(),true);
   assert.equal(await page.locator('#dynamicCueVolume').inputValue(),'70');
   await page.locator('#dynamicCueVolume').selectOption('100');await page.locator('#dynamicCuePreview').click();await page.waitForTimeout(200);
@@ -373,6 +374,7 @@ async function checkVolumeRange(page,id,valueId){
   await page.locator('#menuOpen').click();await page.locator('[data-screen="help"]').click();await page.locator('#helpPrivacyOpen').click();
   assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');await page.locator('#infoClose').click();
   assert.equal(await page.title(),'VoiceLine');assert.equal(await page.locator('.brand').getAttribute('aria-label'),'VoiceLine');
+  await require('./check-practice-plans.cjs')(page,choose,output);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
   console.log('PASS: '+report.length+' mode/viewport layouts and '+patternReport.length+' dynamics method previews; complete stepped and crescendo exercises, 0/50/100% volume endpoints, pattern persistence, hidden phase/countdown, rotation and retained results; graph toggles, unified practice, real pixels and recording save.');

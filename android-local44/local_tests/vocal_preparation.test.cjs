@@ -10,7 +10,7 @@ function fixture(){
   chunk('function rememberVibratoPoint(','function vibratoStatus(')+
   chunk('function startVibratoSession(','async function stopActivity(')+
   '\n({vocalPreparationState,updateVocalPreparation,startVibratoSession,rememberVibratoPoint,finishVibrato})';
- const api=vm.runInNewContext(code,{app,$,performance:{now:()=>clock},VIBRATO_WINDOW_MS:3000,Math,Number,
+ const api=vm.runInNewContext(code,{app,$,window:{},performance:{now:()=>clock},VIBRATO_WINDOW_MS:3000,Math,Number,
   playReference:m=>references.push(m),renderVibratoOverlay(){},addEvent:async(...e)=>events.push(e),notify(){}});
  return {...api,app,$,events,references,clock:t=>clock=t};
 }

@@ -135,7 +135,7 @@ test('Local39 custom warmup times drive both phase boundaries and total duration
 test('Local39 warmup settings reject blank/out-of-range fields and persist one validated object',()=>{
  const h=warmup();for(const [id,value]of [['warmupInhale','2'],['warmupExhale','3'],['warmupHum','5'],['warmupRest','0']])h.$(id).value=value;
  h.$('warmupCues').checked=false;h.$('warmupInhale').value='';h.saveWarmupOptions();assert.equal(h.stored.size,0);
- h.$('warmupInhale').value='31';h.saveWarmupOptions();assert.equal(h.stored.size,0);
+ h.$('warmupInhale').value='121';h.saveWarmupOptions();assert.equal(h.stored.size,0);
  h.$('warmupInhale').value='2';h.saveWarmupOptions();assert.equal(JSON.parse(h.stored.get('voiceline-training-v1')).warmup.rest,0);
  assert.equal(h.app.trainingSettings.warmup.cues,false);
 });

@@ -259,7 +259,7 @@ test('history store awaits IndexedDB commit instead of request success',()=>{
 
 // Local21: exercise pattern library and automatic repeat regression tests.
 test('practice has 13 distinct patterns and never requests an unavailable piano note',()=>{
- const section=snippet('const EXERCISE_PATTERNS=','function playReference(m){','\n({EXERCISE_PATTERNS,exerciseSteps})');
+ const section=snippet('const EXERCISE_PATTERNS=','function playReference(m,seconds=null){','\n({EXERCISE_PATTERNS,exerciseSteps})');
  const app={exercisePattern:'scale',exerciseRoot:60};
  const {EXERCISE_PATTERNS,exerciseSteps}=runInContext(section,{app,Math});
  const keys=Object.keys(EXERCISE_PATTERNS);

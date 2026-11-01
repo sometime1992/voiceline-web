@@ -357,7 +357,7 @@ test('Local32 service worker precaches all 28 piano recordings and preserves unr
 });
 test('Local32 Android back dismisses deletion then history; saving and pending mic block exit',async()=>{
  const $=nodes(),app={},window={addEventListener(){}};let cancelled=0;
- for(const id of ['historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'])$(id).hidden=true;
+ for(const id of ['planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'])$(id).hidden=true;
  const document={activeElement:new Node(),addEventListener(){},removeEventListener(){}};
  const api=evaluate('let modeGuideReturnFocus=false;'+
   chunk('function modalOpen(name){',"$('menuOpen').addEventListener")+
@@ -430,11 +430,11 @@ test('Application boot and unified practice controls execute with every existing
    assert.deepEqual(kind.children.map(option=>option.value),['steps','smooth']);
    assert.equal(select.children.length,18);
    const button=$('exerciseControls').children.find(child=>child.id==='guideSettingsOpen');assert.ok(button);
-   button.onclick();assert.equal($('guideSettingsDialog').hidden,false);assert.match($('guidePlanInfo').textContent,/음역.*C4 · 2옥 도/);
+   button.onclick();assert.equal($('guideSettingsDialog').hidden,false);assert.match($('guidePlanInfo').textContent,/음역.*C3 · 1옥 도/);
    $('guideRoot').value='48';$('guideRounds').value='2';$('guideShift').value='-1';$('guideBpm').value='60';$('guideSound').value='vowel';$('guideNoteSeconds').value='2';
    $('guideSettingsSave').events.click();assert.equal($('guideSettingsDialog').hidden,true);
    assert.equal(window.__local32Test.app.guideSettings.root,48);assert.equal(window.__local32Test.app.guideSettings.sound,'vowel');
-   assert.equal(window.__local32Test.app.guideSettings.bpm,60);assert.equal(window.__local32Test.app.trainingSettings.root,60);
+   assert.equal(window.__local32Test.app.guideSettings.bpm,60);assert.equal(window.__local32Test.app.trainingSettings.root,48);
    assert.equal(window.__local32Test.app.guideSettings.noteSeconds,2);
   }
   window.__local32Test.showModeGuide(mode);assert.match($('infoTitle').textContent,/설명/);assert.equal($('infoDialog').hidden,false);
