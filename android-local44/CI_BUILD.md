@@ -1,6 +1,6 @@
-# Local51 APK build
+# Local52 APK build
 
-This directory contains the complete Local51 Android project, including its
+This directory contains the complete Local52 Android project, including its
 offline piano engine, samples, and regression tests. The Local44 baseline source archive
 is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 `2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1`.
@@ -8,11 +8,11 @@ is `VoiceLine_AndroidStudio_Local44_Portrait_Landscape.zip`, SHA-256
 Pushing changes to `build/android-apk` runs `.github/workflows/build-local44-apk.yml`.
 The workflow runs the tests, builds the CI45 APK, verifies their signatures
 and package metadata, and compares every bundled asset to the source bytes.
-Download the `VoiceLine-Local51-APKs` artifact from the completed run.
+Download the `VoiceLine-Local52-APKs` artifact from the completed run.
 
 | APK | Application ID | Installation |
 | --- | --- | --- |
-| VoiceLine-Local51-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46/47/48 installation and preserves its recordings and practice history. |
+| VoiceLine-Local52-CI.apk | com.voiceline.app.local18.ci45 | Updates the CI45/46/47/48 installation and preserves its recordings and practice history. |
 
 Do not uninstall an existing app to work around a signature mismatch: its local
 recordings and history may be lost. This CI build does not import recordings
@@ -23,7 +23,7 @@ Local44 CI keys were not retained, so CI45 has its own application ID and keeps
 those earlier installations intact. A durable release signing key is required
 before distributing long-term updates.
 
-The build uses version code 66 and target Android 35 with Android 26 minimum.
+The build uses version code 67 and target Android 35 with Android 26 minimum.
 It preserves the portrait keyboard geometry and restores the earlier landscape UI.
 
 ## Local45 sensitivity update
@@ -97,3 +97,7 @@ The fixed action at the right edge above the piano keys toggles landscape graphs
 ## Local51 dynamics targets
 
 The first weak phase establishes a robust personal RMS reference; later phases keep it fixed. The complete twelve-second graph and score share target ratios and bands. Guide playback and wrong-pitch samples cannot establish calibration; each stage needs actual target-range coverage. Louder triangle cues have an independent persisted volume and preview. Browser checks run a complete PCM-driven exercise through rotations and graph hiding and retain the final plotted result.
+
+## Local52 separate note targets
+
+Stepped pitch patterns show a separate horizontal stroke per note, with no vertical pitch-change connectors. Smooth slide paths remain continuous. The target calculation, note timing, audio scheduling, tolerance shading, detected voice trace and scoring remain unchanged.

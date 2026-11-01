@@ -303,8 +303,9 @@
     const midi=s.roots[s.infinite?0:p.round]+s.pattern.steps[i],left=xx(begin),right=xx(end),y=yy(midi);
     const band=Math.max(2,Math.abs(yy(midi+s.tolerance/100)-y));
     ctx.fillStyle='#83f5d619';ctx.fillRect(left,y-band,right-left,band*2);
-    ctx.beginPath();if(i&&i*s.noteMs>=from)ctx.moveTo(left,yy(s.roots[s.infinite?0:p.round]+s.pattern.steps[i-1]));else ctx.moveTo(left,y);
-    ctx.lineTo(left,y);ctx.lineTo(right,y);ctx.lineWidth=5;ctx.strokeStyle='#83f5d6';ctx.stroke();
+    // Each horizontal note is independent. Vertical connectors can be mistaken
+    // for an instruction to sing every intermediate pitch like a smooth slide.
+    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.lineWidth=5;ctx.strokeStyle='#83f5d6';ctx.stroke();
    }
   }
   ctx.beginPath();let previous=null;

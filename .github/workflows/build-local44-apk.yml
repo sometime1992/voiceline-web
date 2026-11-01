@@ -1,4 +1,4 @@
-name: VoiceLine Local51 APK
+name: VoiceLine Local52 APK
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local51-Test-Report
+          name: VoiceLine-Local52-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -62,7 +62,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local51-Layout-Report
+          name: VoiceLine-Local52-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -100,7 +100,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local51-APKs
+          name: VoiceLine-Local52-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
