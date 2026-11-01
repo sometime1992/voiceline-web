@@ -1,4 +1,4 @@
-name: VoiceLine Local55 APK
+name: VoiceLine Local56 APK
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local55-Test-Report
+          name: VoiceLine-Local56-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -67,7 +67,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local55-Layout-Report
+          name: VoiceLine-Local56-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -105,7 +105,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local55-APKs
+          name: VoiceLine-Local56-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -123,6 +123,8 @@ jobs:
           echo "378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584  $bundletool_jar" | sha256sum --check
           export VOICELINE_BUNDLETOOL_JAR="$bundletool_jar"
           python3 ci/verify-app-bundle.py
+          curl --fail --location --retry 3 --output release-review/previous-Local55-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local55-ci/VoiceLine-Local55-CI.apk
+          echo '2c3c7d90e15ef38cbbb9f83c94c75726e82255856df4c9a3a87905f403a21886  release-review/previous-Local55-CI.apk' | sha256sum --check
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -145,7 +147,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local55-Store-Media
+          name: VoiceLine-Local56-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -155,7 +157,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local55-Release-Readiness
+          name: VoiceLine-Local56-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*
