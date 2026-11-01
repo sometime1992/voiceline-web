@@ -180,7 +180,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local55 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local56 to Local57 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))
