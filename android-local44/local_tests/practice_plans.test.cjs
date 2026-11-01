@@ -33,6 +33,9 @@ test('Multiple named routines persist their exact order, timing and settings; de
 test('A routine step is finite so later steps remain reachable; the whole routine can repeat forever',()=>{
  const p=plans.routine({rounds:0,steps:[{mode:'pitch',timing:{seconds:0,rounds:0}}]});assert.equal(p.rounds,0);assert.equal(p.steps[0].timing.rounds,1);assert.equal(p.steps[0].timing.seconds,30);
 });
+test('The shared runner preserves standalone recording mode instead of redirecting it into a voice exercise',()=>{
+ const p=plans.routine({name:'녹음',rounds:1,steps:[{mode:'record',timing:{seconds:5,rounds:1}}]});assert.equal(p.steps[0].mode,'record');assert.equal(p.steps[0].timing.seconds,5);
+});
 test('Serial completion respects step order, repeats each step, repeats the whole routine and finishes only once',async()=>{
  const h=harness();await h.runner.start({rounds:2,steps:[entry('piano',2),entry('rest')]});
  for(let i=0;i<6;i++){assert.equal(h.runner.complete(),true);assert.equal(h.runner.complete(),false);if(i<5)await h.advance();}

@@ -1,6 +1,6 @@
 'use strict';
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.VoiceLinePracticePlans=api;})(globalThis,()=>{
- const MODES=Object.freeze({piano:'피아노 자유 연습',pitch:'음정 측정',practice:'음정 연습',sustainVoice:'발성 유지',earVoice:'청음 연습',dynamicVoice:'발성 강약 조절',vibrato:'비브라토',warmupVoice:'호흡·워밍업',metronome:'메트로놈',rest:'쉬기'});
+ const MODES=Object.freeze({piano:'피아노 자유 연습',pitch:'음정 측정',practice:'음정 연습',sustainVoice:'발성 유지',earVoice:'청음 연습',dynamicVoice:'발성 강약 조절',vibrato:'비브라토',warmupVoice:'호흡·워밍업',metronome:'메트로놈',record:'녹음',rest:'쉬기'});
  const DEFAULTS=Object.freeze({seconds:30,rounds:1,rest:3,reference:1.8,breath:3,prepare:1.8,listen:1.5,answer:3.2,noteRest:0,customStages:false,stages:[]});
  const numeric=(v,d,min,max)=>v!==''&&v!==null&&v!==undefined&&Number.isFinite(Number(v))?Math.round(Math.max(min,Math.min(max,Number(v)))*10)/10:d;
  function timing(mode,value={}){
