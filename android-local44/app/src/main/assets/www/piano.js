@@ -3491,6 +3491,7 @@ function applyPlanOptions(mode,timing,params,persist=false){
  if(['piano','pitch'].includes(mode)&&Number.isFinite(params.base)){allKeysOff();app.base=clamp(Math.round(params.base/12)*12,24,108-(app.keyboardNotes||24));drawKeys();}
  if(params.guide)app.guideSettings=window.VoiceLineGuideTraining.normalize(params.guide);
  if(Number.isFinite(params.vibratoRoot))app.vibratoRoot=clamp(params.vibratoRoot,36,94);
+ if(mode==='vibrato')focusVibratoReference();
  if(mode==='practice'){
   if(persist){app.guideSettings=window.VoiceLineGuideTraining.normalize({...params.guide,rounds:params.guide.rounds});saveGuideOptions(app.guideSettings);}
  }else if(mode==='sustainVoice')app.trainingSettings.sustainSeconds=timing.seconds;
