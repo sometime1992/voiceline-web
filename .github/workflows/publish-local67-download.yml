@@ -1,0 +1,108 @@
+name: VoiceLine Local67 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local67-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local67-ci
+      SOURCE_RUN_ID: '41493306186'
+      SOURCE_COMMIT: 5b704154762fe393e19e958ae459e3fc97680d38
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh run watch "$SOURCE_RUN_ID" --repo "$GH_REPO" --exit-status --interval 10
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local67-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local67-CI.apk'
+          verified = json.loads((dist / 'APK_LABEL_VERIFIED.json').read_text())
+          assert verified['source_commit'] == os.environ['SOURCE_COMMIT']
+          assert verified['version_name'] == '2.0.0-local67-ci' and verified['version_code'] == 82
+          assert verified['package'] == 'com.voiceline.app.local18.ci45'
+          assert verified['certificate_sha256'] == 'e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == verified['apk_sha256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local67-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 3, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## VoiceLine Local67 · 페이지형 설정과 최종 저장 확인
+
+          - 설정을 열면 현재 저장 상태부터 확인
+          - 수정을 누르면 연습 내용·시간과 반복·소리 페이지로 이동
+          - 고정 메뉴에서 다른 설정 페이지로 바로 이동, 한 번에 한 페이지만 표시
+          - 저장을 누르면 변경 결과를 먼저 확인하고 최종 저장으로 적용
+          - 다시 수정하면 입력값과 마지막 편집 페이지를 유지
+          - 일반 설정·루틴 모두 최종 저장 전에 기존 저장값과 실행 설정을 유지
+          - Android 뒤로 가기도 이전 설정 화면으로 이동, 닫기는 미저장 변경 취소
+          - 가로·세로·글자 100/120/150%·키보드에서 실제 입력과 메뉴·저장 위치 검사
+          - 듣기·호흡 준비 중 보라색 감지 건반 숨김 유지
+          - 347개 회귀 검사, 245개 설정 화면 흐름, 22개 설정·루틴 실행 검사
+          - 앱 소스: https://github.com/sometime1992/voiceline-web/commit/5b704154762fe393e19e958ae459e3fc97680d38
+          - 버전 2.0.0-local67-ci (82), 설치 이름 VoiceLine
+          - Local66에서 삭제 없는 업데이트와 기기 내부 시험 파일 보존 검사
+
+          APK 다운로드가 막히면 ZIP을 받아 압축을 푼 뒤 APK를 실행하세요. Play Console 업로드·심사 제출은 수행하지 않았습니다.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local67 페이지형 설정 수정 APK' --notes-file release-notes.md
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local67-CI.apk dist/VoiceLine-Local67-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local67 페이지형 설정 수정 APK' --notes-file release-notes.md dist/VoiceLine-Local67-CI.apk dist/VoiceLine-Local67-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local67-CI.apk VoiceLine-Local67-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
+      - name: Verify public privacy policy without authentication
+        run: |
+          curl --fail --location --retry 2 --retry-all-errors --max-time 45 --output "$RUNNER_TEMP/voiceline-public-policy.html" 'https://mindup-studio.pages.dev/apps/voiceline/privacy.html'
+          python3 - <<'PY_POLICY'
+          import os
+          from pathlib import Path
+          text = (Path(os.environ['RUNNER_TEMP']) / 'voiceline-public-policy.html').read_text()
+          assert 'VoiceLine 개인정보처리방침' in text
+          assert '마이크' in text and '마인드업 스튜디오' in text and 'grand4870@gmail.com' in text
+          PY_POLICY
