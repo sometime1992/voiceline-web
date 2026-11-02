@@ -1596,7 +1596,7 @@ function finishExercise(completed){
 // definitions and avoid inventing clinical breath or absolute-volume scores.
 const TRAINING_MODES=new Set(['practice','sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice']);
 const DYNAMIC_DURATIONS=Object.freeze([8,12,16,20,24]);
-function dynamicSeconds(settings=app.trainingSettings){const n=Number(settings.dynamicSeconds);return settings.dynamicSeconds!==''&&Number.isFinite(n)&&n>=1&&n<=300?n:12;}
+function dynamicSeconds(settings=app.trainingSettings){const n=Number(settings.dynamicSeconds);return settings.dynamicSeconds!==''&&Number.isFinite(n)&&n>=1&&n<=300?Math.round(n*10)/10:12;}
 // Preparation is outside the measured exercise. Ear responses each receive
 // their own breath window; the answer itself remains 3.2 seconds long.
 const EAR_TIMING=Object.freeze({listen:1500,inhale:3000,answer:3200,cycle:7700});
