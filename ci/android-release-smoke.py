@@ -188,6 +188,9 @@ try:
     time.sleep(1)
     wait_visible('VoiceLine')
     if not visible('일반 연습에 적용'):
+        # A system font-scale change recreates the Activity. Re-select the
+        # practice mode rather than accidentally checking piano settings.
+        choose('음정 연습')
         tap('연습 설정', 'customTimingOpen')
     wait_visible('일반 연습에 적용')
     wait_visible('연습 종류')
