@@ -21,18 +21,37 @@ jobs:
       RELEASE_TAG: voiceline-local65-ci
       SOURCE_RUN_ID: '41482138781'
       SOURCE_COMMIT: df8d2748a880058cbc77e40b93100bf02778467e
+      ANDROID_VERIFICATION_RUN_ID: '41484633692'
+      ANDROID_VERIFICATION_COMMIT: 7dc4693260a2190f5be61c632d074f7405ff119d
     steps:
       - name: Verify the exact successful source build
         run: |
-          gh run watch "$SOURCE_RUN_ID" --repo "$GH_REPO" --exit-status --interval 10
           gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
           python3 - <<'PY'
           import json, os
           from pathlib import Path
           run = json.loads(Path('source-run.json').read_text())
-          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['conclusion'] == 'failure', run['conclusion']
           assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
           PY
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
+          python3 - <<'PY_JOBS'
+          import json
+          from pathlib import Path
+          steps=next(j['steps'] for j in json.loads(Path('source-jobs.json').read_text())['jobs'] if j['name']=='apk')
+          assert [s['name'] for s in steps if s['conclusion']=='failure']==['Android 16 production smoke test and store screenshots']
+          for name in ['Test recording, dynamics calibration, training and adaptive layout','Check every keyboard size and live graph in Chromium','Build separately installable CI APK','Verify signatures, package IDs, version and every offline asset','Check unsigned release AAB and Android lint','Validate production bundle and prepare emulator review APK']:
+              assert next(s for s in steps if s['name']==name)['conclusion']=='success',name
+          PY_JOBS
+          gh run watch "$ANDROID_VERIFICATION_RUN_ID" --repo "$GH_REPO" --exit-status --interval 10
+          gh api "repos/$GH_REPO/actions/runs/$ANDROID_VERIFICATION_RUN_ID" > android-verification.json
+          python3 - <<'PY_ANDROID'
+          import json,os
+          from pathlib import Path
+          verified=json.loads(Path('android-verification.json').read_text())
+          assert verified['conclusion']=='success'
+          assert verified['head_sha']==os.environ['ANDROID_VERIFICATION_COMMIT']
+          PY_ANDROID
       - name: Download and verify the already tested APK
         run: |
           gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local65-APKs --dir dist
