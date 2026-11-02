@@ -39,6 +39,7 @@ module.exports=async function checkPlans(page,choose,output){
  await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>window.VoiceLinePlansUI.active),false);report.push('infinite routine cancels during a step and never restarts after background/resume');
  await choose(page,'dynamicVoice');await page.locator('#customTimingOpen').click();await page.getByText('단계별 시간을 각각 입력',{exact:true}).click();
  const stages=page.locator('.plan-stage-fields input');for(let i=0;i<await stages.count();i++)await stages.nth(i).fill(String(1.5+i*.5));
+ assert.equal(await page.getByLabel('발성·진행 시간 (초)',{exact:true}).inputValue(),String(Array.from({length:await stages.count()},(_,i)=>1.5+i*.5).reduce((sum,n)=>sum+n,0)),'custom-stage total did not follow entered times');
  await page.screenshot({path:path.join(output,'portrait-custom-dynamics-times.png')});await page.locator('#planSave').click();await page.locator('#mainButton').click();await page.waitForFunction(()=>window.VoiceLinePlansUI.active);await page.locator('#mainButton').click();await page.waitForFunction(()=>!window.VoiceLinePlansUI.active);report.push('custom dynamics stages save, start and cancel');
  fs.writeFileSync(path.join(output,'practice-plans.json'),JSON.stringify({status:'passed',checks:report},null,2));console.log('PASS: '+report.length+' custom timing and routine browser checks');
 };

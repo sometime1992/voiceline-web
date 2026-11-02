@@ -40,9 +40,10 @@
    const l=el('label',undefined,'plan-check'),check=el('input');check.type='checkbox';check.checked=t.customStages;l.append(check,document.createTextNode('단계별 시간을 각각 입력'));box.append(l);
    const stages=el('div',undefined,'plan-stage-fields');stages.hidden=!t.customStages;box.append(stages);
    if(t.stages.length!==p.segments.length)t.stages=p.segments.map(s=>s.ms/1000);
-   p.segments.forEach((s,i)=>{const row=el('label',s.label+' (초)'),input=el('input');input.type='number';input.min='1';input.max='60';input.step='.1';input.required=true;input.inputMode='decimal';input.value=String(t.stages[i]);input.disabled=!t.customStages;input.oninput=()=>{if(input.value!==''&&input.validity.valid)t.stages[i]=Number(input.value);};row.append(input);stages.append(row);});
    const total=box.querySelector('input');total.disabled=t.customStages;
-   check.onchange=()=>{t.customStages=check.checked;total.disabled=check.checked;stages.hidden=!check.checked;for(const input of stages.querySelectorAll('input'))input.disabled=!check.checked;};
+   const syncTotal=()=>{total.value=String(t.customStages?Math.round(t.stages.reduce((sum,n)=>sum+n,0)*10)/10:t.seconds);};
+   p.segments.forEach((s,i)=>{const row=el('label',s.label+' (초)'),input=el('input');input.type='number';input.min='1';input.max='60';input.step='.1';input.required=true;input.inputMode='decimal';input.value=String(t.stages[i]);input.disabled=!t.customStages;input.oninput=()=>{if(input.value!==''&&input.validity.valid){t.stages[i]=Number(input.value);syncTotal();}};row.append(input);stages.append(row);});
+   check.onchange=()=>{t.customStages=check.checked;total.disabled=check.checked;stages.hidden=!check.checked;for(const input of stages.querySelectorAll('input'))input.disabled=!check.checked;syncTotal();};syncTotal();
   }
   if(withinRoutine&&['practice','sustainVoice','earVoice','dynamicVoice','vibrato'].includes(mode)){
    const target=mode==='practice'?(params.guide||params):mode==='vibrato'?params:params.training;
