@@ -283,6 +283,7 @@ function applyPianoVolume(level,save=true){
  if(slider){slider.value=String(n);slider.setAttribute('aria-valuetext',n+'퍼센트');slider.style?.setProperty?.('--volume-fill',n+'%');}
  if(out)out.textContent=n+'%';
  try{if(save)localStorage.setItem(PIANO_VOLUME_KEY,String(n));}catch(_){/* optional preference */}
+ if(save)window.VoiceLinePlansUI?.volumeChanged?.(n);
  try{window.VoiceLineToneEngine?.setVolume?.(n);}catch(e){console.warn('Piano volume engine',e);}
  if(app.synthMaster&&app.ctx?.state!=='closed'){
    const db=pianoVolumeDb(n),gain=n===0?0:SOFT_PIANO.master*Math.pow(10,(db+11)/20);
@@ -1846,7 +1847,7 @@ function trainingSelect(c,id,title,options,value,convert){
  const label=document.createElement('label');label.className='practice-setting';label.textContent=title+' ';
  const select=document.createElement('select');select.id=id;select.setAttribute('aria-label',title);
  for(const [v,text] of options){const o=document.createElement('option');o.value=String(v);o.textContent=text;select.append(o);}
- if(!options.some(([v])=>String(v)===String(value))){const o=document.createElement('option');o.value=String(value);o.textContent=value+(convert==='rounds'?'회':convert==='sustainSeconds'?'초':'');select.append(o);}
+ if(!options.some(([v])=>String(v)===String(value))){const o=document.createElement('option');o.value=String(value);o.textContent=convert==='root'?noteLabel(value):value+(convert==='rounds'?'회':convert==='sustainSeconds'?'초':'');select.append(o);}
  select.value=String(value);select.disabled=Boolean(app.training?.active);
  select.addEventListener('change',()=>{
   app.trainingSettings[convert]=Number(select.value);saveTrainingSettings();
@@ -1923,7 +1924,7 @@ function newTrainingSession(mode,t,settings=app.trainingSettings){
  const ear=custom?{listen:custom.listen*1000,inhale:custom.breath*1000,answer:custom.answer*1000,cycle:(custom.listen+custom.breath+custom.answer+custom.noteRest)*1000}:EAR_TIMING;
  const duration=trainingDuration(mode,settings),warmup=warmupTimeline(settings.warmup);
  const earDirection=root+12>PITCH_RANGE.maxMidi?-1:1;
- const notes=Array.from({length:settings.earCount},(_,i)=>root+earDirection*[0,2,4,7,5,9,12][(i*3+1)%7]);
+ const notes=window.VoiceLinePracticePlans?.earSequence?window.VoiceLinePracticePlans.earSequence({...settings,root}):Array.from({length:settings.earCount},(_,i)=>root+earDirection*[0,2,4,7,5,9,12][(i*3+1)%7]);
  const session={mode,active:true,root,warmupSteps:warmup.steps,warmupCycleMs:warmup.cycle,warmupCues:warmup.cues,
   rounds:settings.rounds,dynamicCues:settings.dynamicCues!==false,dynamicCueVolume:dynamicCueVolume(settings),
   earNotes:notes,earCycleMs:ear.cycle,earListenMs:ear.listen,earBreathMs:ear.inhale,earAnswerMs:ear.answer,
@@ -3474,7 +3475,7 @@ window.visualViewport?.addEventListener?.('resize',queueResponsiveLayout);
 if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(updatePracticeScrollHint)).observe($('practiceScrollShell'));
 
 function unlockPlanAudio(){ensureSynth();window.VoiceLineToneEngine?.unlock?.().catch(error=>console.warn('Piano unlock',error));}
-function planCapture(){return {training:{...JSON.parse(JSON.stringify(app.trainingSettings)),warmup:normalizeWarmup(app.trainingSettings.warmup)},guide:{...guideOptions()},vibratoRoot:app.vibratoRoot,metronome:app.metronome?JSON.parse(JSON.stringify(app.metronome.settings)):null,base:app.base};}
+function planCapture(){return {training:{...JSON.parse(JSON.stringify(app.trainingSettings)),warmup:normalizeWarmup(app.trainingSettings.warmup)},guide:{...guideOptions()},vibratoRoot:app.vibratoRoot,metronome:app.metronome?JSON.parse(JSON.stringify(app.metronome.settings)):null,base:app.base,pianoVolume:app.pianoVolume};}
 function planLegacyTiming(mode){
  if(mode==='practice'){const g=guideOptions();return {rounds:g.rounds,rest:g.restSeconds};}
  if(mode==='warmupVoice')return {rounds:app.trainingSettings.rounds};
@@ -3486,6 +3487,8 @@ function applyPlanOptions(mode,timing,params,persist=false){
  if(params.training)app.trainingSettings={...app.trainingSettings,...JSON.parse(JSON.stringify(params.training))};
  app.trainingSettings.root=clamp(Number(app.trainingSettings.root)||48,36,84);
  app.trainingSettings.earCount=clamp(Math.round(Number(app.trainingSettings.earCount)||4),1,20);
+ if(Number.isFinite(params.pianoVolume))applyPianoVolume(params.pianoVolume,false);
+ if(['piano','pitch'].includes(mode)&&Number.isFinite(params.base)){allKeysOff();app.base=clamp(Math.round(params.base/12)*12,24,108-(app.keyboardNotes||24));drawKeys();}
  if(params.guide)app.guideSettings=window.VoiceLineGuideTraining.normalize(params.guide);
  if(Number.isFinite(params.vibratoRoot))app.vibratoRoot=clamp(params.vibratoRoot,36,94);
  if(mode==='practice'){
@@ -3494,7 +3497,7 @@ function applyPlanOptions(mode,timing,params,persist=false){
  else if(mode==='dynamicVoice')app.trainingSettings.dynamicSeconds=timing.customStages&&timing.stages.length?timing.stages.reduce((n,s)=>n+s,0):timing.seconds;
  else if(mode==='warmupVoice'){app.trainingSettings.warmup=normalizeWarmup(params.training?.warmup);if(persist)app.trainingSettings.rounds=timing.rounds;}
  if(persist&&mode!=='practice')saveTrainingSettings();
- if(mode==='metronome'&&params.metronome)app.metronome?.applySettings(params.metronome);
+ if(mode==='metronome'&&params.metronome){const issue=window.VoiceLineMetronome.timingIssue(params.metronome);if(issue)throw Error(issue);if(app.metronome?.applySettings(params.metronome)===false)throw Error('메트로놈 설정을 적용하지 못했습니다.');}
  modeControls();syncKeyColors();renderTrainingOverlay(performance.now(),true);
 }
 async function runPlanStep(step,token,state,single=false){
@@ -3505,7 +3508,7 @@ async function runPlanStep(step,token,state,single=false){
  // A saved routine step repeats through the serial runner; an individual
  // guided lesson keeps its existing full-phrase/transpose scoring timeline.
  if(!single){
-  if(params.guide)params.guide.rounds=1;
+  if(mode==='practice'&&params.guide){params.guide=window.VoiceLinePracticePlans.guideRound(params.guide,state.stepRound);if(window.VoiceLineGuideTraining.normalize(params.guide).root!==params.guide.root)throw Error('선택한 기준음이 연습 음역을 벗어났습니다. 루틴 상세 설정을 확인해 주세요.');}
   if(params.training&&mode==='warmupVoice')params.training.rounds=1;
  }
  applyPlanOptions(mode,step.timing,params);
@@ -3542,7 +3545,7 @@ window.VoiceLinePlansUI?.mount({
  busy:()=>Boolean(app.training||app.mic||app.busy||app.micStartPromise||app.recordSaving||app.metronome?.running),startBlocked:()=>Boolean(app.busy||app.micStartPromise||app.recordSaving||app.lifeStopping),
  apply:(mode,timing,params)=>applyPlanOptions(mode,timing,params,true),run:runPlanStep,
  stop:transition=>stopActivity(transition?'plan-transition':'user'),
- restore:value=>{app.trainingSettings=value.training;app.guideSettings=value.guide;app.vibratoRoot=value.vibratoRoot;if(value.metronome)app.metronome?.applySettings(value.metronome);app.base=value.base;modeControls();drawKeys();resetMainAction();setTitle(MODES[app.mode]?.[0]||'피아노');},
+ restore:value=>{app.trainingSettings=value.training;app.guideSettings=value.guide;app.vibratoRoot=value.vibratoRoot;if(value.metronome)app.metronome?.applySettings(value.metronome);if(Number.isFinite(value.pianoVolume))applyPianoVolume(value.pianoVolume,false);app.base=value.base;modeControls();drawKeys();resetMainAction();setTitle(MODES[app.mode]?.[0]||'피아노');},
  finished:(result,single)=>{if(!single)addEvent('루틴: '+result.plan.name,result.round+'회 완료 · '+result.completed+'개 연습 단계 완료','practice');notify(result.plan.name+' 완료');}
 });
 try{window.VoiceLinePracticePlans?.migrateDefaultRoot(localStorage);}catch(_){}

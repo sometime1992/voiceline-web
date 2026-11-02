@@ -2,7 +2,18 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.VoiceLinePracticePlans=api;})(globalThis,()=>{
  const MODES=Object.freeze({piano:'피아노 자유 연습',pitch:'음정 측정',practice:'음정 연습',sustainVoice:'발성 유지',earVoice:'청음 연습',dynamicVoice:'발성 강약 조절',vibrato:'비브라토',warmupVoice:'호흡·워밍업',metronome:'메트로놈',record:'녹음',rest:'쉬기'});
  const DEFAULTS=Object.freeze({seconds:30,rounds:1,rest:3,reference:1.8,breath:3,prepare:1.8,listen:1.5,answer:3.2,noteRest:0,customStages:false,stages:[]});
+ const EAR_PATTERNS=Object.freeze({legacy:'기존 고정 순서',same:'같은 음 반복',up:'장조 상행',down:'장조 하행',triad:'3화음 왕복',chromatic:'반음 상행',custom:'음을 하나씩 직접 지정'});
+ const EAR_OFFSETS={same:[0],up:[0,2,4,5,7,9,11,12],down:[12,11,9,7,5,4,2,0],triad:[0,4,7,4,0],chromatic:[0,1,2,3,4,5,6,7,8,9,10,11,12]};
+ const earRootLimit=pattern=>Math.min(84,94-Math.max(...(EAR_OFFSETS[pattern]||[0])));
  const numeric=(v,d,min,max)=>v!==''&&v!==null&&v!==undefined&&Number.isFinite(Number(v))?Math.round(Math.max(min,Math.min(max,Number(v)))*10)/10:d;
+ function earSequence(settings={}){
+  const root=Math.round(numeric(settings.root,48,36,earRootLimit(settings.earPattern))),count=Math.round(numeric(settings.earCount,4,1,20));
+  if(settings.earPattern==='custom')return Array.from({length:count},(_,i)=>Math.round(numeric(settings.earNotes?.[i],root,36,94)));
+  const offsets=EAR_OFFSETS[settings.earPattern];
+  const direction=root+12>94?-1:1;
+  return Array.from({length:count},(_,i)=>root+(offsets?offsets[i%offsets.length]:direction*[0,2,4,7,5,9,12][(i*3+1)%7]));
+ }
+ function guideRound(settings={},round=1){return {...settings,root:Number(settings.root)+(Math.max(1,Math.round(round))-1)*([-1,0,1].includes(Number(settings.shift))?Number(settings.shift):0),rounds:1};}
  function timing(mode,value={}){
   if(!value||typeof value!=='object')value={};
   const defaults={...DEFAULTS,seconds:({piano:0,pitch:0,record:0,metronome:0,sustainVoice:8,dynamicVoice:12,vibrato:12,rest:5})[mode]??30};
@@ -68,10 +79,10 @@
    if(again)current.stepRound++;else{current.stepRound=1;current.index++;}
    if(current.index>=current.plan.steps.length){current.index=0;current.round++;}
    if(!again&&current.plan.rounds!==0&&current.round>current.plan.rounds){active=null;emit();onFinish({...current,round:current.round-1});return true;}
-   timer=setTimer(()=>{timer=null;void launch(token);},entry.mode==='warmupVoice'||entry.mode==='rest'?0:entry.timing.rest*1000);
+   timer=setTimer(()=>{timer=null;void launch(token);},['practice','warmupVoice','rest'].includes(entry.mode)?0:entry.timing.rest*1000);
    return true;
   }
   return {start,cancel,complete,snapshot,owns:token=>Boolean(active)&&token===generation,get token(){return generation;}};
  }
- return {MODES,DEFAULTS,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
+ return {MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
 });

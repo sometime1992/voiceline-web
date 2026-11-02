@@ -26,10 +26,10 @@ with zipfile.ZipFile(bundle) as archive:
             count += 1
 report = root / 'release-review'
 report.mkdir(exist_ok=True)
-target = report / 'VoiceLine-Local59-UNSIGNED-REVIEW.aab'
+target = report / 'VoiceLine-Local60-UNSIGNED-REVIEW.aab'
 shutil.copyfile(bundle, target)
 text = '\n'.join([
-    'VoiceLine Local59 release build review - NOT READY FOR PLAY UPLOAD',
+    'VoiceLine Local60 release build review - NOT READY FOR PLAY UPLOAD',
     'Commit: ' + os.environ['GITHUB_SHA'],
     'Release application ID: com.voiceline.app',
     'Target SDK: 36; minimum SDK: 26',

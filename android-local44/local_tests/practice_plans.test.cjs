@@ -59,3 +59,30 @@ test('A start failure stops the routine rather than silently skipping an exercis
 test('Corrupt storage has a clean fallback and a failed save is never reported as persisted',()=>{
  assert.equal(plans.load({getItem(){throw Error('blocked')}}).routines.length,0);assert.equal(plans.load({getItem:()=>'{'}).routines.length,0);assert.throws(()=>plans.save({setItem(){throw Error('quota')}},{routines:[]}));
 });
+test('Ear presets have a visible deterministic sequence and keep the existing sequence by default',()=>{
+ assert.deepEqual(plans.earSequence({root:48,earCount:4}),[50,53,48,55]);
+ assert.deepEqual(plans.earSequence({root:48,earCount:5,earPattern:'triad'}),[48,52,55,52,48]);
+ assert.deepEqual(plans.earSequence({root:48,earCount:4,earPattern:'up'}),[48,50,52,53]);
+ assert.equal(plans.earRootLimit('up'),82);assert.deepEqual(plans.earSequence({root:84,earCount:4,earPattern:'down'}),[94,93,91,89]);
+ for(const earPattern of Object.keys(plans.EAR_PATTERNS)){
+  const settings={root:84,earCount:20,earPattern},first=plans.earSequence(settings);
+  assert.deepEqual(plans.earSequence(settings),first);assert.equal(first.length,20);assert.ok(first.every(n=>n>=36&&n<=94));
+ }
+});
+test('Custom ear notes retain the exact selected order across persistence and independent steps',()=>{
+ const s=storage(),p=plans.routine({steps:[{mode:'earVoice',params:{training:{root:55,earCount:4,earPattern:'custom',earNotes:[60,67,64,48]}}},{mode:'earVoice',params:{training:{root:48,earCount:2,earPattern:'same'}}}]});plans.save(s,{routines:[p]});
+ const saved=plans.load(s).routines[0];assert.deepEqual(plans.earSequence(saved.steps[0].params.training),[60,67,64,48]);assert.deepEqual(plans.earSequence(saved.steps[1].params.training),[48,48]);
+ assert.deepEqual(plans.earSequence({root:50,earCount:3,earPattern:'custom',earNotes:[null,200]}),[50,94,50]);
+});
+test('Each guide repetition uses its selected root shift without mutating another step or its saved settings',()=>{
+ const first={...guide.PRACTICE_DEFAULTS,pattern:'triad',root:48,shift:1,sound:'hum',volume:37,tolerance:75,listenFirst:false},second={...first,root:60,shift:-1};
+ for(const [round,root]of [[1,48],[2,49],[3,50]]){const session=guide.create(plans.guideRound(first,round),0);assert.equal(session.root,root);assert.equal(session.settings.sound,'hum');assert.equal(session.settings.volume,37);assert.equal(session.settings.listenFirst,false);assert.equal(session.tolerance,75);assert.equal(session.rounds,1);}
+ assert.equal(guide.create(plans.guideRound(second,2),0).root,59);assert.equal(first.root,48);assert.equal(second.root,60);
+ assert.equal(guide.plan({...first,pattern:'arpeggio',root:82,rounds:2}).limited,true);
+});
+test('Guided phrase recovery is not added a second time by the routine runner',async()=>{
+ for(const [mode,delay]of [['practice',0],['warmupVoice',0],['rest',0],['sustainVoice',9000]]){
+  let waited=null;const runner=plans.createRunner({run:async()=>true,setTimer:(fn,ms)=>{waited=ms;return 1;},clearTimer:()=>{}});
+  await runner.start({steps:[{mode,timing:{seconds:1,rounds:2,rest:9}}]});runner.complete();assert.equal(waited,delay,mode);runner.cancel();
+ }
+});
