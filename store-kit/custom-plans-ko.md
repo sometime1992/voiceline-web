@@ -1,4 +1,4 @@
-# VoiceLine Local58 · 시간·반복과 나의 루틴
+# VoiceLine Local59 · 시간·반복과 나의 루틴
 
 ## 기본 기준음
 
@@ -40,6 +40,6 @@
 
 ## 버전
 
-설치용: 2.0.0-local58-ci (73), 표시 이름 VoiceLine, com.voiceline.app.local18.ci45.
+설치용: 2.0.0-local59-ci (74), 표시 이름 VoiceLine, com.voiceline.app.local18.ci45.
 
-Play 구성: 2.0.0 (72), com.voiceline.app. 홈페이지·지원·방침은 기존 마인드업 스튜디오 주소를 사용합니다.
+Play 구성: 2.0.0 (73), com.voiceline.app. 홈페이지·지원·방침은 기존 마인드업 스튜디오 주소를 사용합니다.

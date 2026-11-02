@@ -1,11 +1,12 @@
-# VoiceLine Local58 · 시간·반복과 나의 루틴
+# VoiceLine Local59 · 메뉴 정렬과 나의 루틴
 
-확인일: 2026-11-02 · 설치 APK 2.0.0-local58-ci (73) · Play 구성 2.0.0 (72)
+확인일: 2026-11-02 · 설치 APK 2.0.0-local59-ci (74) · Play 구성 2.0.0 (73)
 
-기본 기준음, 직접 시간 입력과 반복 설정을 개선하고 사용자가 만드는 루틴을 추가했습니다. 설치 파일과 기존 업로드 키로 서명한 AAB를 준비했습니다. Play Console 업로드·심사 제출과 실제 휴대폰 검사는 아직 수행하지 않았습니다.
+연습 메뉴에서 나의 루틴을 기존 사용법 자리로 옮기고 사용법을 나의 기록 바로 아래에 배치했습니다. 두 버튼은 같은 줄에 표시되며 개인정보처리방침은 다음 줄 전체 너비를 사용합니다. 기존 C3 기준음, 시간·반복과 루틴 기능은 유지합니다. 설치 파일과 기존 업로드 키로 서명한 AAB를 준비했습니다. Play Console 업로드·심사 제출과 실제 휴대폰 검사는 아직 수행하지 않았습니다.
 
-## 적용한 기능
+## 현재 앱에 적용한 기능
 
+- 메뉴는 호흡·워밍업/나의 기록 다음 줄에 나의 루틴/사용법을 나란히 배치합니다.
 - 기본 기준음은 C3 · 1옥타브 도입니다. 기존 기본값 C4는 업데이트 시 한 번 조정하며, 다른 기준음과 녹음·연습 기록은 유지합니다. 이후 사용자가 C4를 선택하면 그대로 저장합니다.
 - 각 기능 제목 옆 **시간·반복**에서 초 단위와 소수점 한 자리로 시간을 입력합니다. 기준음 듣기·들이쉬기·발성·회복, 음정 연습의 한 음 또는 슬라이드 길이, 청음의 듣기·응답·음 사이 쉬기를 설정할 수 있습니다.
 - 연습 반복 횟수 **0은 무한 반복**입니다. 피아노·음정 측정·메트로놈의 진행 시간 0은 직접 중단입니다. 녹음은 시간 0이면 직접 중단, 지정 시간이면 한 파일로 자동 저장하며 반복 녹음은 하지 않습니다.
@@ -18,8 +19,8 @@
 
 | 파일 | 용도 |
 | --- | --- |
-| `VoiceLine-Local58-CI.apk` | 기존 CI 테스트 앱의 업데이트 설치 |
-| `VoiceLine-Local58-CI.zip` | 동일한 APK 한 파일을 압축한 다운로드 |
+| `VoiceLine-Local59-CI.apk` | 기존 CI 테스트 앱의 업데이트 설치 |
+| `VoiceLine-Local59-CI.zip` | 동일한 APK 한 파일을 압축한 다운로드 |
 | `VoiceLine-2.0.0-Upload.aab` | 기존 업로드 키로 서명한 Play 업로드용 번들 |
 | `VoiceLine-Play-Store-Kit.zip` | 소개·이미지·사용법·콘솔 안내·검증 자료 |
 
@@ -35,7 +36,7 @@
 | APK | 설치 이름·버전·기존 CI 서명·패키지와 소스 자산 일치 확인 |
 | AAB | bundletool 검증, 기존 키 서명과 엄격한 서명 검증 통과. 원본 항목 139개 내용 보존 |
 | Android 16 | 오프라인 방침·뒤로 가기·루틴 편집 화면·워밍업·화면 회전·그래프 검사 통과 |
-| 기존 CI 업데이트 | 배포된 Local57 (72) → Local58 (73), 삭제 없이 설치하고 비공개 테스트 파일 보존 |
+| 기존 CI 업데이트 | 배포된 Local58 (73) → Local59 (74), 삭제 없이 설치하고 비공개 테스트 파일 보존 |
 | release lint | Error/Fatal 0개, Warning 15개. XML·HTML 동봉 |
 | 실제 휴대폰 | S24 Ultra 등 실기기 검사는 미실행 |
 | Play Console | AAB 업로드·트랙 배포·설정 변경·심사 제출 미실행 |
@@ -44,16 +45,16 @@ Android 실행 검사는 API36 에뮬레이터 기준이며 실제 사용자 녹
 
 ## 소스와 다운로드 검증
 
-- [검증한 앱 소스](https://github.com/sometime1992/voiceline-web/commit/71bdeab38a529e8e63dd9320c4ac7225c50537bc)
-- [성공한 빌드·Android 검사](https://github.com/sometime1992/voiceline-web/actions/runs/41372870485)
-- [공개 다운로드·해시 검사](https://github.com/sometime1992/voiceline-web/actions/runs/41373639502)
-- [Local58 공개 릴리스](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local58-ci)
+- [검증한 앱 소스](https://github.com/sometime1992/voiceline-web/commit/233a10c9b31f846cc3ece95a90fda59607ebeffe)
+- [성공한 빌드·Android 검사](https://github.com/sometime1992/voiceline-web/actions/runs/41375131526)
+- [공개 다운로드·해시 검사](https://github.com/sometime1992/voiceline-web/actions/runs/41375943167)
+- [Local59 공개 릴리스](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local59-ci)
 
 | 파일 | SHA-256 |
 | --- | --- |
-| APK | `3fd14b6d04bf7d7f841b85e55f4f25700464d8a9439a6149851c43373bcf9812` |
-| APK ZIP | `060b93bd8fc0e44fe00bd21529bbe101a0f55131941842ba81fd892e83b374e3` |
-| 서명된 AAB | `9c7a4217dd01fcc771f54cf0890d99662f7110827aaa9c0d6abdc1751ea7d359` |
+| APK | `6017402ae18bb1bfa3e96faed800142481dd6118a1df57f1787a6562c883dc8a` |
+| APK ZIP | `76f35e4e7fcf0c19ebd6b7cea07305c28899e73462295ddb439e2d50473758eb` |
+| 서명된 AAB | `e84f02ac3e8769e71408b5b784e47da5ebe53fee4dea2fac0e5f3b9ca28053e7` |
 
 업로드 인증서 SHA-256은 `916a59f6613bdd7f69737eb3eda2c31e35111866d3da1edfa621095b1e2b02ce`으로 이전 제공 인증서와 같습니다. ZIP에는 공개 인증서만 포함하며 개인 키와 비밀번호는 포함하지 않습니다.
 
@@ -69,4 +70,4 @@ Android 실행 검사는 API36 에뮬레이터 기준이며 실제 사용자 녹
 
 시간 설정과 루틴은 기기에 저장됩니다. 마이크 분석·녹음·연습 기록의 기기 내부 처리, 광고·로그인 없음, 시스템 브라우저로 여는 외부 지원 페이지 방식은 유지했습니다. 앱 삭제나 데이터 초기화 전 필요한 녹음은 내보내세요.
 
-스토어 제출 시 기존 콘솔의 패키지·업로드 인증서·마지막 버전 코드를 대조합니다. 이번 정식 버전 코드는 72입니다. 소개·지원 정보·앱 콘텐츠 선언 초안은 `console-guide-ko.md`에 있으며 콘솔 상태를 확인하고 내부 테스트와 실제 사용 피드백을 반영한 뒤 제출합니다.
+스토어 제출 시 기존 콘솔의 패키지·업로드 인증서·마지막 버전 코드를 대조합니다. 이번 정식 버전 코드는 73입니다. 소개·지원 정보·앱 콘텐츠 선언 초안은 `console-guide-ko.md`에 있으며 콘솔 상태를 확인하고 내부 테스트와 실제 사용 피드백을 반영한 뒤 제출합니다.
