@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 // alone missed the Local64 footer covering its body and the oversized overview.
 module.exports=async function checkReadability(page,choose,output){
  const report=[],modes=['piano','pitch','practice','record','vibrato','sustainVoice','earVoice','dynamicVoice','warmupVoice','metronome'];
- const viewports=[{width:360,height:640},{width:412,height:820},{width:844,height:370},{width:915,height:412},{width:740,height:360},{width:1024,height:600}];
+ const viewports=[{width:360,height:640},{width:412,height:820},{width:844,height:370},{width:915,height:412},{width:740,height:360},{width:697,height:360},{width:640,height:320},{width:1024,height:600}];
  const frames=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
  const body=()=>page.locator('#planScroll');
  async function reachable(node,label){
@@ -41,6 +41,7 @@ module.exports=async function checkReadability(page,choose,output){
   for(const viewport of viewports)for(const scale of [1,1.2,1.5]){
    await page.setViewportSize(viewport);await page.evaluate(s=>{document.documentElement.style.fontSize=(16*s)+'px';document.querySelector('#planScroll').scrollTop=0;},scale);await frames();
    const label=mode+' '+viewport.width+'x'+viewport.height+' '+scale;await layout(label);
+   if(viewport.width>viewport.height){const split=await page.locator('.settings-editor').evaluate(e=>{const a=e.querySelector('.settings-overview').getBoundingClientRect(),b=e.querySelector('.settings-section').getBoundingClientRect();return b.left>=a.right+4;});assert.ok(split,label+' landscape editor failed to split at usable screen width');}
    // At least one actual setting, including its label, must be in the initial view.
    const first=page.locator('.settings-section[open] :is(select,input):not([type=radio]):not([type=checkbox])').first();
    if(await first.count())assert.ok(await first.evaluate(e=>{const r=e.getBoundingClientRect(),s=document.querySelector('#planScroll').getBoundingClientRect();return r.top>=s.top&&r.bottom<=s.bottom;}),label+' first setting hidden below the overview');

@@ -126,7 +126,7 @@
  .settings-choice-option{flex-basis:100%!important}
  .settings-beat-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
-@media(orientation:landscape) and (min-width:720px){
+@media(orientation:landscape) and (min-width:560px){
  #planDialog{padding:6px}
  #planDialog .plan-modal{height:calc(100dvh - 12px);max-height:calc(100dvh - 12px)}
  #planDialog .modal-heading{padding:6px 12px}
@@ -135,6 +135,11 @@
  .settings-overview{grid-column:1;grid-row:1/span 5}
  .settings-section,.settings-step-done{grid-column:2}
  .plan-actions{padding:7px 12px}
+ .settings-section[data-settings-group=content]>summary .settings-section-value{display:none}
+}
+@media(orientation:landscape) and (min-width:560px) and (max-width:800px){
+ .settings-fields{grid-template-columns:minmax(0,1fr)}
+ .settings-choice-option{flex-basis:100%!important}
 }
 /* Short viewports include the on-screen keyboard. The body remains independently scrollable. */
 @media(max-height:300px){

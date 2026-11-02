@@ -73,6 +73,37 @@ def tap(label, identifier=None, partial=False):
         time.sleep(.4)
     raise AssertionError('Android control not found: ' + label)
 
+
+def settings_rect(label, identifier=None, document=None):
+    document=tree() if document is None else document
+    candidates=[n for n in document.iter('node') if n.attrib.get('text')==label or n.attrib.get('content-desc')==label or identifier and n.attrib.get('resource-id','').endswith(identifier)]
+    # The last dialog follows underlying WebView content in accessibility order.
+    for n in reversed(candidates):
+        r=[int(v) for v in re.findall(r'\d+',n.attrib.get('bounds',''))]
+        if len(r)==4 and r[2]>r[0] and r[3]>r[1]:return r
+    raise AssertionError('Settings control has no visible bounds: '+label)
+
+def assert_settings_readable(landscape=False, selected='모음 · 아에이오우'):
+    document=tree()
+    label=settings_rect('연습 종류',document=document)
+    field=settings_rect(selected,document=document)
+    save=settings_rect('설정 저장','planSave',document)
+    close=settings_rect('연습 설정 닫기','planClose',document)
+    overview=settings_rect('현재 연습 설정',document=document)
+    assert label[1]>=close[3] and field[3]<=save[1],(label,field,save,close)
+    assert field[1]>=label[3]-4,(label,field)
+    if landscape:assert label[0]>=overview[2],(overview,label)
+    name='settings-landscape-geometry.json' if landscape else 'settings-portrait-geometry.json'
+    (qa/name).write_text(json.dumps({'status':'passed','field':field,'label':label,'actions':save,'overview':overview,'landscape':landscape},indent=2))
+
+def choose_vowel_settings():
+    # Click the select in the current modal rather than the similar underlying control.
+    r=settings_rect('음계')
+    adb('shell','input','tap',str((r[0]+r[2])//2),str((r[1]+r[3])//2))
+    time.sleep(.5)
+    tap('모음 · 아에이오우',partial=True)
+    wait_visible('모음 · 아에이오우')
+
 def start():
     adb('shell', 'am', 'force-stop', package)
     adb('shell', 'am', 'start', '-W', '-n', package + '/com.voiceline.app.MainActivity')
@@ -118,9 +149,9 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local64-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local65-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local64-ci' in old_package
+    assert 'versionName=2.0.0-local65-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
     wait_visible('VoiceLine', timeout=60)
@@ -129,9 +160,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local65-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local66-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local65-ci' in installed and 'versionCode=80' in installed
+    assert 'versionName=2.0.0-local66-ci' in installed and 'versionCode=81' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -141,8 +172,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local64-ci (79)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local65-ci (80)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local65-ci (80)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local66-ci (81)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -194,12 +225,15 @@ try:
         tap('연습 설정', 'customTimingOpen')
     wait_visible('일반 연습에 적용')
     wait_visible('연습 종류')
+    choose_vowel_settings()
+    assert_settings_readable()
     screenshot('settings-font150-android16.png', False)
     adb('shell', 'wm', 'user-rotation', 'lock', '1')
     time.sleep(1)
     wait_visible('일반 연습에 적용')
     wait_visible('연습 종류')
     wait_visible('저장 후 시작')
+    assert_settings_readable(landscape=True)
     screenshot('settings-landscape-font150-android16.png', False)
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(.5)
@@ -231,7 +265,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local64 to Local65 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local65 to Local66 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))
