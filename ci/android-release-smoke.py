@@ -196,7 +196,7 @@ try:
     time.sleep(1)
     wait_visible('일반 연습에 적용')
     wait_visible('연습 종류')
-    wait_visible('저장하고 시작')
+    wait_visible('저장 후 시작')
     screenshot('settings-landscape-font150-android16.png', False)
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(.5)

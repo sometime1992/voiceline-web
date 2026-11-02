@@ -22,7 +22,7 @@
 #planRoutineEnd{margin-bottom:12px}
 .plan-note{font-size:.8125rem;line-height:1.6;color:#d5cfdf;margin:12px 0 0;overflow-wrap:anywhere}
 .plan-actions{flex:none;position:static;display:flex;gap:10px;padding:8px 14px max(8px,env(safe-area-inset-bottom,0px));margin:0;border-top:1px solid #5d566d;background:#222034}
-.plan-actions button{flex:1;min-width:0;min-height:48px;margin:0;font-size:.875rem;font-weight:650}
+.plan-actions button{flex:1;min-width:0;min-height:48px;margin:0;font-size:.8125rem;font-weight:650;word-break:keep-all}
 .plan-modal #planRun{background:#62dec4;color:#122b25;border-color:#62dec4;font-weight:750}
 .plan-modal #planSave{background:#27594f;color:#d6fff1;border-color:#68a694}
 .plan-modal #planDelete{color:#ffd0d0}

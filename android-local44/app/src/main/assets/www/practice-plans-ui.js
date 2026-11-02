@@ -58,7 +58,7 @@
   $('planDialog').dataset.editor='general';$('planLibrary').hidden=true;
   $('planTitle').textContent=(api.MODES[mode]||'녹음')+' 설정';$('planList').hidden=true;renderSingle(true);$('planRoutineSummary').hidden=true;$('planRoutineEnd').hidden=true;
   $('planName').hidden=true;$('planName').disabled=true;$('planRoutineRounds').disabled=true;$('planNameLabel').hidden=true;$('planRoutineRoundsLabel').hidden=true;$('planAddRow').hidden=true;$('planNew').hidden=true;$('planDelete').hidden=true;
-  $('planSave').textContent='설정 저장';$('planSave').hidden=false;$('planRun').textContent='저장하고 시작';status('');bridge.modalOpen('planDialog');$('planScroll').scrollTop=0;
+  $('planSave').textContent='설정 저장';$('planSave').hidden=false;$('planRun').textContent='저장 후 시작';status('');bridge.modalOpen('planDialog');$('planScroll').scrollTop=0;
  }
  function selectedRoutine(){return state.routines.find(r=>r.id===$('planList').value);}
  function renderList(id){const select=$('planList');select.replaceChildren();for(const r of state.routines){const o=el('option',r.name);o.value=r.id;select.append(o);}if(id)select.value=id;}
