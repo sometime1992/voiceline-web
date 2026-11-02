@@ -9,7 +9,7 @@ const js=fs.readFileSync(path.join(root,'app/src/main/assets/www/piano.js'),'utf
 const chunk=(from,to)=>{const a=js.indexOf(from),b=js.indexOf(to,a);assert.ok(a>=0&&b>a,from);return js.slice(a,b)};
 const policies=vm.runInNewContext(chunk('const PITCH_RANGE=','const MODES=')+'\n({PITCH_RANGE,SCORE_RULES})');
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const evaluate=(code,context={})=>{const window=context.window||{};window.VoiceLineRecordingTools=require('../app/src/main/assets/www/recording-tools.js');window.VoiceLineGuideTraining=require('../app/src/main/assets/www/guide-training.js');return vm.runInNewContext(code,{...policies,clamp,console,Blob,Uint8Array,ArrayBuffer,DataView,Float32Array,atob,Promise,Map,Math,Number,setTimeout,clearTimeout,updateRecordingStorage:async()=>{},...context,window});};
+const evaluate=(code,context={})=>{const window=context.window||{};window.VoiceLineRecordingTools=require('../app/src/main/assets/www/recording-tools.js');window.VoiceLineGuideTraining=require('../app/src/main/assets/www/guide-training.js');window.VoiceLinePracticeSettings=require('../app/src/main/assets/www/practice-settings.js');return vm.runInNewContext(code,{...policies,clamp,console,Blob,Uint8Array,ArrayBuffer,DataView,Float32Array,atob,Promise,Map,Math,Number,setTimeout,clearTimeout,updateRecordingStorage:async()=>{},...context,window});};
 class Node {
  constructor(){this.children=[];this.hidden=false;this.disabled=false;this.isConnected=true;this.textContent='';this.style={};this.dataset={};this.events={};const classes=new Set();this.classList={add:key=>classes.add(key),remove:key=>classes.delete(key),contains:key=>classes.has(key),toggle:(key,on)=>on?classes.add(key):classes.delete(key)};}
  append(n){n.parent=this;this.children.push(n)}
@@ -427,15 +427,10 @@ test('Application boot and unified practice controls execute with every existing
   if(mode==='guideVoice'){
    assert.equal($('guideVoicePanel').hidden,false);assert.equal($('trainingOverlay').hidden,true);
    const kind=$('exerciseControls').children[0].children[0],select=$('exerciseControls').children[1].children[0];
-   assert.deepEqual(kind.children.map(option=>option.value),['steps','smooth']);
-   assert.equal(select.children.length,20);
-   const button=$('exerciseControls').children.find(child=>child.id==='guideSettingsOpen');assert.ok(button);
-   button.onclick();assert.equal($('guideSettingsDialog').hidden,false);assert.match($('guidePlanInfo').textContent,/음역.*C3 · 1옥 도/);
-   $('guideRoot').value='48';$('guideRounds').value='2';$('guideShift').value='-1';$('guideBpm').value='60';$('guideSound').value='vowel';$('guideNoteSeconds').value='2';
-   $('guideSettingsSave').events.click();assert.equal($('guideSettingsDialog').hidden,true);
-   assert.equal(window.__local32Test.app.guideSettings.root,48);assert.equal(window.__local32Test.app.guideSettings.sound,'vowel');
-   assert.equal(window.__local32Test.app.guideSettings.bpm,60);assert.equal(window.__local32Test.app.trainingSettings.root,48);
-   assert.equal(window.__local32Test.app.guideSettings.noteSeconds,2);
+   assert.deepEqual(kind.children.map(option=>option.value),['steps','leaps','vowels','smooth']);
+   assert.equal(select.children.length,12);
+   assert.equal($('exerciseControls').children.some(child=>child.id==='guideSettingsOpen'),false);
+   kind.value='vowels';kind.onchange();assert.equal(window.__local32Test.app.guideSettings.pattern,'vowelFive');assert.equal(window.__local32Test.app.guideSettings.rounds,1);
   }
   window.__local32Test.showModeGuide(mode);assert.match($('infoTitle').textContent,/설명/);assert.equal($('infoDialog').hidden,false);
   window.__local32Test.modalClose('infoDialog');assert.equal($('infoDialog').hidden,true);

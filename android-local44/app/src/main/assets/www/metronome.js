@@ -350,7 +350,7 @@
   };
   if(root.ResizeObserver)new root.ResizeObserver(reflowBeats).observe($('metroBeats'));
   else root.addEventListener?.('resize',reflowBeats);
-  paint();paintPresets();return {applySettings:value=>update(value,false),toggle:()=>scheduler.toggle(),cancelHolds,stop:()=>{cancelHolds();scheduler.stop();},get running(){return scheduler.running;},get starting(){return scheduler.starting;},get settings(){return settings;}};
+  paint();paintPresets();return {applySettings:(value,persistChange=false)=>update(value,persistChange),toggle:()=>scheduler.toggle(),cancelHolds,stop:()=>{cancelHolds();scheduler.stop();},get running(){return scheduler.running;},get starting(){return scheduler.starting;},get settings(){return settings;}};
  }
  const api={normalize,beatSeconds,grouping,defaults,beatPage,timingIssue,soundProfile,parsePresets,bindRepeatButton,MAX_PRESETS,MAX_PULSE_RATE,PRESETS,DENOMINATORS,SUBDIVISIONS,Scheduler,mount};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.VoiceLineMetronome=api;

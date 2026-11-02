@@ -2,11 +2,10 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  await page.setViewportSize({width:390,height:844});await choose(page,'practice');
- await page.locator('#guideKind').selectOption('steps');await page.locator('#guidePattern').selectOption('vowelFive');
+ await page.locator('#guideKind').selectOption('vowels');await page.locator('#guidePattern').selectOption('vowelFive');
  assert.match(await page.locator('#guidePhaseHint').textContent(),/ア|아/);
- await page.locator('#guideSettingsOpen').click();await page.locator('#guideRoot').selectOption('60');await page.locator('#guideListenFirst').selectOption('off');await page.locator('#guideSettingsSave').click();
- await page.locator('#customTimingOpen').click();
- for(const [label,n]of [['한 음 길이 (초, 0=BPM)',.6],['발성 전 들이쉬기 (초)',.3],['회차 사이 쉬기 (초)',.4],['반복 횟수 (0=무한 반복)',1]])await page.locator('#planEditor').getByLabel(label,{exact:true}).fill(String(n));
+ await page.locator('#customTimingOpen').click();await page.getByLabel('기준음',{exact:true}).selectOption('60');await page.getByRole('radio',{name:'바로 따라 부르기',exact:true}).check();
+ for(const [label,n]of [['한 음 길이 (초)',.6],['발성 전 들이쉬기 (초)',.3],['모음 사이·회차 끝 쉬기 (초)',.4],['다섯 모음 세트 수',1]]){const input=page.locator('#planEditor').getByLabel(label,{exact:true});await input.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await input.fill(String(n));}
  await page.locator('#planSave').click();await page.locator('#mainButton').click();await page.waitForFunction(()=>window.__vowelPitchCourse&&window.__micRequest);
  const request=await page.evaluate(()=>{
   const request=window.__micRequest;window.__vowelsSeen=[];

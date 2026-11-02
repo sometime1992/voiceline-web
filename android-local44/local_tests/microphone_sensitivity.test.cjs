@@ -78,16 +78,16 @@ test('Local45 stored sensitivity defaults safely when absent, malformed or unava
  const blocked=vm.runInNewContext(constants+'\nreadMicSensitivity',{localStorage:{getItem(){throw Error('blocked')}}});
  assert.equal(blocked(),'sensitive');
 });
-test('Local45 live sensitivity cycling persists without restarting or splitting recording or training',()=>{
+test('Local64 explicit sensitivity changes persist without restarting or splitting recording or training',()=>{
  const record={id:'continuous',startFrame:123,bytes:456},training={active:true,good:8},notes=[60,60.1];
  const app={mic:true,nativeMic:true,micSensitivity:'sensitive',record,training,notes,lastTrustedPitchAt:1};
  const storage=new Map(),listeners={},attrs={};
  const button={addEventListener:(name,fn)=>listeners[name]=fn,setAttribute:(k,v)=>attrs[k]=v};
- const code=constants+chunk('function updateMicSensitivityControl(){',"$('micToggle').addEventListener('click',async()=>{");
- vm.runInNewContext(code,{app,$:()=>button,localStorage:{setItem:(k,v)=>storage.set(k,v)}});
+ const code=constants+chunk('function updateMicSensitivityControl(){',"$('micSensitivity').addEventListener('click',()=>{")+'\n({applyMicSensitivity,updateMicSensitivityControl})';
+ const api=vm.runInNewContext(code,{app,$:()=>button,localStorage:{setItem:(k,v)=>storage.set(k,v)}});api.updateMicSensitivityControl();
  assert.equal(button.textContent,'감도 민감');
  for(const [value,label] of [['high','최대'],['standard','표준'],['sensitive','민감']]){
-  listeners.click();assert.equal(app.micSensitivity,value);assert.equal(button.textContent,'감도 '+label);
+  api.applyMicSensitivity(value);assert.equal(app.micSensitivity,value);assert.equal(button.textContent,'감도 '+label);
   assert.equal(storage.get('voiceline-mic-sensitivity-v1'),value);
   assert.match(attrs['aria-label'],new RegExp(label));
   assert.equal(app.record,record);assert.equal(app.training,training);assert.equal(app.mic,true);

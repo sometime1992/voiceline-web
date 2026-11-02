@@ -159,16 +159,22 @@ async function checkVolumeRange(page,id,valueId){
    await page.waitForFunction(()=>document.querySelector('#micToggle').getAttribute('aria-pressed')==='false');
    if(await page.locator('#trainingResultDialog').isVisible())await page.locator('#trainingResultClose').click();
   };
+  async function reveal(label){const input=page.locator('#planEditor').getByLabel(label,{exact:true});await input.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});return input;}
   const settings=async values=>{
-   await page.locator('#guideSettingsOpen').click();
-   for(const [id,value]of Object.entries(values))await page.locator('#'+id).selectOption(value);
-   await page.locator('#guideSettingsSave').click();await frames(page);
+   await page.locator('#customTimingOpen').click();
+   for(const [id,value]of Object.entries(values)){
+    if(id==='guideListenFirst')await page.getByRole('radio',{name:value==='on'?'먼저 듣고 따라 부르기':'바로 따라 부르기',exact:true}).check();
+    else if(id==='guideRounds'){await (await reveal('이 구절 반복 횟수')).fill(value);}
+    else if(id==='guideNoteSeconds'){await (await reveal('한 음 길이 (초)')).fill(value);}
+   }
+   await page.locator('#planSave').click();await frames(page);
   };
   await choose(page,'practice');
-  await page.locator('#guideSettingsOpen').click();const guideVolume=await checkVolumeRange(page,'guideVolume','guideVolumeValue');
+  await page.locator('#customTimingOpen').click();
+  const guideVolume=await (await reveal('가이드 음량 (%)')).inputValue();
+  for(const v of [0,50,100]){await (await reveal('가이드 음량 (%)')).fill(String(v));assert.match(await page.locator('.settings-volume output').textContent(),new RegExp('^'+v+'%'));}
   await page.screenshot({path:path.join(output,'portrait-guide-volume-100.png')});
-  await page.locator('#guideVolume').evaluate((el,n)=>{el.value=n;el.dispatchEvent(new Event('input',{bubbles:true}));},guideVolume);
-  await page.locator('#guideSettingsClose').click();
+  await (await reveal('가이드 음량 (%)')).fill(guideVolume);await page.locator('#planClose').click();
   const pianoVolume=await checkVolumeRange(page,'pianoVolume','pianoVolumeValue');await page.screenshot({path:path.join(output,'portrait-piano-volume-100.png')});
   await page.locator('#pianoVolume').evaluate((el,n)=>{el.value=n;el.dispatchEvent(new Event('input',{bubbles:true}));},pianoVolume);
   await page.locator('#mainButton').click();await phase('answer');
@@ -196,7 +202,7 @@ async function checkVolumeRange(page,id,valueId){
   assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5,'restoring erased hidden voice history');
   await page.setViewportSize(viewports[0]);await frames(page);await stop();
   await settings({guideListenFirst:'on',guideNoteSeconds:'1.2',guideRounds:'1'});
-  await page.locator('#guidePattern').selectOption('triad');await page.locator('#mainButton').click();await phase('listen');
+  await page.locator('#guideKind').selectOption('leaps');await page.locator('#guidePattern').selectOption('triad');await page.locator('#mainButton').click();await phase('listen');
   await sendTone(page,130.812783);assert.equal(await page.locator('#guideAccuracy').textContent(),'—','listening was scored');
   await phase('handoff');assert.equal(await page.locator('#guideStartCue').isVisible(),true);
   assert.match(await page.locator('#guidePhaseTitle').textContent(),/숨을 들이쉬세요/);
