@@ -296,7 +296,7 @@ async function checkVolumeRange(page,id,valueId){
   await choose(page,'dynamicVoice');assert.equal(await page.locator('#dynamicCueVolume').inputValue(),'45','cue volume not restored');
   await page.locator('#dynamicCueVolume').selectOption('70');
   const patterns=await page.evaluate(()=>Object.keys(window.VoiceLineDynamics.PATTERNS));assert.equal(patterns.length,8);
-  assert.equal(await page.locator('#dynamicPattern option').count(),8);
+  assert.equal(await page.locator('#dynamicPattern option').count(),patterns.filter(id=>id!=='vowels').length);
   const patternReport=[];
   for(const viewport of [viewports[0],viewports[2],viewports[3]]){
    await page.setViewportSize(viewport);await frames(page);const keyboard=(await geometry(page)).keyboard;

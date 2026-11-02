@@ -2314,8 +2314,9 @@ function renderGuideTraining(t=performance.now(),force=false){
   if(phase==='rest'&&(a.infinite||p.round+1<a.rounds))$('guidePhaseHint').textContent='숨을 편안하게 쉬세요 · 다음은 「'+p.nextVowel+'」 음계 왕복입니다.';
   if(active&&cue.visible)$('guideStartText').textContent='「'+cue.vowel+'」 · '+(cue.starting?'첫 음 '+noteLabel(cue.firstMidi):'숨 들이쉬기 · '+cue.count+'초 뒤 시작');
  }
- $('guideRoundInfo').textContent=api.roundLabel(a,p)+' · 기준 '+noteLabel(a.roots[a.infinite?0:p.round]);
- $('guideTargetLabel').textContent=(p.vowel?'「'+p.vowel+'」 ':'')+'목표 '+noteLabel(p.midi);
+ const shown=a.pattern.vowels&&active&&p.phase==='rest'&&cue.visible?api.position(a,a.start+(p.round+1)*a.cycleMs):p;
+ $('guideRoundInfo').textContent=api.roundLabel(a,shown)+' · 기준 '+noteLabel(a.roots[a.infinite?0:shown.round]);
+ $('guideTargetLabel').textContent=(shown.vowel?'「'+shown.vowel+'」 ':'')+'목표 '+noteLabel(shown.midi);
  const last=result?[...a.history].reverse().find(v=>Number.isFinite(v.midi)):a.last;
  const liveMidi=Number.isFinite(last?.midi)&&(result||t-last.t<=210)?last.midi:null;
  $('guideDetectedLabel').textContent='내 음 '+(liveMidi===null?'—':noteLabel(liveMidi));
