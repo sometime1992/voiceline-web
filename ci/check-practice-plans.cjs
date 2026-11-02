@@ -16,6 +16,7 @@ module.exports=async function checkPlans(page,choose,output){
   for(const viewport of [{width:360,height:640},{width:844,height:390}])for(const scale of [1,1.2,1.5]){
    await page.setViewportSize(viewport);await page.evaluate(s=>document.documentElement.style.fontSize=(16*s)+'px',scale);
    const bounds=await page.locator('.plan-modal').evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,x:e.getBoundingClientRect().x,right:e.getBoundingClientRect().right,height:e.getBoundingClientRect().height,window:innerWidth,windowHeight:innerHeight}));assert.ok(bounds.scroll<=bounds.width+2,mode+' horizontal scroll at '+scale);assert.ok(bounds.x>=0&&bounds.right<=bounds.window+1&&bounds.height<=bounds.windowHeight,mode+' dialog clipped');
+   const heading=await page.locator('.plan-modal .modal-heading').evaluate(e=>{const t=e.querySelector('h2').getBoundingClientRect(),c=e.querySelector('button').getBoundingClientRect();return {titleRight:t.right,closeLeft:c.left}});assert.ok(heading.titleRight<=heading.closeLeft-4,mode+' heading overlaps close button at '+scale);
    await page.locator('#planSave').scrollIntoViewIfNeeded();assert.ok(await page.locator('#planSave').evaluate(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight+1;}));
   }
   await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});await page.locator('#planClose').click();report.push(mode+' shared settings, summary and 100/120/150% reflow in portrait and landscape');

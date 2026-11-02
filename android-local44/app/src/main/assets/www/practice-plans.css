@@ -21,3 +21,5 @@
 @media(max-width:520px){.settings-fields,.plan-stage-fields{grid-template-columns:1fr}.plan-modal{width:calc(100vw - 20px);padding:16px}.settings-overview{padding:14px}.settings-fields{padding:13px}.settings-choice-option{flex-basis:100%!important}.plan-step .settings-fields{padding:12px}.settings-beat-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(orientation:landscape) and (max-height:500px){.plan-modal{max-height:calc(100dvh - 12px)}.plan-modal .modal-heading{position:static}.settings-overview{margin-top:8px}.settings-choice-option{flex-basis:180px!important}}
 @media(max-height:350px){.plan-actions{position:static}}
+/* Reserve the close action even when Android enlarges heading text. */
+.plan-modal .modal-heading{align-items:flex-start;gap:12px}.plan-modal #planTitle{flex:1 1 0;min-width:0;max-width:calc(100% - 60px);white-space:normal;overflow-wrap:anywhere;word-break:keep-all;line-height:1.35;margin:0}.plan-modal #planClose{flex:0 0 48px;width:48px;height:48px;min-height:48px;align-self:flex-start}
