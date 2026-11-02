@@ -20,14 +20,14 @@ function sing(s,pitch=(p)=>p.midi,step=50){
  return guide.metrics(s);
 }
 test('Guide patterns and every round stay in detectable range without reversing the phrase',()=>{
- assert.equal(Object.keys(guide.PATTERNS).length,22);
- assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify(p.steps))).size,22);
+ assert.equal(Object.keys(guide.PATTERNS).length,24);
+ assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify([p.steps,p.vowels]))).size,24);
  for(const pattern of Object.keys(guide.PATTERNS))for(const root of [36,48,60,82,94])for(const shift of [-1,0,1]){
   const s=session({pattern,root,shift,rounds:5});
-  assert.ok(s.rounds>=1&&s.rounds<=5);
+  assert.ok(s.sets>=1&&s.sets<=5);
   for(let i=0;i<s.roots.length;i++){
    for(const offset of s.pattern.steps)assert.ok(s.roots[i]+offset>=36&&s.roots[i]+offset<=94);
-   if(i)assert.equal(s.roots[i]-s.roots[i-1],shift);
+   if(i)assert.equal(s.roots[i]-s.roots[i-1],i%s.phrasesPerSet===0?shift:0);
   }
  }
 });
@@ -245,7 +245,7 @@ test('Every slide pattern shows solfege and Korean octave for its goal, live voi
    app,$,window:{VoiceLineGuideTraining:guide},...labels,guideOptions:()=>s.settings,Math,Number,landscapeGraphHidden:()=>false
   });
   const p=guide.position(s,t);guide.receive(s,t-50,p.midi);guide.receive(s,t,p.midi);render(t,true);
-  assert.equal($('guideTargetLabel').textContent,'목표 '+labels.noteLabel(p.midi));
+  assert.equal($('guideTargetLabel').textContent,(p.vowel?'「'+p.vowel+'」 ':'')+'목표 '+labels.noteLabel(p.midi));
   assert.equal($('guideDetectedLabel').textContent,'내 음 '+labels.noteLabel(p.midi));
   assert.match($('guideRoundInfo').textContent,/C♯4 · 2옥 도♯/);
   render(t+300,true);assert.equal($('guideDetectedLabel').textContent,'내 음 —','stale voice label must clear');

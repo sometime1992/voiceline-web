@@ -5,7 +5,10 @@
  else root.VoiceLineGuideTraining=api;
 })(typeof window!=='undefined'?window:globalThis,function(){
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const VOWELS=Object.freeze(['아','에','이','오','우']);
  const PATTERNS=Object.freeze({
+  vowelFive:{label:'아에이오우 · 5음 음계 왕복',vowels:VOWELS,steps:[0,2,4,5,7,5,4,2,0],tip:'아로 도레미파솔파미레도를 부른 뒤 숨을 쉬고 에·이·오·우도 같은 음계로 반복하세요. 각 목표 음을 유지합니다.'},
+  vowelTriad:{label:'아에이오우 · 도미솔 도약 왕복',vowels:VOWELS,steps:[0,4,7,4,0],tip:'아로 도미솔미도를 부른 뒤 에·이·오·우도 각각 같은 도약을 반복하세요. 아에이오우까지가 한 세트입니다.'},
   five:{label:'5음 왕복 · 도레미파솔',steps:[0,2,4,5,7,5,4,2,0],tip:'음과 음 사이를 편안하게 연결하세요.'},
   triad:{label:'3화음 왕복 · 도미솔',steps:[0,4,7,4,0],tip:'도약한 음을 먼저 떠올리고 따라 부르세요.'},
   minor:{label:'단조 왕복',steps:[0,2,3,5,7,5,3,2,0],tip:'장조와 다른 세 번째 음의 높이에 집중하세요.'},
@@ -75,32 +78,33 @@
   const pattern=direction<0?{...entry,steps:entry.steps.map(offset=>-offset),
    tip:entry.smooth?'높은 시작음에서는 아래로 6초 내린 뒤 6초 동안 시작음으로 돌아옵니다.':'높은 시작음에서는 범위 안에서 반음씩 아래로 왕복합니다.'}:entry;
   const smooth=Boolean(pattern.smooth),noteMs=smooth?settings.smoothSeconds*250:settings.noteSeconds?settings.noteSeconds*1000:60000/settings.bpm;
-  const roots=[];
+  const roots=[],phrasesPerSet=pattern.vowels?.length||1;
   const infinite=settings.rounds===0;
   for(let i=0;i<(infinite?1:settings.rounds);i++){
    const root=settings.root+i*settings.shift;
    if(pattern.steps.some(offset=>root+offset<36||root+offset>94))break;
-   roots.push(root);
+   for(let vowel=0;vowel<(infinite?1:phrasesPerSet);vowel++)roots.push(root);
   }
   const phraseMs=smooth?settings.smoothSeconds*1000:pattern.steps.length*noteMs;
   const cycleMs=phraseMs+(settings.listenFirst?phraseMs+settings.breathSeconds*1000:0)+settings.restSeconds*1000;
   const attackMs=!settings.listenFirst&&!smooth?Math.min(280,noteMs*.35):100;
   const responsePerRound=smooth?phraseMs-attackMs:pattern.steps.length*(noteMs-attackMs);
-  return {settings,pattern,smooth,direction,infinite,attackMs,responsePerRound,tolerance:smooth?110:settings.tolerance,noteMs,phraseMs,cycleMs,handoffMs:settings.breathSeconds*1000,roots,rounds:roots.length,
-   duration:infinite?Infinity:cycleMs*roots.length,limited:!infinite&&roots.length<settings.rounds,
+  return {settings,pattern,smooth,direction,infinite,phrasesPerSet,sets:infinite?1:roots.length/phrasesPerSet,attackMs,responsePerRound,tolerance:smooth?110:settings.tolerance,noteMs,phraseMs,cycleMs,handoffMs:settings.breathSeconds*1000,roots,rounds:roots.length,
+   duration:infinite?Infinity:cycleMs*roots.length,limited:!infinite&&roots.length<settings.rounds*phrasesPerSet,
    responseMs:roots.length*responsePerRound};
  }
  function create(value,t){
   const p=plan(value);
   return {mode:'guideVoice',active:true,...p,start:t+(p.settings.listenFirst?p.settings.prepareSeconds:p.settings.breathSeconds)*1000,root:p.settings.root,target:null,
    binRound:0,completedEach:true,
-   bins:p.roots.map(root=>(p.smooth?[0,1,2,3]:p.pattern.steps).map((offset,i)=>({
+   bins:p.roots.map((root,round)=>(p.smooth?[0,1,2,3]:p.pattern.steps).map((offset,i)=>({
+    vowel:p.pattern.vowels?.[round%p.phrasesPerSet]||null,
     midi:root+(p.smooth?p.pattern.steps[1]*triangle((i+.5)/4):offset),
     label:p.smooth?(p.direction<0?['내리기 앞부분','내리기 뒷부분','올리기 앞부분','올리기 뒷부분']:['올리기 앞부분','올리기 뒷부분','내리기 앞부분','내리기 뒷부분'])[i]:null,
     expected:p.smooth?p.noteMs-(i===0?p.attackMs:0):p.noteMs-p.attackMs,voiced:0,good:0,samples:0}))),
    history:[],last:null,valid:0,voicedMs:0,goodMs:0,low:null,high:null};
  }
- function position(s,t){
+ function timelinePosition(s,t){
   const elapsed=t-s.start;
   if(elapsed<0)return {phase:'ready',round:0,root:s.roots[0],offset:0,index:0,midi:s.roots[0]+s.pattern.steps[0],remaining:-elapsed};
   if(elapsed>=s.duration)return {phase:'done',round:s.rounds-1,offset:s.phraseMs,index:s.smooth?3:s.pattern.steps.length-1,
@@ -119,6 +123,14 @@
    noteStart:answerStart+index*s.noteMs,
    remaining:s.duration-elapsed};
  }
+ function position(s,t){
+  const p=timelinePosition(s,t),vowels=s.pattern.vowels;
+  return {...p,setIndex:Math.floor(p.round/(s.phrasesPerSet||1)),vowelIndex:vowels?p.round%vowels.length:null,
+   vowel:vowels?.[p.round%vowels.length]||null,nextVowel:vowels?.[(p.round+1)%vowels.length]||null};
+ }
+ function roundLabel(s,p){
+  return s.pattern.vowels?(p.setIndex+1)+'/'+(s.infinite?'∞':s.sets)+'세트 · '+p.vowel+' '+(p.vowelIndex+1)+'/5':(p.round+1)+'/'+(s.infinite?'∞':s.rounds)+'회';
+ }
  function startCue(s,t){
   const p=position(s,t),starting=p.phase==='answer'&&p.offset<Math.min(900,s.noteMs*.8);
   const ready=!s.settings.listenFirst&&p.phase==='ready';
@@ -126,14 +138,14 @@
   const visible=p.phase==='handoff'||ready||starting||nextRound;
   const until=ready?p.remaining:nextRound?s.start+(p.round+1)*s.cycleMs-t:p.answerIn;
   return {visible,phase:p.phase,count:p.phase==='handoff'||ready||nextRound?Math.max(1,Math.ceil(until/1000)):0,
-   starting,firstMidi:s.roots[s.infinite?0:p.round+(nextRound?1:0)]+s.pattern.steps[0]};
+   starting,vowel:s.pattern.vowels?.[(p.round+(nextRound?1:0))%s.phrasesPerSet]||null,firstMidi:s.roots[s.infinite?0:p.round+(nextRound?1:0)]+s.pattern.steps[0]};
  }
  function advance(s,t){
   if(!s.infinite)return;
   const p=position(s,t);if(p.round<=s.binRound)return;
   s.completedEach=s.completedEach&&p.round===s.binRound+1&&s.bins[0].every(b=>b.voiced>=b.expected*.2);
   s.binRound=p.round;s.responseMs=(p.round+1)*s.responsePerRound;
-  for(const b of s.bins[0]){b.voiced=0;b.good=0;b.samples=0;}
+  for(const b of s.bins[0]){b.voiced=0;b.good=0;b.samples=0;b.vowel=p.vowel;}
  }
  function receive(s,t,midi){
   if(!s?.active||!Number.isFinite(t)||s.last&&t<=s.last.t)return;
@@ -165,14 +177,14 @@
   const m=metrics(s),passed=m.enough&&m.accuracy>=65;
   return {status:!completed?'중단':!m.enough?'측정 부족':passed?'성공':'다시 연습',
    kind:!completed?'stopped':!m.enough?'guided':passed?'success':'failure',
-   rule:'따라 부르기만 채점 · 목표 ±'+s.tolerance+'cent · 일치율 65% 이상 · 전체 발성 40% 및 '+(s.smooth?'각 이동 구간':'각 음')+' 20% 이상 ('+(s.smooth?'응답 시작':'음 시작')+' '+(s.attackMs/1000).toFixed(2)+'초 제외)',
+   rule:'따라 부르기만 채점 · 목표 ±'+s.tolerance+'cent · 일치율 65% 이상 · 전체 발성 40% 및 '+(s.pattern.vowels?'각 모음의 각 음':s.smooth?'각 이동 구간':'각 음')+' 20% 이상 ('+(s.smooth?'응답 시작':'음 시작')+' '+(s.attackMs/1000).toFixed(2)+'초 제외)',
    reason:'음정 일치율 '+(m.accuracy===null?'—':m.accuracy+'%')+' · 발성 커버리지 '+m.coverage+'% · 유효 발성 '+(s.voicedMs/1000).toFixed(1)+'초'};
  }
  function summary(s,label,completed=true){
   const m=metrics(s),weak=s.bins.flat().filter(b=>b.voiced<b.expected*.2||b.good/Math.max(1,b.voiced)<.65);
-  const notes=[...new Set(weak.map(b=>b.label||label(b.midi)))].slice(0,4);
+  const notes=[...new Set(weak.map(b=>b.label||(b.vowel?b.vowel+' ':'')+label(b.midi)))].slice(0,4);
   const completedRounds=clamp(Math.floor(((s.finishedAt??s.start)-s.start)/s.cycleMs),0,s.infinite?Infinity:s.rounds);
-  const rounds=completed?s.rounds+'회':completedRounds+'회 완료 / '+(s.infinite?'계속 반복':s.rounds+'회 계획');
+  const rounds=s.pattern.vowels?(completed?s.sets+'세트 · 5모음씩':Math.floor(completedRounds/s.phrasesPerSet)+'세트·'+completedRounds%s.phrasesPerSet+'모음 완료 / '+(s.infinite?'계속 반복':s.sets+'세트 계획')):completed?s.rounds+'회':completedRounds+'회 완료 / '+(s.infinite?'계속 반복':s.rounds+'회 계획');
   return s.pattern.label+' · '+rounds+' · '+evaluate(s,true).reason+
    (notes.length?' · 더 연습할 '+(s.smooth?'구간 ':'음 ')+notes.join(', '):'')+(m.enough?'':' · 충분히 따라 부른 뒤 다시 확인하세요');
  }
@@ -331,5 +343,5 @@
   ctx.textAlign='left';ctx.fillText((from/1000).toFixed(1)+'초',x0,h-3);
   ctx.textAlign='right';ctx.fillText((to/1000).toFixed(1)+'초',x1,h-3);
  }
- return {PRACTICE_DEFAULTS,LEGACY_PATTERNS,migratePractice,advance,plotView,PATTERNS,SOUNDS,DEFAULTS,TIMING,normalize,restore,plan,create,position,startCue,receive,metrics,evaluate,summary,createPlayer,draw};
+ return {VOWELS,roundLabel,PRACTICE_DEFAULTS,LEGACY_PATTERNS,migratePractice,advance,plotView,PATTERNS,SOUNDS,DEFAULTS,TIMING,normalize,restore,plan,create,position,startCue,receive,metrics,evaluate,summary,createPlayer,draw};
 });

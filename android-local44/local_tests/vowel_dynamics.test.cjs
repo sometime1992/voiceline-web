@@ -25,9 +25,9 @@ test('A missing vowel reference is reported and cannot be replaced by another vo
 test('A flat loudness cannot satisfy the rise and fall for any vowel',()=>{
  const m=api.create({pattern:'vowels'});for(let t=0;t<m.duration;t+=40){const p=api.state(m,t);api.receive(m,t,levels[p.vowelIndex]);}const r=api.metrics(m);assert.ok(r.accuracy<65);assert.ok(m.segments.filter(s=>s.part==='rise').every(s=>r.phaseMatchedMs[m.segments.indexOf(s)]<(s.end-s.start)*.4));
 });
-test('Each of the 19 timing fields survives routine persistence, supports zero breath, and preserves the actual course duration',()=>{
+test('Legacy vowel-volume routines upgrade to per-vowel pitch scales while retaining identity and repeats',()=>{
  const times=api.PATTERNS.vowels.segments.map((s,i)=>s.rest?0:1+(i%3)*.1),store=new Map(),storage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
- plans.save(storage,{routines:[{steps:[{mode:'dynamicVoice',params:{training:{dynamicPattern:'vowels'}},timing:{customStages:true,stages:times,rounds:2}}]}]});const step=plans.load(storage).routines[0].steps[0];assert.deepEqual(step.timing.stages,times);assert.equal(step.params.training.dynamicPattern,'vowels');assert.equal(step.timing.rounds,2);
+ plans.save(storage,{routines:[{id:'routine-a',steps:[{id:'step-a',mode:'dynamicVoice',params:{training:{dynamicPattern:'vowels',root:62}},timing:{customStages:true,stages:times,rounds:2}}]}]});const step=plans.load(storage).routines[0].steps[0];assert.equal(step.id,'step-a');assert.equal(step.mode,'practice');assert.equal(step.params.guide.pattern,'vowelFive');assert.equal(step.params.guide.root,62);assert.equal(step.timing.rounds,2);assert.equal(step.timing.customStages,false);assert.deepEqual(step.timing.stages,[]);
  const m=api.create({pattern:'vowels',segmentSeconds:times});assert.equal(m.duration,Math.round(times.reduce((a,b)=>a+b,0)*1000));assert.ok(m.segments.filter(s=>s.rest).every(s=>s.end===s.start));
  for(const t of [0,1000,m.duration-1])assert.equal(api.state(m,t).rest,undefined);
 });

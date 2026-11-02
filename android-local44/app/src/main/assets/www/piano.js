@@ -1835,7 +1835,7 @@ function restoreTrainingSettings(){
   app.trainingSettings.warmup=normalizeWarmup(r.warmup);
   app.trainingSettings.dynamicCues=r.dynamicCues!==false;
   app.trainingSettings.dynamicCueVolume=dynamicCueVolume(r);
-  app.trainingSettings.dynamicPattern=window.VoiceLineDynamics?.patternId(r.dynamicPattern)||'steps';
+  app.trainingSettings.dynamicPattern=r.dynamicPattern==='vowels'?'steps':window.VoiceLineDynamics?.patternId(r.dynamicPattern)||'steps';
   app.trainingSettings.dynamicSeconds=dynamicSeconds(r);
   for(const [key,values] of Object.entries({root:null,sustainSeconds:null,earCount:[3,4,5],rounds:[0,1,2,3,5]})){
    if(key==='sustainSeconds'){if(Number.isFinite(r[key])&&r[key]>=1&&r[key]<=3600)app.trainingSettings[key]=r[key];}
@@ -1867,7 +1867,7 @@ function renderTrainingControls(c){
  if(app.mode==='dynamicVoice'&&window.VoiceLineDynamics){
   const api=window.VoiceLineDynamics,label=document.createElement('label');label.className='practice-setting dynamic-pattern-setting';label.textContent='연습 방법 ';
   const select=document.createElement('select');select.id='dynamicPattern';select.setAttribute('aria-label','강약 연습 방법');
-  for(const [id,p]of Object.entries(api.PATTERNS)){const option=document.createElement('option');option.value=id;option.textContent=p.label;select.append(option);}
+  for(const [id,p]of Object.entries(api.PATTERNS).filter(([id])=>id!=='vowels')){const option=document.createElement('option');option.value=id;option.textContent=p.label;select.append(option);}
   select.value=api.patternId(v.dynamicPattern);select.disabled=Boolean(app.training?.active);
   select.onchange=()=>{if(app.training?.active)return;const old=v.dynamicPattern;v.dynamicPattern=api.patternId(select.value);if((old==='vowels')!==(v.dynamicPattern==='vowels'))v.dynamicSeconds=v.dynamicPattern==='vowels'?52:12;const seconds=window.VoiceLinePlansUI?.patternChanged(v.dynamicPattern);if(seconds)v.dynamicSeconds=seconds;app.dynamicLastResult=null;saveTrainingSettings();c.replaceChildren();renderTrainingControls(c);$('dynamicPattern')?.focus({preventScroll:true});renderTrainingOverlay(performance.now(),true);updateGraphHiddenStatus(performance.now(),true);};
   label.append(select);c.append(label);
@@ -2229,7 +2229,7 @@ function renderGuideControls(c){
  const select=document.createElement('select');select.id='guidePattern';select.setAttribute('aria-label','음정 연습 패턴');
  for(const [id,pattern]of Object.entries(api.PATTERNS))if(Boolean(pattern.smooth)===smooth){const o=document.createElement('option');o.value=id;o.textContent=pattern.label;select.append(o);}
  select.value=options.pattern;select.disabled=Boolean(app.training?.active);
- select.onchange=()=>{app.practicePatternByKind[smooth?'smooth':'steps']=select.value;saveGuideOptions({...guideOptions(),pattern:select.value});renderGuideTraining(performance.now(),true);};
+ select.onchange=()=>{const previous=guideOptions();app.practicePatternByKind[smooth?'smooth':'steps']=select.value;saveGuideOptions({...previous,...(api.PATTERNS[select.value].vowels&&!api.PATTERNS[previous.pattern].vowels?{rounds:1,shift:0}:{}),pattern:select.value});renderGuideTraining(performance.now(),true);};
  label.append(select);c.append(label);
  const button=document.createElement('button');button.id='guideSettingsOpen';button.type='button';button.textContent='연습 설정';
  button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-controls','guideSettingsDialog');button.disabled=Boolean(app.training?.active);button.onclick=()=>openGuideSettings(button);c.append(button);
@@ -2251,8 +2251,11 @@ function updateGuidePlan(){
  $('guidePlanInfo').textContent='음역 '+noteLabel(Math.min(...steps))+' ~ '+noteLabel(Math.max(...steps))+
   ' · '+(p.smooth?'연속 왕복 '+p.phraseMs/1000+'초':'한 음 '+(p.noteMs/1000).toFixed(1)+'초')+
   ' · '+(p.infinite?'같은 음역으로 계속 반복':'총 '+Math.ceil((p.duration+(p.settings.listenFirst?p.settings.prepareSeconds:p.settings.breathSeconds)*1000)/1000)+'초')+
-  (p.limited?' · 음역 경계에서 '+p.rounds+'회로 조정':'')+(p.settings.volume===0?' · 기준음 소리 꺼짐':'');
+  (p.pattern.vowels?' · 아 → 에 → 이 → 오 → 우 = 1세트':'')+(p.limited?' · 음역 경계에서 '+(p.pattern.vowels?p.sets+'세트':p.rounds+'회')+'로 조정':'')+(p.settings.volume===0?' · 기준음 소리 꺼짐':'');
  $('guideMethodInfo').textContent=p.settings.listenFirst?'한 구절 듣기 → 3·2·1 → 따라 부르기. 듣기와 준비는 채점하지 않습니다.':'3·2·1 → 바로 따라 부르기. 음계·도약의 짧은 기준음이 재생되는 구간은 채점하지 않습니다. 이어폰 사용을 권장합니다.';
+ if(p.pattern.vowels)$('guideMethodInfo').textContent+=' 한 모음으로 음계 전체를 왕복한 뒤 다음 모음으로 넘어갑니다. 발음 자체와 소리 크기는 판정하지 않습니다.';
+ const roundsLabel=$('guideRounds').closest?.('label');if(roundsLabel?.firstChild)roundsLabel.firstChild.textContent=p.pattern.vowels?'세트 수 (아에이오우 = 1세트)':'반복 횟수';
+ for(const option of $('guideRounds').options||[])option.textContent=Number(option.value)===0?'계속 반복':option.value+(p.pattern.vowels?'세트':'회');
 }
 function openGuideSettings(trigger){
  if(app.training||app.micStartPromise||app.nativeStartResolve){notify('진행 중인 연습이나 마이크 연결을 중단한 뒤 설정해 주세요.');return;}
@@ -2289,7 +2292,7 @@ function updateGuideTraining(a,t){
  a.target=p.phase==='answer'?Math.round(p.midi):null;
  if(Number.isFinite(a.target)&&!app.owners?.size&&(a.target<app.base||a.target>=app.base+(app.keyboardNotes||24))){app.base=targetKeyboardBase(a.target);drawKeys();}
  const cue=api.startCue(a,t),label=cue.visible&&!cue.starting?'숨 들이쉬세요 · '+cue.count+'초 뒤 시작':({ready:'가이드 준비',listen:'먼저 듣기',answer:'목표를 따라 부르세요',rest:'잠깐 쉬기'}[p.phase]||'완료');
- const rounds=(p.round+1)+'/'+(a.infinite?'∞':a.rounds)+'회';setMessage(rounds+' · '+label+' · '+a.pattern.label);
+ const rounds=api.roundLabel(a,p);setMessage(rounds+' · '+label+' · '+a.pattern.label);
  progress(a.infinite?clamp(((t-a.start)%a.cycleMs)/a.cycleMs,0,1):clamp((t-a.start)/a.duration,0,1),t<a.start?Math.ceil((a.start-t)/1000)+'초 준비':rounds+' · '+label);
 }
 function renderGuideTraining(t=performance.now(),force=false){
@@ -2305,8 +2308,14 @@ function renderGuideTraining(t=performance.now(),force=false){
  $('guidePhaseTitle').textContent=active&&cue.visible&&!cue.starting?'숨을 들이쉬세요':titles[phase];$('guidePhaseHint').textContent=active&&cue.visible&&!cue.starting?'편안한 만큼 들이쉬세요 · 준비 시간은 채점하지 않습니다.':hints[phase];
  $('guideStartCue').hidden=!active||!cue.visible;
  if(active&&cue.visible){$('guideStartCount').textContent=cue.starting?'시작!':String(cue.count);$('guideStartText').textContent=cue.starting?'첫 음 '+noteLabel(cue.firstMidi):'숨 들이쉬기 · '+cue.count+'초 뒤 시작';}
- $('guideRoundInfo').textContent=(p.round+1)+'/'+(a.infinite?'∞':a.rounds)+'회 · 기준 '+noteLabel(a.roots[a.infinite?0:p.round]);
- $('guideTargetLabel').textContent='목표 '+noteLabel(p.midi);
+ if(a.pattern.vowels&&!result){const vowel=active&&cue.visible?cue.vowel:p.vowel;
+  $('guidePhaseTitle').textContent='「'+vowel+'」 · '+$('guidePhaseTitle').textContent;
+  if(phase==='answer')$('guidePhaseHint').textContent='「'+vowel+'」를 유지하며 가로선마다 목표 음을 하나씩 맞추세요.';
+  if(phase==='rest'&&(a.infinite||p.round+1<a.rounds))$('guidePhaseHint').textContent='숨을 편안하게 쉬세요 · 다음은 「'+p.nextVowel+'」 음계 왕복입니다.';
+  if(active&&cue.visible)$('guideStartText').textContent='「'+cue.vowel+'」 · '+(cue.starting?'첫 음 '+noteLabel(cue.firstMidi):'숨 들이쉬기 · '+cue.count+'초 뒤 시작');
+ }
+ $('guideRoundInfo').textContent=api.roundLabel(a,p)+' · 기준 '+noteLabel(a.roots[a.infinite?0:p.round]);
+ $('guideTargetLabel').textContent=(p.vowel?'「'+p.vowel+'」 ':'')+'목표 '+noteLabel(p.midi);
  const last=result?[...a.history].reverse().find(v=>Number.isFinite(v.midi)):a.last;
  const liveMidi=Number.isFinite(last?.midi)&&(result||t-last.t<=210)?last.midi:null;
  $('guideDetectedLabel').textContent='내 음 '+(liveMidi===null?'—':noteLabel(liveMidi));
@@ -2891,7 +2900,7 @@ const MODE_GUIDES={
  pitch:{intro:'마이크로 입력한 목소리의 음높이를 음표와 피아노 건반으로 보여줍니다.',steps:['상단 마이크 켜기를 누르고 한 음을 편안하게 불러보세요.','보라색 건반은 현재 감지된 음정이며, 음정 카드에는 음표·옥타브·Hz·cent가 표시됩니다.','그래프는 최근 6초의 음높이와 최저·최고음을 보여줍니다. 축에도 계이름과 옥타브를 표시하고 음정이 확인되지 않는 구간은 비워둡니다. 마이크를 끄면 마지막 그래프가 남고 다시 켜면 새 측정을 시작합니다.'],rule:'마이크 또는 피아노 소음이 섞이면 측정값이 달라질 수 있습니다.'},
  record:{intro:'음성을 녹음하고 동시에 목소리 음높이 변화를 확인합니다.',steps:['녹음 시작을 한 번 누른 뒤 평소처럼 발성합니다. 잠깐 쉬거나 무음이 있어도 같은 녹음으로 계속 이어집니다.','실시간 그래프는 최근 6초를 보여주며 녹음 파일은 처음부터 전부 이어집니다. 저장 후 전체 재생에서 처음부터 끝까지 들을 수 있습니다.','녹음 중지·저장을 누르면 기기에 녹음 파일이 보관됩니다. 저장 실패나 앱 중단 시 나의 기록에서 복구 가능한 녹음을 확인하세요.'],rule:'사용자가 중지하면 녹음 1개를 저장합니다. 녹음 기록은 나의 기록의 녹음 탭에만 표시하고 연습 기록에는 남기지 않습니다. 앱을 벗어나거나 실제 입력·저장 오류가 발생하면 그 시점까지 한 파일로 저장합니다.'},
  vibrato:{intro:'한 음을 유지하며 비브라토의 흔들림 폭과 속도를 추정합니다.',steps:['시간·반복에서 발성 시간과 반복 횟수(0=무한), 듣기·들이쉬기·회복 시간을 정합니다. 기본 설정에서는 기준음 듣기 1.8초 → 숨 들이쉬기 3초 → 발성 순서로 안내합니다. 준비 중에는 측정하지 않습니다.','민트색 선은 선택한 기준음이며 보라색 곡선은 실제 목소리의 음높이입니다.','측정 중 상태가 길어지면 그래프의 진단 안내를 확인하세요.'],rule:'최근 3초 자료에서 기준음 ±150cent, 유효 자료 16개 이상·0.9초 이상, 진폭 ±7~125cent, 속도 3~9Hz, 일정한 주기 4개 이상을 확인합니다. 상세 기준은 「ⓘ 측정 기준」 버튼으로 확인할 수 있습니다.'},
- practice:{intro:'음계·도약과 연속 슬라이드를 하나의 화면에서 연습합니다.',steps:['종류에서 음계·도약 또는 연속 슬라이드를 고르고 패턴을 선택합니다. 중복 패턴은 한 목록으로 통합했습니다.','연습 설정에서 시작음, 반복 횟수, 빠르기와 먼저 듣기를 조절합니다. 먼저 듣기를 끄면 숨을 들이쉬며 3·2·1 후 따라 부릅니다. 켜면 한 구절을 듣고 호흡 3초 후 따라 부릅니다. 반복 사이에도 3초의 회복 시간이 있습니다.','가로 화면은 큰 건반 위 중앙에 반투명 그래프를 표시합니다. 그래프는 최대 6초 구간을 따라가며 민트색 목표와 보라색 목소리를 비교합니다. 축에 계이름·옥타브를 표시합니다.','음계·도약은 분리된 가로선마다 목표 음을 맞춥니다. 각 가로선은 그 음의 유지 시간이며, 목소리를 반드시 끊으라는 뜻은 아닙니다. 회색 세로선은 현재 진행 위치입니다.','연속 슬라이드는 이어진 목표선을 따라 음을 끊지 않고 연결합니다. 소리가 없는 구간은 비워 두며 정확도와 충분히 발성했는지를 함께 확인합니다.','같은 시작 버튼이 연습 중단으로 바뀝니다. 마이크 연결 중에는 연결 취소로 바뀝니다. 계속 반복은 중단할 때까지 같은 음역을 반복합니다.'],rule:'음계·도약은 선택한 ±35·50·75cent, 연속 슬라이드는 ±110cent로 확인합니다. 정확도 65% 이상, 발성 40% 이상과 각 음·이동 구간 20% 이상이 필요합니다. 충분한 발성이 없으면 측정 부족으로 표시합니다. 기준음 재생·준비·듣기는 채점에서 제외합니다. 이어폰을 권장합니다.'},
+ practice:{intro:'음계·도약과 연속 슬라이드를 하나의 화면에서 연습합니다.',steps:['아에이오우는 음계·도약의 패턴에서 고릅니다. 아로 도레미파솔파미레도 또는 도미솔미도를 부른 뒤 에·이·오·우도 각각 같은 음계로 왕복합니다. 모음 사이에는 쉬며 다섯 모음이 한 세트입니다. 각 목표 음을 유지하고 모음의 발음 자체나 소리 크기는 채점하지 않습니다.','종류에서 음계·도약 또는 연속 슬라이드를 고르고 패턴을 선택합니다. 중복 패턴은 한 목록으로 통합했습니다.','연습 설정에서 시작음, 반복 횟수, 빠르기와 먼저 듣기를 조절합니다. 먼저 듣기를 끄면 숨을 들이쉬며 3·2·1 후 따라 부릅니다. 켜면 한 구절을 듣고 호흡 3초 후 따라 부릅니다. 반복 사이에도 3초의 회복 시간이 있습니다.','가로 화면은 큰 건반 위 중앙에 반투명 그래프를 표시합니다. 그래프는 최대 6초 구간을 따라가며 민트색 목표와 보라색 목소리를 비교합니다. 축에 계이름·옥타브를 표시합니다.','음계·도약은 분리된 가로선마다 목표 음을 맞춥니다. 각 가로선은 그 음의 유지 시간이며, 목소리를 반드시 끊으라는 뜻은 아닙니다. 회색 세로선은 현재 진행 위치입니다.','연속 슬라이드는 이어진 목표선을 따라 음을 끊지 않고 연결합니다. 소리가 없는 구간은 비워 두며 정확도와 충분히 발성했는지를 함께 확인합니다.','같은 시작 버튼이 연습 중단으로 바뀝니다. 마이크 연결 중에는 연결 취소로 바뀝니다. 계속 반복은 중단할 때까지 같은 음역을 반복합니다.'],rule:'음계·도약은 선택한 ±35·50·75cent, 연속 슬라이드는 ±110cent로 확인합니다. 정확도 65% 이상, 발성 40% 이상과 각 음·이동 구간 20% 이상이 필요합니다. 충분한 발성이 없으면 측정 부족으로 표시합니다. 기준음 재생·준비·듣기는 채점에서 제외합니다. 이어폰을 권장합니다.'},
  guideVoice:{intro:'가이드를 듣고 음을 오르내리는 음역 슬라이드입니다. 음계·도약과 기존의 단계별 왕복·연속 슬라이드를 한 패턴 목록에 통합했습니다.',
   steps:['패턴은 음계·도약 10종, 3·5·7·12반음 단계별 왕복 4종, 같은 범위의 연속 슬라이드 4종으로 총 18종입니다. 연습 설정에서 시작음과 1~5회 반복을 정합니다.',
    '음계·단계별은 50~120 BPM에 맞추거나 한 음을 2·3·4초 유지하도록 정할 수 있습니다. 연속 패턴은 6초 이동 후 6초 되돌아오는 12초 왕복이며, 높은 시작음에서는 감지 가능한 범위 안에서 아래로 왕복합니다.',
@@ -2902,7 +2911,7 @@ const MODE_GUIDES={
   rule:'듣기·준비·쉬기는 채점하지 않습니다. 일반 패턴은 음마다 처음 0.1초를 제외하고 ±35·50·75cent, 연속 패턴은 응답 처음 0.1초만 제외하고 ±110cent로 측정합니다. 성공은 일치율 65% 이상, 전체 발성 40% 이상, 각 음(연속은 올리기·내리기 각 절반의 4구간) 20% 이상 발성, 측정 12개 이상이 필요합니다. 부족하면 측정 부족으로 표시하고 결과는 연습 기록에만 저장합니다.'},
  sustainVoice:{intro:'하나의 목표음을 안정적으로 유지하는 연습입니다.',steps:['기준음과 유지 시간을 선택합니다. 시간·반복에서 듣기·들이쉬기·발성·쉬기 시간과 무한 반복을 직접 정할 수 있습니다.','기준음 듣기 1.8초 → 숨 들이쉬기 3초 후 시작!에 같은 음을 유지합니다. 준비 시간은 유지 시간과 채점에 포함하지 않습니다.','음높이 그래프와 목표 음정 일치율을 확인합니다.'],rule:'기준음 ±35cent 일치율 65% 이상과 충분한 유효 발성 시간이 있어야 성공입니다.'},
  earVoice:{intro:'피아노 음을 귀로 듣고 같은 높이로 따라 부르는 청음 연습입니다.',steps:['먼저 1.5초 동안 정답 건반을 숨긴 채 피아노 음을 듣습니다.','매 음을 들은 뒤 정답 건반이 숨겨진 상태로 3초 동안 숨을 들이쉽니다. 시작!에 민트색 목표 건반을 보고 3.2초 동안 따라 부릅니다. 듣기와 호흡은 채점에서 제외합니다.','한 회차에 3·4·5개 음을 선택할 수 있습니다.'],rule:'목표음 ±35cent 일치율 65% 이상과 답변 단계의 충분한 유효 발성 시간이 필요합니다.'},
- dynamicVoice:{intro:'같은 음정을 유지하면서 선택한 강약 패턴의 민트색 목표와 보라색 내 목소리를 비교합니다.',steps:['연습 방법에서 기본 4단계·점점 크게·점점 작게·커졌다 작아지기·강약 반복·일정하게 유지·짧게 강조·모음 강약 중 하나를 선택합니다.','발성 시간은 빠른 선택 또는 시간·반복에서 직접 입력합니다. 단계별 시간도 각각 정할 수 있습니다. 기준음 듣기 1.8초 → 숨 들이쉬기 3초 후 시작하며, 준비 시간은 발성 시간과 채점에서 제외합니다.','기본 강약 방법은 첫 약 단계에서 기준을 잡습니다. 모음 강약은 아 → 에 → 이 → 오 → 우 순서로, 모음마다 약하게 2초 → 점점 크게 3초 → 점점 작게 3초를 진행하고 다음 모음 전에 3초 들이쉽니다. 시간·반복에서 각 구간을 직접 변경할 수 있습니다.','점점 크게/작게는 기울어진 목표선을 부드럽게 따라갑니다. 강약 반복과 짧게 강조는 단계가 바뀌는 시점에 소리 크기를 바꿉니다. 일정하게 유지는 기준 설정 후 중간 크기를 유지합니다.','그래프의 가로축은 선택한 전체 진행 시간(모음 강약은 모음 사이 호흡 포함), 세로축은 상대 소리 크기입니다. 민트색 선·음영이 목표이고 보라색은 내 목소리입니다. 노란 세로선은 현재 위치입니다.','약 단계가 끝나면 기준은 고정됩니다. 모음 강약은 모음마다 약한 소리를 별도로 기준으로 삼습니다. 현재 모음·강약 방향·남은 시간을 확인하세요. 모음의 발음 자체는 판정하지 않고 음정과 상대 강약을 측정합니다.','안내음 크기를 고르고 옆의 ▶로 미리 들을 수 있습니다. 안내음 구간은 기준 설정과 채점에서 제외합니다.','그래프를 숨기거나 화면을 회전해도 선택한 패턴과 측정·채점은 유지됩니다. 완료한 그래프를 다시 확인할 수 있습니다.','휴대폰과 입 사이 거리를 고정하고 편안한 범위에서 발성하세요. 처음 약 단계에서 기준을 잡지 못하면 다시 시작합니다.'],rule:dynamicRuleText()+' (12개 이상 감지). 상대 음량만 비교하며 절대 데시벨이나 성대 상태는 측정하지 않습니다.'},
+ dynamicVoice:{intro:'같은 음정을 유지하면서 선택한 강약 패턴의 민트색 목표와 보라색 내 목소리를 비교합니다.',steps:['연습 방법에서 기본 4단계·점점 크게·점점 작게·커졌다 작아지기·강약 반복·일정하게 유지·짧게 강조 중 하나를 선택합니다.','발성 시간은 빠른 선택 또는 시간·반복에서 직접 입력합니다. 단계별 시간도 각각 정할 수 있습니다. 기준음 듣기 1.8초 → 숨 들이쉬기 3초 후 시작하며, 준비 시간은 발성 시간과 채점에서 제외합니다.','첫 약 단계에서 내 소리 크기의 기준을 잡습니다. 아에이오우 음계 왕복은 음정 연습 → 음계·도약에서 선택합니다.','점점 크게/작게는 기울어진 목표선을 부드럽게 따라갑니다. 강약 반복과 짧게 강조는 단계가 바뀌는 시점에 소리 크기를 바꿉니다. 일정하게 유지는 기준 설정 후 중간 크기를 유지합니다.','그래프의 가로축은 선택한 전체 진행 시간, 세로축은 상대 소리 크기입니다. 민트색 선·음영이 목표이고 보라색은 내 목소리입니다. 노란 세로선은 현재 위치입니다.','약 단계가 끝나면 기준은 고정됩니다. 현재 강약 방향과 남은 시간을 확인하세요.','안내음 크기를 고르고 옆의 ▶로 미리 들을 수 있습니다. 안내음 구간은 기준 설정과 채점에서 제외합니다.','그래프를 숨기거나 화면을 회전해도 선택한 패턴과 측정·채점은 유지됩니다. 완료한 그래프를 다시 확인할 수 있습니다.','휴대폰과 입 사이 거리를 고정하고 편안한 범위에서 발성하세요. 처음 약 단계에서 기준을 잡지 못하면 다시 시작합니다.'],rule:dynamicRuleText()+' (12개 이상 감지). 상대 음량만 비교하며 절대 데시벨이나 성대 상태는 측정하지 않습니다.'},
  warmupVoice:{intro:'허밍을 시작할 시점을 화면과 안내음으로 알려주는 호흡·허밍 타이머입니다.',steps:['기본은 4초 들이쉬기 → 6초 내쉬기 → 6초 허밍 → 3초 쉬기입니다. 시간·안내음에서 단계별 초와 소리를 바꿀 수 있습니다. 허밍은 내쉬기를 마친 다음 시작합니다.', '초록색 「지금 허밍하세요」와 딩딩 두 번의 높은 소리가 나오면 입을 가볍게 다물고 편안하게 「음~」 하세요. 설정한 허밍 시간이 지나면 다음 단계 안내에 맞춰 허밍을 멈춥니다. 쉬기 0초는 생략합니다.', '화면에 현재 단계, 남은 초, 다음 단계와 순서가 표시됩니다. 다른 단계는 짧은 안내음 한 번으로 구분합니다. 소리가 나지 않아도 화면 안내로 진행할 수 있습니다.', '원하는 세트 수 또는 무한 반복을 선택합니다. 시간·반복에서 단계별 시간도 직접 입력합니다. 설정한 쉬기 시간 후 다음 세트의 들이쉬기가 시작되며, 중단하거나 앱을 벗어나면 남은 안내음도 취소합니다.'],rule:'이 기능은 안내형 타이머이며 실제 호흡량이나 발성 건강을 판단하지 않습니다. 통증이나 어지러움이 있다면 중단하세요.'}
 };
 let modeGuideReturnFocus=false;
@@ -3378,7 +3387,7 @@ function graphHiddenSummary(now){
   const p=api.position(a,now),cue=api.startCue(a,now);
   const phase=cue.visible?(cue.starting?'지금 시작!':'숨 들이쉬세요 · '+cue.count+'초 뒤 시작'):
    ({ready:'가이드 준비',listen:'먼저 듣기',handoff:'따라 부르기 준비',answer:'따라 부르기',rest:'잠깐 쉬세요',done:'연습 완료'}[p.phase]||'음정 연습');
-  return phase+' · 목표 '+noteLabel(cue.visible?cue.firstMidi??p.midi:p.midi);
+  return ((cue.visible?cue.vowel:p.vowel)?'「'+(cue.visible?cue.vowel:p.vowel)+'」 · ':'')+phase+' · 목표 '+noteLabel(cue.visible?cue.firstMidi??p.midi:p.midi);
  }
  if(app.mode==='vibrato')return '기준 '+noteLabel(app.vibratoRoot)+' · '+(app.mic?'측정 중':'시작 대기');
  if(app.mode==='record')return app.record?'녹음 중 · 음정 측정 유지':app.recordSaving?'녹음 저장 중':'녹음 시작 대기';

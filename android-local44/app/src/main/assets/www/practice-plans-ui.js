@@ -32,7 +32,7 @@
   if(mode==='practice'){
    const chosen=api.guideRound(g,stepRound),plan=root.VoiceLineGuideTraining.plan(chosen);
    text=plan.pattern.label+' · '+note(chosen.root)+' · '+(g.listenFirst?'먼저 듣고 따라 부르기':'바로 따라 부르기');
-   if(full){const notes=plan.pattern.steps.map(n=>note(chosen.root+n));text+='\n음 순서: '+notes.join(' → ')+(plan.smooth?' · 끊지 않고 연속 이동':'');text+='\n'+(plan.smooth?g.smoothSeconds+'초 왕복':g.noteSeconds?g.noteSeconds+'초/음':g.bpm+' BPM')+' · '+root.VoiceLineGuideTraining.SOUNDS[g.sound]+' '+g.volume+'% · 허용 ±'+plan.tolerance+'cent';}
+   if(full){const notes=plan.pattern.steps.map(n=>note(chosen.root+n));text+='\n음 순서: '+notes.join(' → ')+(plan.smooth?' · 끊지 않고 연속 이동':'');if(plan.pattern.vowels)text+='\n각 모음으로 위 음계를 끝까지 왕복합니다. 아 → 에 → 이 → 오 → 우 = 1세트 · 모음 사이 '+g.restSeconds+'초 쉬기';text+='\n'+(plan.smooth?g.smoothSeconds+'초 왕복':g.noteSeconds?g.noteSeconds+'초/음':g.bpm+' BPM')+' · '+root.VoiceLineGuideTraining.SOUNDS[g.sound]+' '+g.volume+'% · 허용 ±'+plan.tolerance+'cent';}
    if(g.shift)text+=' · 반복마다 '+(g.shift>0?'+':'')+g.shift+'반음';
   }else if(mode==='earVoice'){
    const notes=api.earSequence(tr);text=(api.EAR_PATTERNS[tr.earPattern]||api.EAR_PATTERNS.legacy)+' · '+notes.length+'음';
@@ -79,7 +79,7 @@
    if(['sustainVoice','earVoice','dynamicVoice'].includes(mode))select('root','기준음',noteOptions(36,mode==='earVoice'?api.earRootLimit(params.training.earPattern):84),params.training);
    if(mode==='vibrato')select('vibratoRoot','기준음',noteOptions(),params);
    if(mode==='dynamicVoice'){
-    const tr=params.training,pattern=select('dynamicPattern','강약 방법',Object.entries(root.VoiceLineDynamics.PATTERNS).map(([id,p])=>[id,p.label]),tr);
+    const tr=params.training,pattern=select('dynamicPattern','강약 방법',Object.entries(root.VoiceLineDynamics.PATTERNS).filter(([id])=>id!=='vowels').map(([id,p])=>[id,p.label]),tr);
     pattern.onchange=()=>{const before=tr.dynamicPattern;tr.dynamicPattern=pattern.value;if((before==='vowels')!==(tr.dynamicPattern==='vowels'))t.seconds=tr.dynamicPattern==='vowels'?52:12;t.stages=root.VoiceLineDynamics.getPattern(pattern.value).segments.map(s=>s.ms/1000);onChange?.(true);};
     const volume=number('dynamicCueVolume','단계 전환 안내음 크기 (%)',0,100,1,tr),change=volume.oninput;volume.oninput=()=>{if(volume.value!==''&&volume.validity.valid)tr.dynamicCues=Number(volume.value)>0;change();};
    }

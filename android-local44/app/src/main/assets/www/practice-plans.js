@@ -29,6 +29,8 @@
  const id=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
  function step(value={}){
   if(!value||typeof value!=='object')value={};
+  if(value.mode==='dynamicVoice'&&value.params?.training?.dynamicPattern==='vowels')value={...value,mode:'practice',
+   params:{...value.params,guide:vowelGuide(value.params.training)},timing:{...value.timing,customStages:false,stages:[]}};
   const mode=Object.hasOwn(MODES,value.mode)?value.mode:'sustainVoice';
   const t=timing(mode,value.timing);t.rounds=Math.max(1,t.rounds);
   if(t.seconds===0)t.seconds=30;
@@ -47,7 +49,25 @@
   for(const raw of (Array.isArray(value?.routines)?value.routines:[]).slice(0,50)){const r=routine(raw);if(seen.has(r.id))r.id=id();seen.add(r.id);routines.push(r);}
   return {version:1,settings,routines};
  }
- function load(storage){try{return normalize(JSON.parse(storage?.getItem('voiceline-plans-v1')||'{}'));}catch(_){return normalize();}}
+ function vowelGuide(training={}){return {pattern:'vowelFive',root:training.root??48,noteSeconds:1.8,bpm:80,rounds:1,shift:0,listenFirst:false,sound:'piano',volume:70,tolerance:50,prepareSeconds:1.8,breathSeconds:3,restSeconds:3};}
+ function migrateVowelPractice(storage){
+  try{if(!storage||storage.getItem('voiceline-vowel-pitch-v1')==='1')return false;
+   const training=JSON.parse(storage.getItem('voiceline-training-v1')||'null');let changed=false;
+   if(training?.dynamicPattern==='vowels'){
+    const previous=JSON.parse(storage.getItem('voiceline-unified-practice-v1')||'{}');
+    storage.setItem('voiceline-unified-practice-v1',JSON.stringify({...previous,...vowelGuide(training),rounds:Math.round(numeric(training.rounds,1,0,99))}));
+    storage.setItem('voiceline-training-v1',JSON.stringify({...training,dynamicPattern:'steps',dynamicSeconds:12}));changed=true;
+   }
+   const raw=JSON.parse(storage.getItem('voiceline-plans-v1')||'null');
+   const legacyStages=raw?.settings?.dynamicVoice?.stages?.length===19;
+   if(legacyStages||Array.isArray(raw?.routines)&&raw.routines.some(r=>Array.isArray(r.steps)&&r.steps.some(s=>s.mode==='dynamicVoice'&&s.params?.training?.dynamicPattern==='vowels'))){
+    if(legacyStages)raw.settings.dynamicVoice={...raw.settings.dynamicVoice,seconds:12,customStages:false,stages:[]};
+    storage.setItem('voiceline-plans-v1',JSON.stringify(normalize(raw)));changed=true;
+   }
+   storage.setItem('voiceline-vowel-pitch-v1','1');return changed;
+  }catch(_){return false;}
+ }
+ function load(storage){try{migrateVowelPractice(storage);return normalize(JSON.parse(storage?.getItem('voiceline-plans-v1')||'{}'));}catch(_){return normalize();}}
  function migrateDefaultRoot(storage){
   try{if(!storage||storage.getItem('voiceline-c3-default-v1')==='1')return false;let changed=false;
    for(const key of ['voiceline-training-v1','voiceline-unified-practice-v1','voiceline-practice-v1','voiceline-guide-v1']){
@@ -84,5 +104,5 @@
   }
   return {start,cancel,complete,snapshot,owns:token=>Boolean(active)&&token===generation,get token(){return generation;}};
  }
- return {MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
+ return {vowelGuide,migrateVowelPractice,MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
 });

@@ -69,6 +69,8 @@ async function checkVolumeRange(page,id,valueId){
    Object.defineProperty(window,'VoiceLineDynamics',{configurable:true,get:()=>dynamics,set(value){
     dynamics={...value,create(...args){const m=value.create(...args);if(m.patternId==='vowels'&&m.start>performance.now()+50)window.__vowelCourse=m;return m;},receive(...args){const result=value.receive(...args),p=args[0].samples.at(-1);if(p)window.__dynamicSamples.push({phase:p.phase,cue:p.cue,liveRms:p.liveRms,rms:p.rms,dt:p.dt});return result;}};window.__dynamicSamples=[];
    }});
+   let pitchGuide;
+   Object.defineProperty(window,'VoiceLineGuideTraining',{configurable:true,get:()=>pitchGuide,set(value){pitchGuide={...value,create(...args){const model=value.create(...args);if(model.pattern.vowels)window.__vowelPitchCourse=model;return model;}};}});
    let plans;
    Object.defineProperty(window,'VoiceLinePlansUI',{configurable:true,get:()=>plans,set(value){
     plans=value;const mount=value.mount;
@@ -338,7 +340,7 @@ async function checkVolumeRange(page,id,valueId){
   assert.equal(await page.locator('#dynamicDuration').inputValue(),'24','duration was not restored');
   await page.locator('#dynamicPattern').selectOption('steps');await page.locator('#dynamicDuration').selectOption('12');
   fs.writeFileSync(path.join(output,'dynamics-patterns.json'),JSON.stringify(patternReport,null,2));
-  await require('./check-vowel-dynamics.cjs')(page,choose,geometry,graphPixels,frames,output);
+  await require('./check-vowel-pitch.cjs')(page,choose,geometry,graphPixels,frames,output);
   const stored=await page.evaluate(()=>new Promise((resolve,reject)=>{
    const request=indexedDB.open('voiceline-local-v2',4);request.onerror=()=>reject(request.error);
    request.onsuccess=()=>{const db=request.result,tx=db.transaction(['events','recordings']),events=tx.objectStore('events').getAll(),recordings=tx.objectStore('recordings').getAll();tx.oncomplete=()=>{db.close();resolve({events:events.result.map(e=>({mode:e.mode,title:e.title})),recordings:recordings.result.length});};};

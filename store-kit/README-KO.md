@@ -1,8 +1,8 @@
-# VoiceLine Google Play 준비 자료 · Local62
+# VoiceLine Google Play 준비 자료 · Local63
 
-아 → 에 → 이 → 오 → 우를 순서대로 약하게 시작해 커졌다 작아지는 모음 강약 연습을 추가한 버전입니다. 모음별 기준·호흡·19개 구간 시간과 루틴 저장을 지원합니다. 각 단계의 방법·음 순서·소리·시간·반복을 독립적으로 저장합니다. 나의 루틴/사용법 메뉴 정렬을 유지합니다. C3 기본 기준음, 직접 시간 입력, 연습별 무한 반복과 여러 루틴 저장·순서 변경·반복을 유지합니다. 정식 업로드 파일은 별도로 제공한 `VoiceLine-2.0.0-Upload.aab`이며 버전 `2.0.0 (76)`, 패키지 `com.voiceline.app`입니다. 이 ZIP에는 스토어 자료와 공개 인증서가 있습니다.
+아·에·이·오·우를 각각 음계로 올라갔다 내려오는 연습으로 수정했습니다. 5음 음계와 도미솔 도약을 선택하고, 모음마다 한 구절 전체를 부릅니다. 각 목표 음을 유지하며 모음 사이 회복·모음마다 먼저 듣기·루틴 저장·반복을 지원합니다. 발음과 소리 크기는 판정하지 않습니다. 이전 모음 강약 루틴은 기준음·반복을 보존해 음계 왕복으로 전환합니다. 정식 업로드 번들은 `VoiceLine-2.0.0-Upload.aab`, 버전 `2.0.0 (77)`, 패키지는 `com.voiceline.app`입니다.
 
-1. `custom-plans-ko.md`에서 새 기능의 사용법을 확인하고, `VoiceLine-Local62-Play-Readiness-KO.md`에서 적용 내용·검증 범위·남은 작업을 확인합니다.
+1. `custom-plans-ko.md`에서 새 기능의 사용법을 확인하고, `VoiceLine-Local63-Play-Readiness-KO.md`에서 적용 내용·검증 범위·남은 작업을 확인합니다.
 2. `listing-ko.json` 또는 `listing-ko.md`의 소개 문구를 콘솔에 입력합니다.
 3. `images/`의 512px 아이콘, 1024×500 피처 그래픽과 앱 화면 5장을 등록합니다. 화면은 Android 16 에뮬레이터 캡처입니다.
 4. `console-guide-ko.md`에 따라 지원 정보와 앱 콘텐츠 선언을 입력합니다. 앱 변경만으로 Play Console의 주소가 자동 변경되지는 않습니다.
@@ -17,7 +17,7 @@
 | VoiceLine 고객지원 | https://mindup-studio.pages.dev/support.html?app=voiceline |
 | 지원 이메일 | grand4870@gmail.com |
 
-설치 확인은 `VoiceLine-Local62-CI.apk`로 진행합니다. CI 버전은 `2.0.0-local62-ci (77)`이며 기존 Local61 테스트 앱을 삭제하지 않고 업데이트할 수 있습니다. CI 앱과 정식 앱은 패키지가 달라 기록이 자동 이전되지는 않습니다.
+설치 확인은 `VoiceLine-Local63-CI.apk`로 진행합니다. CI 버전은 `2.0.0-local63-ci (78)`이며 기존 Local62 테스트 앱을 삭제하지 않고 업데이트할 수 있습니다. CI 앱과 정식 앱은 패키지가 달라 기록이 자동 이전되지는 않습니다.
 
 `BUILD-VERIFICATION.json`, `PUBLIC-DOWNLOAD-VERIFICATION.json`과 `verification/`에 이번 빌드·서명·설치 이름·업데이트·lint 확인 결과가 있습니다. 세부 업데이트 버전은 `CI_INSTALL_NAME.json`을 기준으로 확인합니다.
 

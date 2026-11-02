@@ -428,7 +428,7 @@ test('Application boot and unified practice controls execute with every existing
    assert.equal($('guideVoicePanel').hidden,false);assert.equal($('trainingOverlay').hidden,true);
    const kind=$('exerciseControls').children[0].children[0],select=$('exerciseControls').children[1].children[0];
    assert.deepEqual(kind.children.map(option=>option.value),['steps','smooth']);
-   assert.equal(select.children.length,18);
+   assert.equal(select.children.length,20);
    const button=$('exerciseControls').children.find(child=>child.id==='guideSettingsOpen');assert.ok(button);
    button.onclick();assert.equal($('guideSettingsDialog').hidden,false);assert.match($('guidePlanInfo').textContent,/음역.*C3 · 1옥 도/);
    $('guideRoot').value='48';$('guideRounds').value='2';$('guideShift').value='-1';$('guideBpm').value='60';$('guideSound').value='vowel';$('guideNoteSeconds').value='2';
