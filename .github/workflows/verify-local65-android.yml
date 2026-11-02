@@ -1,0 +1,93 @@
+name: VoiceLine Local65 exact APK Android verification
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/verify-local65-android.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_RUN_ID: '41482138781'
+      SOURCE_COMMIT: df8d2748a880058cbc77e40b93100bf02778467e
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify the existing exact source build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run=json.loads(Path('source-run.json').read_text())
+          assert run['head_sha']==os.environ['SOURCE_COMMIT']
+          jobs=json.loads(Path('source-jobs.json').read_text())['jobs']
+          steps=next(j['steps'] for j in jobs if j['name']=='apk')
+          required=['Test recording, dynamics calibration, training and adaptive layout','Check every keyboard size and live graph in Chromium','Build separately installable CI APK','Verify signatures, package IDs, version and every offline asset','Check unsigned release AAB and Android lint','Validate production bundle and prepare emulator review APK']
+          for name in required: assert next(s for s in steps if s['name']==name)['conclusion']=='success',name
+          assert [s['name'] for s in steps if s['conclusion']=='failure']==['Android 16 production smoke test and store screenshots']
+          PY
+      - name: Reuse the exact verified APKs and bundle runtime
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local65-APKs --dir dist
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local65-Release-Readiness --dir .
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local65-Store-Media --dir old-media
+          python3 - <<'PY'
+          import hashlib,json,os,shutil,zipfile
+          from pathlib import Path
+          apk=Path('dist/VoiceLine-Local65-CI.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='e2db8857d2a23a6cc76b862789b13716f4ceb81608954eebab0dcdedd09856b5'
+          info=json.loads(Path('dist/APK_LABEL_VERIFIED.json').read_text())
+          assert info['source_commit']==os.environ['SOURCE_COMMIT'] and info['version_code']==80
+          assert info['certificate_sha256']=='e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          assets=Path('android-local44/app/src/main/assets')
+          with zipfile.ZipFile(apk) as z:
+              for p in assets.rglob('*'):
+                  if p.is_file():assert p.read_bytes()==z.read('assets/'+p.relative_to(assets).as_posix()),p
+          assert hashlib.sha256(Path('release-review/previous-Local64-CI.apk').read_bytes()).hexdigest()=='ae6be7a870ce6d074409a8f541de4b100b22012ac8bd609d4b4b556d39a8c53b'
+          Path('store-media').mkdir(exist_ok=True)
+          for name in ['icon-512.png','feature-graphic-1024x500.png','MEDIA_INFO.json']:shutil.copyfile(Path('old-media/store-media')/name,Path('store-media')/name)
+          PY
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify the exact APK in Android 16
+        timeout-minutes: 12
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: python3 ci/android-release-smoke.py
+      - name: Verify all store media dimensions
+        run: python3 ci/verify-store-media.py
+      - name: Keep exact APK Android verification
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local65-Android-Verified
+          path: |
+            android-smoke/
+            store-media/
+          retention-days: 7
+          if-no-files-found: warn
