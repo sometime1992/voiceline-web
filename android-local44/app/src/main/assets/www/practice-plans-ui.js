@@ -127,7 +127,7 @@
    const total=box.querySelector('[aria-label="발성·진행 시간 (초)"]');total.disabled=t.customStages;
    const syncTotal=()=>{total.value=String(t.customStages?Math.round(t.stages.reduce((sum,n)=>sum+n,0)*10)/10:t.seconds);};
    p.segments.forEach((s,i)=>{const row=el('label',s.label+' (초)'),input=el('input');input.type='number';input.min=s.rest?'0':'1';input.max='60';input.step='.1';input.required=true;input.inputMode='decimal';input.value=String(t.stages[i]);input.disabled=!t.customStages;input.oninput=()=>{if(input.value!==''&&input.validity.valid){t.stages[i]=Number(input.value);syncTotal();onChange?.();}};row.append(input);stages.append(row);});
-   check.onchange=()=>{t.customStages=check.checked;total.disabled=check.checked;stages.hidden=!check.checked;for(const input of stages.querySelectorAll('input'))input.disabled=!check.checked;syncTotal();onChange?.();};syncTotal();
+   check.onchange=()=>{t.customStages=check.checked;if(!check.checked)t.seconds=Math.max(Number(total.min),Math.min(Number(total.max),t.seconds));total.disabled=check.checked;stages.hidden=!check.checked;for(const input of stages.querySelectorAll('input'))input.disabled=!check.checked;syncTotal();onChange?.();};syncTotal();
   }
   if(mode!=='practice'&&mode!=='record'&&mode!=='rest')number('rounds',withinRoutine?'이 단계 반복 횟수':'반복 횟수 (0=무한 반복)',withinRoutine?1:0,99,1);
   if(withinRoutine&&mode==='practice')number('rounds','이 단계 반복 횟수',1,99,1);
