@@ -19,8 +19,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       RELEASE_TAG: voiceline-local67-ci
-      SOURCE_RUN_ID: '41493306186'
-      SOURCE_COMMIT: 5b704154762fe393e19e958ae459e3fc97680d38
+      SOURCE_RUN_ID: '41493956144'
+      SOURCE_COMMIT: 6c3951eb354cb6235846e033718fc847c970b987
     steps:
       - name: Verify the exact successful source build
         run: |
@@ -76,7 +76,7 @@ jobs:
           - 가로·세로·글자 100/120/150%·키보드에서 실제 입력과 메뉴·저장 위치 검사
           - 듣기·호흡 준비 중 보라색 감지 건반 숨김 유지
           - 347개 회귀 검사, 245개 설정 화면 흐름, 22개 설정·루틴 실행 검사
-          - 앱 소스: https://github.com/sometime1992/voiceline-web/commit/5b704154762fe393e19e958ae459e3fc97680d38
+          - 앱 소스: https://github.com/sometime1992/voiceline-web/commit/6c3951eb354cb6235846e033718fc847c970b987
           - 버전 2.0.0-local67-ci (82), 설치 이름 VoiceLine
           - Local66에서 삭제 없는 업데이트와 기기 내부 시험 파일 보존 검사
 
