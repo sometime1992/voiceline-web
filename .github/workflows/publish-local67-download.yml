@@ -27,6 +27,7 @@ jobs:
       - name: Verify complete app checks and exact APK Android results
         run: |
           gh run watch "$ANDROID_RUN_ID" --repo "$GH_REPO" --exit-status --interval 10
+          gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$GITHUB_SHA" > publication-compare.json
           gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
           gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
           gh api "repos/$GH_REPO/actions/runs/$ANDROID_RUN_ID" > android-run.json
@@ -34,6 +35,9 @@ jobs:
           python3 - <<'PY'
           import json, os
           from pathlib import Path
+          comparison=json.loads(Path('publication-compare.json').read_text())
+          assert comparison['status'] in ('ahead','identical')
+          assert not any(f['filename'].startswith('android-local44/') for f in comparison['files']), 'App changed since verification'
           run=json.loads(Path('source-run.json').read_text())
           assert run['head_sha']==os.environ['SOURCE_COMMIT']
           jobs=json.loads(Path('source-jobs.json').read_text())['jobs']
@@ -107,7 +111,7 @@ jobs:
             gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local67 페이지형 설정 수정 APK' --notes-file release-notes.md
             gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local67-CI.apk dist/VoiceLine-Local67-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
           else
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local67 페이지형 설정 수정 APK' --notes-file release-notes.md dist/VoiceLine-Local67-CI.apk dist/VoiceLine-Local67-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --prerelease --title 'VoiceLine Local67 페이지형 설정 수정 APK' --notes-file release-notes.md dist/VoiceLine-Local67-CI.apk dist/VoiceLine-Local67-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
           fi
       - name: Verify public downloads without authentication
         run: |
