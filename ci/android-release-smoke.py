@@ -76,7 +76,7 @@ def tap(label, identifier=None, partial=False):
 
 def settings_rect(label, identifier=None, document=None):
     document=tree() if document is None else document
-    candidates=[n for n in document.iter('node') if n.attrib.get('text')==label or n.attrib.get('content-desc')==label or identifier and n.attrib.get('resource-id','').endswith(identifier)]
+    candidates=[n for n in document.iter('node') if (n.attrib.get('text')==label or n.attrib.get('content-desc')==label) and (not identifier or n.attrib.get('resource-id','').endswith(identifier))]
     # The last dialog follows underlying WebView content in accessibility order.
     for n in reversed(candidates):
         r=[int(v) for v in re.findall(r'\d+',n.attrib.get('bounds',''))]
@@ -89,7 +89,7 @@ def assert_settings_readable(landscape=False, selected='모음 · 아에이오�
     field=settings_rect(selected,document=document)
     save=settings_rect('저장','planRun',document)
     close=settings_rect('연습 설정 닫기','planClose',document)
-    navigation=settings_rect('연습 내용',document=document)
+    navigation=settings_rect('연습 내용','-tab',document)
     assert label[1]>=navigation[3] and label[1]>=close[3] and field[3]<=save[1],(label,field,save,close,navigation)
     assert field[1]>=label[3]-4,(label,field)
     name='settings-landscape-geometry.json' if landscape else 'settings-portrait-geometry.json'
