@@ -109,7 +109,7 @@ test('All seven methods and five lengths succeed with the actual contour, phase 
   if(id==='steady')return 1;
   return t<4500?2:t<7500?0:t<9000?2:0;
  };
- for(const seconds of [8,12,16,20,24])for(const id of Object.keys(dynamics.PATTERNS)){
+ for(const seconds of [8,12,16,20,24])for(const id of Object.keys(dynamics.PATTERNS).filter(id=>id!=='vowels')){
   const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:id,dynamicSeconds:seconds});h.app.training=s;h.scheduleTrainingCues(s);
   assert.equal(h.sources.length,s.dynamicModel.segments.length,id+' cue count');
   for(let t=0;t<s.duration;t+=40){const canonical=t<3000?t:3000+(t-3000)*9000/(s.duration-3000);h.receiveTrainingSample(s.start+t,60,.0042*Math.pow(1.8,level(id,canonical)));}
@@ -151,7 +151,7 @@ test('Custom durations restore and an active session keeps its captured length',
  h.app.trainingSettings.dynamicSeconds=8;assert.equal(s.duration,24000);assert.equal(s.dynamicModel.duration,24000);
 });
 test('A constant soft voice cannot complete any method and a selected course remains fixed during a session',()=>{
- for(const id of Object.keys(dynamics.PATTERNS)){
+ for(const id of Object.keys(dynamics.PATTERNS).filter(id=>id!=='vowels')){
   const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:id});h.app.training=s;
   h.app.trainingSettings.dynamicPattern='steady';
   for(let t=0;t<12000;t+=40)h.receiveTrainingSample(s.start+t,60,.0042);
@@ -171,4 +171,14 @@ test('Guidance preserves real input at every transition but cannot turn a cue in
  // An actual missing microphone detection must remain missing, including cues.
  const t=s.start+9000;const other=fixture();other.scheduleTrainingCues(other.session);other.receiveTrainingSample(other.session.start,null,.5);
  assert.equal(other.session.history.at(-1).midi,null);assert.equal(other.session.dynamicModel.samples.at(-1).liveRms,null);assert.equal(other.session.valid,0);
+});
+
+test('Vowel sessions expose each breath countdown, keep one input session and grade the five independent contours',()=>{
+ const h=fixture(),s=h.newTrainingSession('dynamicVoice',0,{...h.app.trainingSettings,dynamicPattern:'vowels',dynamicSeconds:52});h.app.training=s;h.scheduleTrainingCues(s);
+ assert.equal(s.duration,52000);assert.equal(h.sources.length,9,'only vowel starts and breath transitions sound cues');
+ const levels=[.0042,.0063,.0036,.0054,.0048];
+ for(let t=0;t<52000;t+=40){const p=dynamics.state(s.dynamicModel,s.start+t);h.receiveTrainingSample(s.start+t,p.rest?88:60,p.rest?.9:levels[p.vowelIndex]*Math.pow(1.8,p.level));}
+ assert.equal(h.trainingEvaluation(s,true).status,'성공');assert.equal(s.active,true);
+ for(const stage of s.dynamicModel.segments.filter(p=>p.rest)){for(const [offset,n]of [[0,3],[1000,2],[2000,1]]){const p=h.vocalPreparationState(s,s.start+stage.start+offset);assert.equal(p.key,'inhale');assert.equal(p.seconds,n);assert.match(p.hint,new RegExp(stage.nextVowel));}}
+ assert.deepEqual(s.dynamicModel.baselines,levels);assert.ok(s.voicedMs<=40000);
 });

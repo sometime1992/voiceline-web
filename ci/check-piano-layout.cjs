@@ -67,7 +67,7 @@ async function checkVolumeRange(page,id,valueId){
    // the shipped app or reaching into piano.js's private closure.
    let dynamics;
    Object.defineProperty(window,'VoiceLineDynamics',{configurable:true,get:()=>dynamics,set(value){
-    dynamics={...value,receive(...args){const result=value.receive(...args),p=args[0].samples.at(-1);if(p)window.__dynamicSamples.push({phase:p.phase,cue:p.cue,liveRms:p.liveRms,rms:p.rms,dt:p.dt});return result;}};window.__dynamicSamples=[];
+    dynamics={...value,create(...args){const m=value.create(...args);if(m.patternId==='vowels'&&m.start>performance.now()+50)window.__vowelCourse=m;return m;},receive(...args){const result=value.receive(...args),p=args[0].samples.at(-1);if(p)window.__dynamicSamples.push({phase:p.phase,cue:p.cue,liveRms:p.liveRms,rms:p.rms,dt:p.dt});return result;}};window.__dynamicSamples=[];
    }});
    let plans;
    Object.defineProperty(window,'VoiceLinePlansUI',{configurable:true,get:()=>plans,set(value){
@@ -293,12 +293,12 @@ async function checkVolumeRange(page,id,valueId){
   await page.locator('#dynamicCueVolume').selectOption('45');await page.reload();await page.waitForSelector('#keyboard .white-key');
   await choose(page,'dynamicVoice');assert.equal(await page.locator('#dynamicCueVolume').inputValue(),'45','cue volume not restored');
   await page.locator('#dynamicCueVolume').selectOption('70');
-  const patterns=await page.evaluate(()=>Object.keys(window.VoiceLineDynamics.PATTERNS));assert.equal(patterns.length,7);
-  assert.equal(await page.locator('#dynamicPattern option').count(),7);
+  const patterns=await page.evaluate(()=>Object.keys(window.VoiceLineDynamics.PATTERNS));assert.equal(patterns.length,8);
+  assert.equal(await page.locator('#dynamicPattern option').count(),8);
   const patternReport=[];
   for(const viewport of [viewports[0],viewports[2],viewports[3]]){
    await page.setViewportSize(viewport);await frames(page);const keyboard=(await geometry(page)).keyboard;
-   for(const seconds of ['8','12','16','20','24'])for(const id of patterns){
+   for(const seconds of ['8','12','16','20','24'])for(const id of patterns.filter(id=>id!=='vowels')){
     await page.locator('#dynamicDuration').selectOption(seconds);await page.locator('#dynamicPattern').selectOption(id);await frames(page);
     const g=await geometry(page);assert.deepEqual(g.keyboard,keyboard,id+' moved the keys');assert.equal(g.scroll,false,id+' scrolls');
     assert.equal(await page.locator('#trainingOverlay').getAttribute('data-dynamic-pattern'),id);
@@ -338,6 +338,7 @@ async function checkVolumeRange(page,id,valueId){
   assert.equal(await page.locator('#dynamicDuration').inputValue(),'24','duration was not restored');
   await page.locator('#dynamicPattern').selectOption('steps');await page.locator('#dynamicDuration').selectOption('12');
   fs.writeFileSync(path.join(output,'dynamics-patterns.json'),JSON.stringify(patternReport,null,2));
+  await require('./check-vowel-dynamics.cjs')(page,choose,geometry,graphPixels,frames,output);
   const stored=await page.evaluate(()=>new Promise((resolve,reject)=>{
    const request=indexedDB.open('voiceline-local-v2',4);request.onerror=()=>reject(request.error);
    request.onsuccess=()=>{const db=request.result,tx=db.transaction(['events','recordings']),events=tx.objectStore('events').getAll(),recordings=tx.objectStore('recordings').getAll();tx.oncomplete=()=>{db.close();resolve({events:events.result.map(e=>({mode:e.mode,title:e.title})),recordings:recordings.result.length});};};

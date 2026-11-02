@@ -332,3 +332,5 @@ body.portrait-layout .record-tools-bottom{align-items:flex-start}
  body.portrait-layout .modal{overflow:auto}
  body.portrait-layout .info-modal{overflow:hidden}
 }
+
+#trainingOverlay[data-dynamic-pattern=vowels] #dynamicGuide>span{min-width:20px;padding-inline:4px}

@@ -23,6 +23,7 @@
   p.guide=root.VoiceLineGuideTraining.normalize({...root.VoiceLineGuideTraining.PRACTICE_DEFAULTS,...p.guide,rounds:1});
   p.metronome=root.VoiceLineMetronome.normalize(p.metronome);
   p.vibratoRoot=Math.round(api.numeric(p.vibratoRoot,48,36,94));p.base=Math.round(api.numeric(p.base,48,24,84)/12)*12;p.pianoVolume=Math.round(api.numeric(p.pianoVolume,85,0,100));
+  if(step.mode==='dynamicVoice'&&p.training.dynamicPattern==='vowels'&&!step.timing.customStages&&step.timing.seconds<30)step.timing.seconds=52;
   step.params=p;return step;
  }
  function methodText(step,stepRound=1,full=false){
@@ -79,7 +80,7 @@
    if(mode==='vibrato')select('vibratoRoot','기준음',noteOptions(),params);
    if(mode==='dynamicVoice'){
     const tr=params.training,pattern=select('dynamicPattern','강약 방법',Object.entries(root.VoiceLineDynamics.PATTERNS).map(([id,p])=>[id,p.label]),tr);
-    pattern.onchange=()=>{tr.dynamicPattern=pattern.value;t.stages=root.VoiceLineDynamics.getPattern(pattern.value).segments.map(s=>s.ms/1000);onChange?.(true);};
+    pattern.onchange=()=>{const before=tr.dynamicPattern;tr.dynamicPattern=pattern.value;if((before==='vowels')!==(tr.dynamicPattern==='vowels'))t.seconds=tr.dynamicPattern==='vowels'?52:12;t.stages=root.VoiceLineDynamics.getPattern(pattern.value).segments.map(s=>s.ms/1000);onChange?.(true);};
     const volume=number('dynamicCueVolume','단계 전환 안내음 크기 (%)',0,100,1,tr),change=volume.oninput;volume.oninput=()=>{if(volume.value!==''&&volume.validity.valid)tr.dynamicCues=Number(volume.value)>0;change();};
    }
    if(mode==='earVoice'){
@@ -114,7 +115,7 @@
   }else if(mode==='earVoice'){
    number('prepare','시작 전 준비 (초)',0,120);number('listen','기준음 듣기 (초)',.5,120);number('breath','들이쉬기 (초)',0,120);number('answer','따라 부르기 (초)',.5,120);number('noteRest','음 사이 쉬기 (초)',0,120);
   }else{
-   const min=mode==='dynamicVoice'?8:['sustainVoice','vibrato','rest'].includes(mode)?1:0;
+   const min=mode==='dynamicVoice'?(params.training?.dynamicPattern==='vowels'?30:8):['sustainVoice','vibrato','rest'].includes(mode)?1:0;
    number('seconds',withinRoutine&&['piano','pitch','metronome'].includes(mode)?'진행 시간 (초)':mode==='record'?'녹음 시간 (초, 0=직접 중단)':['piano','pitch','metronome'].includes(mode)?'진행 시간 (초, 0=직접 중단)':'발성·진행 시간 (초)',withinRoutine?Math.max(1,min):min,mode==='record'?600:mode==='dynamicVoice'?300:3600);
    if(['sustainVoice','dynamicVoice','vibrato'].includes(mode)){number('reference','기준음 듣기 (초)',0,120);number('breath','들이쉬기 (초)',0,120);}
   }
@@ -125,7 +126,7 @@
    if(t.stages.length!==p.segments.length)t.stages=p.segments.map(s=>s.ms/1000);
    const total=box.querySelector('[aria-label="발성·진행 시간 (초)"]');total.disabled=t.customStages;
    const syncTotal=()=>{total.value=String(t.customStages?Math.round(t.stages.reduce((sum,n)=>sum+n,0)*10)/10:t.seconds);};
-   p.segments.forEach((s,i)=>{const row=el('label',s.label+' (초)'),input=el('input');input.type='number';input.min='1';input.max='60';input.step='.1';input.required=true;input.inputMode='decimal';input.value=String(t.stages[i]);input.disabled=!t.customStages;input.oninput=()=>{if(input.value!==''&&input.validity.valid){t.stages[i]=Number(input.value);syncTotal();onChange?.();}};row.append(input);stages.append(row);});
+   p.segments.forEach((s,i)=>{const row=el('label',s.label+' (초)'),input=el('input');input.type='number';input.min=s.rest?'0':'1';input.max='60';input.step='.1';input.required=true;input.inputMode='decimal';input.value=String(t.stages[i]);input.disabled=!t.customStages;input.oninput=()=>{if(input.value!==''&&input.validity.valid){t.stages[i]=Number(input.value);syncTotal();onChange?.();}};row.append(input);stages.append(row);});
    check.onchange=()=>{t.customStages=check.checked;total.disabled=check.checked;stages.hidden=!check.checked;for(const input of stages.querySelectorAll('input'))input.disabled=!check.checked;syncTotal();onChange?.();};syncTotal();
   }
   if(mode!=='practice'&&mode!=='record'&&mode!=='rest')number('rounds',withinRoutine?'이 단계 반복 횟수':'반복 횟수 (0=무한 반복)',withinRoutine?1:0,99,1);
@@ -136,6 +137,7 @@
  function valid(){
   const bad=$('planDialog').querySelector('input:invalid,select:invalid');
   if(bad){for(let d=bad.closest('details');d;d=d.parentElement.closest('details'))d.open=true;bad.reportValidity();status('표시된 범위 안에서 상세 설정을 입력해 주세요.');return false;}
+  const timings=editingMode==='dynamicVoice'?[draft.timing]:!editingMode?(draft?.steps||[]).filter(s=>s.mode==='dynamicVoice').map(s=>s.timing):[];if(timings.some(t=>t.customStages&&t.stages.reduce((a,b)=>a+b,0)>300)){status('강약 연습의 전체 시간은 300초 이내로 설정해 주세요.');return false;}
   if(!editingMode)for(const [index,step]of (draft?.steps||[]).entries()){
    const issue=step.mode==='metronome'?root.VoiceLineMetronome.timingIssue(step.params.metronome):step.mode==='practice'&&root.VoiceLineGuideTraining.plan({...step.params.guide,rounds:step.timing.rounds}).limited?'반복 중 음역이 측정 범위를 벗어납니다. 기준음·반복 횟수·기준음 이동을 조절해 주세요.':null;
    if(issue){const card=$('planEditor').children[index];card.open=true;card.scrollIntoView({block:'nearest'});status((index+1)+'단계: '+issue);return false;}

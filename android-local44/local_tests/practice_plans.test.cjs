@@ -18,7 +18,7 @@ test('Arbitrary note, slide, breath and recovery lengths determine the same guid
  const s=guide.create({pattern:'smooth5',root:48,smoothSeconds:17.2,rounds:1},0);assert.equal(s.phraseMs,17200);assert.equal(s.noteMs,4300);assert.equal(guide.position(s,s.start+s.phraseMs+s.handoffMs+s.phraseMs/2).midi,53);
 });
 test('Per-stage dynamics uses each entered duration for guide, calibration and target coverage',()=>{
- for(const pattern of Object.keys(dynamics.PATTERNS)){const s=dynamics.create({pattern,duration:8000});assert.equal(s.duration,8000,pattern+' total duration');assert.ok(s.segments.every(x=>Number.isInteger(x.start)&&Number.isInteger(x.end)));}
+ for(const pattern of Object.keys(dynamics.PATTERNS)){const s=dynamics.create({pattern,duration:8000});assert.equal(s.duration,pattern==='vowels'?30000:8000,pattern+' total duration');assert.ok(s.segments.every(x=>Number.isInteger(x.start)&&Number.isInteger(x.end)));}
  const s=dynamics.create({start:100,pattern:'steps',segmentSeconds:[1.5,2.4,4.2,1.1]});assert.equal(s.duration,9200);assert.deepEqual(s.segments.map(x=>x.end-x.start),[1500,2400,4200,1100]);assert.equal(dynamics.state(s,1600).key,'medium');assert.equal(dynamics.state(s,4000).key,'strong');
 });
 test('All mode timers accept direct fractional input and zero repetitions remains an explicit unlimited choice',()=>{

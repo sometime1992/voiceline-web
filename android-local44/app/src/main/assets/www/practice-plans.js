@@ -23,7 +23,7 @@
   if(mode==='dynamicVoice')result.seconds=Math.max(8,Math.min(300,result.seconds));
   result.rounds=Math.round(numeric(value.rounds,1,0,99));
   result.customStages=value.customStages===true;
-  result.stages=Array.isArray(value.stages)?value.stages.slice(0,12).map(v=>numeric(v,3,1,60)):[];
+  result.stages=Array.isArray(value.stages)?value.stages.slice(0,24).map(v=>numeric(v,3,0,60)):[];
   return result;
  }
  const id=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
