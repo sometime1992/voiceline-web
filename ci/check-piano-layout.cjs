@@ -63,6 +63,17 @@ async function checkVolumeRange(page,id,valueId){
   browser=await chromium.launch({headless:true,...(process.env.CHROME_BIN?{executablePath:process.env.CHROME_BIN}:{}),args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
   const page=await browser.newPage({viewport:viewports[0]});page.on('pageerror',error=>errors.push(String(error)));
   await page.addInitScript(()=>{
+   // Observe the real public mount callbacks without exposing test state in
+   // the shipped app or reaching into piano.js's private closure.
+   let plans;
+   Object.defineProperty(window,'VoiceLinePlansUI',{configurable:true,get:()=>plans,set(value){
+    plans=value;const mount=value.mount;
+    value.mount=function(callbacks){
+     window.__routineBridge=callbacks;window.__routineExecuted=[];const run=callbacks.run;
+     callbacks.run=async(...args)=>{const result=await run(...args),[step,,current]=args;window.__routineExecuted.push({mode:step.mode,round:current.stepRound,started:result,settings:JSON.parse(JSON.stringify(callbacks.captureAll()))});return result;};
+     return mount.call(this,callbacks);
+    };
+   }});
    Object.defineProperty(window.screen,'orientation',{value:{get type(){return innerHeight>=innerWidth?'portrait-primary':'landscape-primary';},addEventListener(){},unlock(){return Promise.resolve();}}});
    window.VoiceLineNative={start(request){window.__micRequest=request;setTimeout(()=>window.VoiceLineNativeAudio.onState('started','',request,44100),window.__micDelay||0);},stop(request){if(window.__micRequest===request)window.__micRequest=null;}};
   });
