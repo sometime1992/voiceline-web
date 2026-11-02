@@ -14,6 +14,7 @@ qa.mkdir(exist_ok=True)
 package = 'com.voiceline.app'
 checks = []
 hierarchy_number = 0
+systemui_startup_recovered = False
 
 class HierarchyUnavailable(RuntimeError):
     pass
@@ -89,10 +90,24 @@ def screenshot(name, store=True):
     (out if store else qa).joinpath(name).write_bytes(adb('exec-out', 'screencap', '-p', binary=True))
 
 def wait_visible(label, timeout=25):
+    global systemui_startup_recovered
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            if visible(label):
+            document = tree()
+            # API36's cold boot can show a System UI ANR above a fully loaded
+            # WebView. Wait once for that exact OS dialog; never dismiss an
+            # application ANR or treat an obscured app as a successful start.
+            if visible("System UI isn't responding", document) and not systemui_startup_recovered:
+                wait = next((n for n in document.iter('node') if n.attrib.get('resource-id') == 'android:id/aerr_wait'), None)
+                bounds = [int(n) for n in re.findall(r'\d+', wait.attrib.get('bounds', ''))] if wait is not None else []
+                if len(bounds) == 4:
+                    systemui_startup_recovered = True
+                    (qa / 'systemui-startup-recovery.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
+                    adb('shell', 'input', 'tap', str((bounds[0]+bounds[2])//2), str((bounds[1]+bounds[3])//2))
+                    time.sleep(1)
+                    continue
+            if visible(label, document):
                 return
         except HierarchyUnavailable:
             pass
