@@ -5,11 +5,11 @@ module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  await page.locator('#dynamicPattern').selectOption('vowels');assert.equal(await page.locator('#dynamicDuration').inputValue(),'52');
  assert.equal(await page.locator('#dynamicGuide [data-dynamic-step]').count(),5);assert.match(await page.locator('#dynamicGuide').textContent(),/아에이오우/);
  await page.locator('#trainingRoot').selectOption('60');await page.locator('#customTimingOpen').click();
- for(const [label,n]of [['기준음 듣기 (초)',.2],['들이쉬기 (초)',.3],['반복 횟수 (0=무한 반복)',1],['반복 사이 쉬기 (초)',0]])await page.getByLabel(label,{exact:true}).fill(String(n));
+ for(const [label,n]of [['기준음 듣기 (초)',.2],['들이쉬기 (초)',.3],['반복 횟수 (0=무한 반복)',1],['반복 사이 쉬기 (초)',0]])await page.locator('#planEditor').getByLabel(label,{exact:true}).fill(String(n));
  await page.getByRole('checkbox',{name:'단계별 시간을 각각 입력',exact:true}).check();const stages=page.locator('.plan-stage-fields input');assert.equal(await stages.count(),19);
  const values=await page.evaluate(()=>window.VoiceLineDynamics.PATTERNS.vowels.segments.map(s=>s.rest?.5:s.calibrate?1.5:1));
  for(let i=0;i<values.length;i++)await stages.nth(i).fill(String(values[i]));
- assert.equal(await page.getByLabel('발성·진행 시간 (초)',{exact:true}).inputValue(),'19.5');await page.locator('#planSave').click();
+ assert.equal(await page.locator('#planEditor').getByLabel('발성·진행 시간 (초)',{exact:true}).inputValue(),'19.5');await page.locator('#planSave').click();
  await page.locator('#mainButton').click();await page.waitForFunction(()=>window.__vowelCourse&&window.__micRequest);
  const request=await page.evaluate(()=>{
   const request=window.__micRequest,levels=[.04,.06,.045,.055,.05];
