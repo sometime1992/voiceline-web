@@ -3,17 +3,18 @@
  const model=root.VoiceLinePracticeSettings,plans=root.VoiceLinePracticePlans;
  let serial=0;const noteSelection=new WeakMap(),beatSelection=new WeakMap();
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
- function render({mode,timing:t,params:p,onChange,withinRoutine=false,bridge,scope='일반 연습'}){
+ function render({mode,timing:t,params:p,onChange,onPageChange,withinRoutine=false,bridge,scope='일반 연습'}){
   const box=el('div',undefined,'settings-editor'),tr=p.training,g=p.guide,w=tr.warmup,m=p.metronome,guide=root.VoiceLineGuideTraining;
   box.dataset.settingsMode=mode;box.dataset.scope=withinRoutine?'routine':'general';
   Object.assign(m,root.VoiceLineMetronome.normalize(m));if(mode==='earVoice')tr.root=Math.min(tr.root,plans.earRootLimit(tr.earPattern));
   const overview=el('section',undefined,'settings-overview');overview.setAttribute('aria-label','현재 연습 설정');
-  const scopeText=el('span',scope,'settings-scope'),title=el('strong'),summary=el('p',undefined,'settings-current'),time=el('p',undefined,'settings-duration'),note=el('p',undefined,'settings-explanation');
+  const scopeText=el('span',scope,'settings-scope'),title=el('strong'),summary=el('p',undefined,'settings-current'),time=el('p',undefined,'settings-duration'),audioSummary=el('p',undefined,'settings-audio-summary'),note=el('p',undefined,'settings-explanation');
   const flow=el('div',undefined,'settings-flow'),sequence=el('div',undefined,'settings-sequence'),issue=el('p',undefined,'settings-problem');issue.setAttribute('role','alert');
   const preview=el('details',undefined,'settings-route-preview'),previewHeading=el('summary','진행 순서·음 보기');
   preview.dataset.settingsGroup='preview';preview.append(previewHeading,flow,sequence,note);
-  overview.append(scopeText,title,summary,time,preview,issue);box.append(overview);
-  const groups={};
+  overview.append(scopeText,title,summary,time,audioSummary,preview,issue);box.append(overview);
+  const groups={},navigation=el('nav',undefined,'settings-page-nav'),values=el('details',undefined,'settings-values');
+  navigation.setAttribute('aria-label','설정 항목');navigation.setAttribute('role','tablist');values.append(el('summary','상세 설정 보기'));box.append(navigation,values);box.dataset.presentation='pages';let currentPage=null;
   for(const [key,name]of [['content','연습 내용'],['timing','진행 시간·반복'],['audio',mode==='warmupVoice'?'소리·안내':'소리·측정']]){
    const details=el('details',undefined,'settings-section'),head=el('summary'),nameNode=el('strong',name),value=el('span',undefined,'settings-section-value'),body=el('div',undefined,'plan-fields settings-fields');
    details.dataset.settingsGroup=key;details.open=key==='content';head.append(nameNode,value);details.append(head,body);groups[key]={details,body,value};box.append(details);
@@ -123,14 +124,47 @@
   if(!withinRoutine&&['pitch','record','practice','sustainVoice','earVoice','dynamicVoice','vibrato'].includes(mode))choices('음정 감지 감도 · 앱 공통',[['standard','표준','주변 소리에 덜 반응'],['sensitive','민감','작은 목소리 감지'],['high','최대','아주 작은 소리 감지']],p.micSensitivity,v=>{p.micSensitivity=v;changed(true);});
   for(const key of Object.keys(groups))if(!groups[key].body.children.length){groups[key].details.remove();delete groups[key];}
   if(!groups.content&&groups.timing)groups.timing.details.open=true;
+  for(const [key,group]of Object.entries(groups)){
+   const id='settings-page-'+(++serial),button=el('button',key==='content'?'연습 내용':key==='timing'?'시간·반복':'소리');button.type='button';button.id=id+'-tab';button.dataset.settingsPage=key;button.setAttribute('role','tab');button.setAttribute('aria-controls',id);
+   group.details.id=id;group.details.setAttribute('role','tabpanel');group.details.setAttribute('aria-labelledby',button.id);group.details.querySelector('summary').tabIndex=-1;
+   button.onclick=()=>{bridge.stopPreview?.();if(box.contains(document.activeElement))document.activeElement.blur();showPage(key);};
+   button.onkeydown=event=>{const keys=Object.keys(groups),index=keys.indexOf(currentPage);let next;if(event.key==='ArrowRight')next=keys[(index+1)%keys.length];if(event.key==='ArrowLeft')next=keys[(index+keys.length-1)%keys.length];if(event.key==='Home')next=keys[0];if(event.key==='End')next=keys.at(-1);if(next){event.preventDefault();showPage(next);navigation.querySelector('[data-settings-page='+next+']').focus();}};navigation.append(button);
+  }
   const apply=withinRoutine?el('button','이 단계 설정 완료','settings-step-done'):null;
-  if(apply){apply.type='button';apply.onclick=()=>{if(box.querySelector('input:invalid,select:invalid')){box.querySelector('input:invalid,select:invalid').reportValidity();return;}box.closest('.plan-step').open=false;bridge.notify?.('루틴 저장을 누르면 이 단계 설정이 보관됩니다.');};box.append(apply);}
+  if(apply){apply.type='button';apply.onclick=()=>{const bad=box.querySelector('input:invalid,select:invalid');if(bad){showPage(bad.closest('[data-settings-group]').dataset.settingsGroup);for(let d=bad.closest('details');d;d=d.parentElement.closest('details'))d.open=true;bad.reportValidity();return;}box.closest('.plan-step').open=false;bridge.notify?.('루틴 저장을 누르면 이 단계 설정이 보관됩니다.');};box.append(apply);}
+  function showPage(key,notify=true){
+   currentPage=Object.hasOwn(groups,key)?key:Object.keys(groups)[0];box.dataset.page=currentPage;overview.hidden=true;values.hidden=true;navigation.hidden=false;if(apply)apply.hidden=false;
+   for(const [id,group]of Object.entries(groups)){group.details.hidden=id!==currentPage;group.details.open=true;}
+   for(const button of navigation.children){const active=button.dataset.settingsPage===currentPage;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}
+   if(notify)onPageChange?.(currentPage);return currentPage;
+  }
+  function summaryValues(){
+   while(values.children.length>1)values.lastElementChild.remove();
+   for(const [key,group]of Object.entries(groups)){
+    const section=el('section'),heading=el('h3',group.details.querySelector('summary strong').textContent),list=el('dl');
+    for(const node of group.body.querySelectorAll('label.settings-field,fieldset.settings-choice,fieldset.settings-volume,label.settings-check')){
+     let name,value;
+     if(node.matches('.settings-choice')){name=node.querySelector('legend').textContent;value=node.querySelector('input:checked')?.parentElement.querySelector('strong').textContent;}
+     else if(node.matches('.settings-volume')){name=node.querySelector('legend').textContent;value=node.querySelector('output').textContent;}
+     else if(node.matches('.settings-check')){name=node.textContent;value=node.querySelector('input').checked?'켜기':'끄기';}
+     else{const input=node.querySelector('input,select');if(input?.disabled)continue;name=[...node.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();value=input?.tagName==='SELECT'?input.selectedOptions[0]?.textContent:input?.value;}
+     if(name&&value!==undefined){list.append(el('dt',name),el('dd',value));}
+    }
+    if(mode==='metronome'&&key==='content'){list.append(el('dt','박별 강세'),el('dd',m.accents.map((a,i)=>(i+1)+'박 '+['묵음','보통','강세'][a]).join(' · ')));}
+    if(list.children.length){section.append(heading,list);values.append(section);}
+   }
+  }
+  function showSummary(label='현재 설정'){
+   box.dataset.page='summary';overview.hidden=false;overview.setAttribute('aria-label',label);navigation.hidden=true;if(apply)apply.hidden=true;for(const group of Object.values(groups))group.details.hidden=true;
+   summaryValues();values.hidden=false;for(const button of flow.querySelectorAll('button')){const item=el('div',undefined,'settings-phase');item.dataset.kind=button.dataset.kind;item.append(...button.childNodes);button.replaceWith(item);}return box.description;
+  }
   function update(){
    if(mode==='dynamicVoice'&&t.customStages){const total=round(t.stages.reduce((a,b)=>a+b,0));const input=box.querySelector('input[data-setting-key="seconds"]');if(input)input.value=String(total);}
    const d=model.describe(mode,t,p,withinRoutine,bridge.noteLabel),bad=box.querySelector('input:invalid,select:invalid');title.textContent=mode==='earVoice'&&tr.earPattern==='custom'?'청음 · 직접 음 지정':d.title;summary.textContent=d.compact;
    time.replaceChildren(el('span',d.totalText));if(d.voiceSeconds!==null&&d.voiceSeconds>0)time.append(document.createTextNode(' · '),el('span',(d.repeats===0?'한 '+d.repeatUnit+' 기준 ':'')+d.voiceLabel+' '+model.formatTime(d.voiceSeconds)));note.textContent=d.note;
+   audioSummary.textContent=mode==='rest'?'':d.audio;audioSummary.hidden=mode==='rest';
    issue.hidden=!bad&&!d.issues.length;issue.textContent=bad?'입력값을 확인해 주세요. 유효한 값으로 설정 요약을 갱신합니다.':d.issues.join(' ');
-   flow.replaceChildren();for(const [i,s]of d.phases.entries()){if(i)flow.append(el('span','→','settings-flow-arrow'));const b=el('button',undefined,'settings-phase');b.type='button';b.dataset.kind=s.kind;b.append(el('span',s.label),el('strong',model.formatTime(s.seconds)));b.onclick=()=>{const input=box.querySelector('[data-setting-key="'+s.key+'"]');if(!input)return;for(let parent=input.parentElement;parent&&parent!==box;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;input.focus({preventScroll:true});input.scrollIntoView({block:'nearest',behavior:'smooth'});};flow.append(b);}
+   flow.replaceChildren();for(const [i,s]of d.phases.entries()){if(i)flow.append(el('span','→','settings-flow-arrow'));const b=el('button',undefined,'settings-phase');b.type='button';b.dataset.kind=s.kind;b.append(el('span',s.label),el('strong',model.formatTime(s.seconds)));b.onclick=()=>{const input=box.querySelector('[data-setting-key="'+s.key+'"]');if(input)onPageChange?.('timing',s.key);};flow.append(b);}
    sequence.replaceChildren();if(d.notes.length){for(const [i,midi]of d.notes.entries()){if(i)sequence.append(el('span','→'));sequence.append(el('span',bridge.noteLabel(midi),'settings-note-label'));}}sequence.hidden=!d.notes.length;
    preview.hidden=!d.phases.length&&!d.notes.length&&!d.note;
    if(groups.content)groups.content.value.textContent=mode==='practice'?groupOf(model.patternKind(g.pattern))+' · '+bridge.noteLabel(g.root):d.compact;
@@ -138,7 +172,7 @@
    if(groups.audio)groups.audio.value.textContent=d.audio;
    box.dataset.valid=String(!bad&&!d.issues.length);box.description=d;
   }
-  box.update=update;update();return box;
+  box.update=update;box.showPage=showPage;box.showSummary=showSummary;box.navigation=navigation;box.pageKeys=Object.keys(groups);update();showPage(box.pageKeys[0],false);return box;
  }
  function clamp(n,a,b){return Math.max(a,Math.min(b,n));}function round(n){return Math.round(n*10)/10;}
  root.VoiceLinePracticeSettingsUI={render};

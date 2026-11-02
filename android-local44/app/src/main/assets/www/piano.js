@@ -2875,7 +2875,7 @@ for(const [index,tab] of ['rhythm','presets'].entries()){
 $('metroSettingsClose').addEventListener('click',()=>modalClose('metronomeSettingsDialog'));
 $all('.modal-backdrop').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)modalClose(el.id);}));
 function topDialog(){return ['planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'].find(id=>!$(id).hidden)||null;}
-function closeTopDialog(){const top=topDialog();if(!top)return false;modalClose(top);return true;}
+function closeTopDialog(){const top=topDialog();if(!top)return false;if(top==='planDialog'&&window.VoiceLinePlansUI?.back())return true;modalClose(top);return true;}
 document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&closeTopDialog()){e.preventDefault();e.stopPropagation();return;}
  if(e.key==='Tab'){
