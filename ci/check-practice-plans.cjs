@@ -45,6 +45,7 @@ module.exports=async function checkPlans(page,choose,output){
  await choose(page,'piano');await routines();await page.locator('#planNew').click();await page.locator('#planName').fill('상세 설정 확인 루틴');
  async function add(mode){await page.locator('#planAddMode').selectOption(mode);await page.locator('#planAdd').click();const c=page.locator('#planEditor .plan-step').last();assert.notEqual(await c.getAttribute('open'),null,'new step must expose settings immediately');return c;}
  card=await add('practice');
+ await card.getByLabel('연습 종류',{exact:true}).selectOption('steps');await card.getByLabel('음 길이 방식',{exact:true}).selectOption('seconds');
  await card.getByLabel('연습 패턴',{exact:true}).selectOption('triad');await card.getByLabel('기준음',{exact:true}).selectOption('48');await card.getByLabel('진행 방식',{exact:true}).selectOption('false');await card.getByLabel('반복 시 기준음 이동',{exact:true}).selectOption('1');await card.getByLabel('가이드 소리',{exact:true}).selectOption('hum');await field('가이드 음량 (%)',37,card);await card.getByLabel('음정 허용 범위',{exact:true}).selectOption('75');
  for(const [label,value]of [['한 음 길이 (초)',.5],['먼저 듣기 전 준비 (초)',0],['발성 전 들이쉬기 (초)',0],['회차 사이 쉬기 (초)',0],['이 단계 반복 횟수',2]])await field(label,value,card);
  assert.match(await card.locator('.plan-selected').textContent(),/3화음.*C3.*반음/s);assert.match(await card.locator('.plan-preview').textContent(),/허밍 톤 37%/);await page.screenshot({path:path.join(output,'portrait-routine-guide-details.png')});
