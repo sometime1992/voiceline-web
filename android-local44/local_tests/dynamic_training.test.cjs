@@ -59,7 +59,7 @@ test('Feedback uses the visible target band, excludes wrong pitch and never reus
   api.receive(m,t,rms);assert.equal(api.feedback(m,t).match,expected);
  }
  api.receive(m,3400,.0042*1.8,{onPitch:false});assert.equal(api.feedback(m,3400).match,'pitch');
- api.receive(m,3500,.0042*1.8,{cue:true});assert.equal(api.feedback(m,3500).match,'waiting');
+ api.receive(m,3500,.0042*1.8,{cue:true});assert.equal(api.feedback(m,3500).match,'cue');assert.equal(m.samples.at(-1).liveRms,.0042*1.8);assert.equal(m.samples.at(-1).rms,null);
  assert.equal(api.feedback(m,4000).match,'waiting');
 });
 test('Out-of-order and invalid times cannot change calibration or exceed the complete-session point bound',()=>{
@@ -120,4 +120,15 @@ test('Crescendo, decrescendo and swell move continuously while alternating and a
   assert.ok(Math.abs(api.state(m,t+1).level-p.level)<.001,id);
  }
  for(const [id,t]of [['alternating',5000],['accents',4500]]){const m=api.create({pattern:id});assert.equal(api.state(m,t-1).level,2);assert.equal(api.state(m,t).level,0);}
+});
+
+test('Cue-time live measurements survive in the graph data while calibration, coverage and scoring stay excluded',()=>{
+ const m=api.create();for(let t=0;t<3000;t+=40)api.receive(m,t,.0042);
+ const baseline=m.baseline,before=api.metrics(m).voicedMs;
+ for(let t=3000;t<3360;t+=40)api.receive(m,t,.1,{cue:true});
+ assert.equal(m.baseline,baseline);assert.equal(api.metrics(m).voicedMs,before);assert.match(api.feedback(m,3320).text,/감지 중.*채점 제외/);
+ assert.ok(m.samples.slice(-9).every(p=>p.liveRms===.1&&p.rms===null&&p.dt===0));
+ api.receive(m,3360,.0042*1.8);assert.equal(m.samples.at(-1).dt,0,'do not bridge an excluded interval into graded coverage');
+ api.receive(m,3400,.0042*1.8);assert.equal(m.samples.at(-1).dt,40);
+ api.receive(m,3440,0,{voiced:false});assert.equal(m.samples.at(-1).liveRms,null);assert.equal(api.feedback(m,3440).match,'waiting');
 });

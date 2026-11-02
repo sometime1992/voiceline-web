@@ -65,6 +65,10 @@ async function checkVolumeRange(page,id,valueId){
   await page.addInitScript(()=>{
    // Observe the real public mount callbacks without exposing test state in
    // the shipped app or reaching into piano.js's private closure.
+   let dynamics;
+   Object.defineProperty(window,'VoiceLineDynamics',{configurable:true,get:()=>dynamics,set(value){
+    dynamics={...value,receive(...args){const result=value.receive(...args),p=args[0].samples.at(-1);if(p)window.__dynamicSamples.push({phase:p.phase,cue:p.cue,liveRms:p.liveRms,rms:p.rms,dt:p.dt});return result;}};window.__dynamicSamples=[];
+   }});
    let plans;
    Object.defineProperty(window,'VoiceLinePlansUI',{configurable:true,get:()=>plans,set(value){
     plans=value;const mount=value.mount;
@@ -277,6 +281,9 @@ async function checkVolumeRange(page,id,valueId){
   await page.screenshot({path:path.join(output,'landscape-dynamics-targets.png')});
   await page.waitForFunction(()=>!document.querySelector('#trainingResultDialog').hidden,{},{timeout:10000});
   await page.evaluate(()=>clearInterval(window.__dynamicSignal));
+  const cueSamples=await page.evaluate(()=>window.__dynamicSamples.filter(p=>p.cue));
+  assert.ok(new Set(cueSamples.map(p=>p.phase)).size>=3,'native PCM did not cross all dynamics transitions');
+  assert.ok(cueSamples.every(p=>p.liveRms>0&&p.rms===null&&p.dt===0),'cue suppression blanked live voice or granted grading credit');
   assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공','actual target pattern failed');
   assert.match(await page.locator('#trainingResultReason').textContent(),/목표 범위.*단계별 목표 충족/);
   await page.locator('#trainingResultClose').click();assert.equal(await page.locator('#dynamicCurrent').textContent(),'훈련 완료');

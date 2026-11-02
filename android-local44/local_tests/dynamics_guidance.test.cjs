@@ -71,7 +71,8 @@ test('Local46 cue sound is excluded from scoring and quiet valid dynamics still 
  }
  assert.equal(h.trainingEvaluation(h.session,true).status,'성공');
  for(const [key,value]of Object.entries({'작게':.0042,'조금 크게':.008,'가장 크게':.014,'다시 작게':.0042}))assert.ok(Math.abs(h.session.phaseLevels[key]/h.session.phaseCounts[key]-value)<1e-10);
- assert.ok(h.session.history.some(p=>p.rms===null&&p.midi===null));
+ assert.ok(h.session.history.some(p=>p.cue&&p.midi===60&&p.rms===.8),'live cue-time voice must not be blanked');
+ assert.ok(h.session.dynamicModel.samples.some(p=>p.cue&&p.liveRms===.8&&p.rms===null&&p.dt===0),'cue-time input is visible but never graded');
 });
 test('Local46 reference pitch plays during preparation and does not overlap the first dynamics phase',()=>{
  const h=fixture();for(const t of [0,100,1799,1800,4800,7800,10800])h.updateTraining(t);
@@ -156,4 +157,18 @@ test('A constant soft voice cannot complete any method and a selected course rem
   for(let t=0;t<12000;t+=40)h.receiveTrainingSample(s.start+t,60,.0042);
   assert.equal(s.dynamicModel.patternId,id);assert.equal(h.trainingEvaluation(s,true).status,'미달성',id);
  }
+});
+
+test('Guidance preserves real input at every transition but cannot turn a cue into pitch or loudness credit',()=>{
+ const h=fixture();h.scheduleTrainingCues(h.session);const s=h.session;
+ for(let elapsed=0;elapsed<12000;elapsed+=40){
+  const t=s.start+elapsed,cue=s.dynamicCueWindows.some(c=>t>=c.start&&t<c.end);
+  h.receiveTrainingSample(t,60,cue?.5:[.0042,.008,.014,.0042][Math.floor(elapsed/3000)]);
+  const p=s.history.at(-1);assert.equal(p.midi,60);assert.ok(p.rms>0);
+  if(cue){assert.equal(s.dynamicModel.samples.at(-1).rms,null);assert.equal(s.dynamicModel.samples.at(-1).dt,0);}
+ }
+ assert.equal(h.trainingEvaluation(s,true).status,'성공');
+ // An actual missing microphone detection must remain missing, including cues.
+ const t=s.start+9000;const other=fixture();other.scheduleTrainingCues(other.session);other.receiveTrainingSample(other.session.start,null,.5);
+ assert.equal(other.session.history.at(-1).midi,null);assert.equal(other.session.dynamicModel.samples.at(-1).liveRms,null);assert.equal(other.session.valid,0);
 });

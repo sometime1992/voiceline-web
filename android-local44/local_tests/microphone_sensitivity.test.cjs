@@ -119,3 +119,27 @@ test('Local45 the selected sensitivity reaches both native and browser graph det
   assert.equal(app.detected,null);assert.equal(shown.length,1);
  }
 });
+
+test('Native and browser input keep routing real voice across all measured modes, and genuine silence never becomes held or invented voice',()=>{
+ for(const native of [true,false])for(const mode of ['piano','pitch','practice','sustainVoice','earVoice','dynamicVoice','vibrato','record']){
+  let sound=voice(220,.014,44100,4096);const seen=[],nodes=new Map(),shown=[];
+  const app={mode,micSensitivity:'high',notes:[],owners:new Map(),base:48,keyboardNotes:24,vibratoRoot:57,
+   analyser:{getFloatTimeDomainData:b=>b.set(sound)},buffer:new Float32Array(4096),micCtx:{sampleRate:44100},sessionSamples:0,
+   training:['sustainVoice','earVoice','dynamicVoice'].includes(mode)?{active:true}:null,exercise:mode==='practice'?{active:true}:null,
+   record:mode==='record'?{type:'native-file'}:null,recordPitchLow:null,recordPitchHigh:null};
+  const remember=(t,midi,rms)=>seen.push({t,midi,rms});
+  const $=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id);};
+  const run=vm.runInNewContext(constants+detector+chunk('function updateDetection(','// For the Android-only APK,')+'\nupdateDetection',{
+   app,$,Math,Float32Array,clamp:clip,PITCH_RANGE:{minHz:65,maxHz:1900},showNote:m=>shown.push(m),syncKeyColors(){},clearNote(){},
+   rememberPitchGraphPoint:remember,receiveExerciseSample:remember,receiveTrainingSample:remember,rememberVibratoPoint:remember,
+   renderVibratoOverlay(){},rememberRecordPitchPoint:remember,rememberFullRecordingPitch(){},renderRecordPitchOverlay(){},stopMic(){throw Error('input was restarted');}
+  });
+  for(const [i,amplitude]of [.006,.014,.008,.006].entries()){
+   sound=voice(220,amplitude,44100,4096);run(1000+i*80,native?sound:null,native?44100:0);
+  }
+  assert.equal(seen.length,4,mode+' input routing');assert.equal(shown.length,4);
+  assert.ok(seen.every(p=>Number.isFinite(p.midi)&&Math.abs(p.midi-57)<.1),mode+' lost actual voice');
+  sound=new Float32Array(4096);run(1400,native?sound:null,native?44100:0);
+  assert.equal(seen.at(-1).midi,null,mode+' invented voice during real silence');
+ }
+});

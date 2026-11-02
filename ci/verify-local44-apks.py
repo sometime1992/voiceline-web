@@ -21,7 +21,7 @@ report = [
     + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
     "Original Local44 source ZIP SHA-256: "
     "2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1",
-    "Local61 keeps both routine lesson methods visible, preserves each choice independently, and verifies listen-first preparation and response. Detailed step settings, ear notes, root shifts and rhythm configuration remain available. The aligned menu, C3 defaults and custom timing are retained. Installation names remain VoiceLine; application ID and signing key match Local60.",
+    "Local61 preserves live vocal input during dynamics cues while excluding contaminated samples only from grading. Both routine lesson methods remain visible, preserves each choice independently, and verifies listen-first preparation and response. Detailed step settings, ear notes, root shifts and rhythm configuration remain available. The aligned menu, C3 defaults and custom timing are retained. Installation names remain VoiceLine; application ID and signing key match Local60.",
     "CI45 APK: separate application and separate storage; keeps earlier PC/CI installations and recordings intact.",
     "Do not uninstall an existing app to resolve a signature mismatch.",
     "CI45 signing uses an explicit cached key. Once pinned, a missing or different key blocks future builds.",

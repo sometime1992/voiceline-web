@@ -46,10 +46,11 @@
   if(!model||!Number.isFinite(t)||t<model.start||t>=model.start+model.duration)return;
   if(model.lastAt!==null&&t-model.lastAt<22)return;
   const phase=stageAt(model,t),previous=model.samples.at(-1),gap=previous?t-previous.t:0;
-  const value=!cue&&voiced&&Number.isFinite(rms)&&rms>0?rms:null;
+  const liveRms=voiced&&Number.isFinite(rms)&&rms>0?rms:null;
+  const value=cue?null:liveRms;
   const correct=value!==null&&onPitch,phaseStart=model.start+model.segments[phase].start;
   const dt=correct&&previous?.onPitch&&gap>0&&gap<=160?Math.max(0,Math.min(gap,t-phaseStart)):0;
-  const sample={t,rms:value,onPitch:correct,cue,phase,dt};model.lastAt=t;model.samples.push(sample);
+  const sample={t,rms:value,liveRms,onPitch:correct,cue,phase,dt};model.lastAt=t;model.samples.push(sample);
   // Retain the entire selected exercise, even at the fastest accepted cadence.
   if(model.samples.length>Math.ceil(model.duration/22)+2)model.samples.shift();
   if(phase>0)model.locked=true;
@@ -85,7 +86,8 @@
   if(now<model.start+model.segments[0].end)return {text:'약하게 유지 · 내 소리 기준 잡는 중',match:'calibrating'};
   if(!model.baseline)return {text:'약 단계의 목소리 부족 · 다시 시작해 주세요',match:'missing'};
   const p=model.samples.at(-1);
-  if(!p||now-p.t>250||p.rms===null)return {text:p?.cue&&now-p.t<=250?'단계 전환 안내음':'같은 음으로 소리를 내보세요',match:'waiting'};
+  if(p?.cue&&now-p.t<=250)return {text:p.liveRms!==null?'목소리 감지 중 · 안내음 구간은 채점 제외':'단계 전환 안내음 · 마이크 입력 유지',match:'cue'};
+  if(!p||now-p.t>250||p.rms===null)return {text:'같은 음으로 소리를 내보세요',match:'waiting'};
   if(!p.onPitch)return {text:'목표 음높이도 함께 유지하세요',match:'pitch'};
   const band=bounds(model,stageAt(model,Math.min(now,model.start+model.duration-1)),now);
   if(p.rms<band.low)return {text:'조금 더 크게',match:'low'};
@@ -125,15 +127,27 @@
   // A stable personal scale starts in the first weak phase and remains fixed.
   if(baseline){
    ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
-   ctx.beginPath();let previous=null;
+   // Display genuine input during cues, with a distinct dashed trace. Scoring
+   // still uses rms/onPitch/dt above; no held values or invented voice samples.
+   let previous=null,style=null,open=false;
    for(const p of model.samples){
-    if(p.rms===null){previous=null;continue;}
-    const x=xFor(p.t),y=yForLevel(levelFor(p.rms));
-    if(!previous||p.t-previous.t>210)ctx.moveTo(x,y);else ctx.lineTo(x,y);previous=p;
+    const value=p.liveRms??p.rms;
+    if(value===null){previous=null;open=false;continue;}
+    if(previous&&p.t-previous.t<=210){
+     const cueLine=Boolean(p.cue||previous.cue);
+     if(style!==cueLine){
+      if(style!==null)ctx.stroke();ctx.beginPath();ctx.setLineDash?.(cueLine?[3,3]:[]);
+      ctx.strokeStyle=cueLine?'#b7a9c6':'#d4a6ff';ctx.lineWidth=2.5;ctx.lineJoin='round';style=cueLine;open=false;
+     }
+     if(!open)ctx.moveTo(xFor(previous.t),yForLevel(levelFor(previous.liveRms??previous.rms)));
+     ctx.lineTo(xFor(p.t),yForLevel(levelFor(value)));open=true;
+    }else open=false;
+    previous=p;
    }
-   ctx.strokeStyle='#d4a6ff';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
-   const last=model.samples.at(-1);
-   if(last?.rms&&now-last.t<250){ctx.beginPath();ctx.arc(xFor(last.t),yForLevel(levelFor(last.rms)),3.5,0,Math.PI*2);ctx.fillStyle=inBand(model,last)?'#83f5d6':'#d4a6ff';ctx.fill();}
+   if(style!==null)ctx.stroke();
+   ctx.setLineDash?.([]);
+   const last=model.samples.at(-1),live=last?.liveRms??last?.rms;
+   if(live&&now-last.t<250){ctx.beginPath();ctx.arc(xFor(last.t),yForLevel(levelFor(live)),3.5,0,Math.PI*2);ctx.fillStyle=last.cue?'#b7a9c6':inBand(model,last)?'#83f5d6':'#d4a6ff';ctx.fill();}
    ctx.restore();
   }
   const cursor=left+elapsed/duration*(right-left);

@@ -1958,16 +1958,18 @@ function receiveTrainingSample(t,midi,rms){
  const phase=trainingPhase(a,elapsed);
  if(a.mode==='earVoice'&&phase!=='answer'){a.lastSampleAt=null;return;}
  const cueMasked=a.mode==='dynamicVoice'&&(a.dynamicCueWindows||[]).some(cue=>t>=cue.start&&t<cue.end);
- const validMidi=!cueMasked&&Number.isFinite(midi)&&midi>=PITCH_RANGE.minMidi-.5&&midi<=PITCH_RANGE.maxMidi+.5;
+ const validMidi=Number.isFinite(midi)&&midi>=PITCH_RANGE.minMidi-.5&&midi<=PITCH_RANGE.maxMidi+.5;
  const v=validMidi?midi:null;
- const level=cueMasked?null:Number.isFinite(rms)?rms:0;
+ const level=Number.isFinite(rms)?rms:0;
+ // Cue contamination affects grading, never the microphone stream or its live trace.
+ const scoredMidi=validMidi&&!cueMasked;
  if(a.lastSampleAt!==null&&t-a.lastSampleAt<22)return;
  const previous=a.history[a.history.length-1],gap=previous?t-previous.t:0;
- const coverageDelta=validMidi&&Number.isFinite(previous?.midi)&&gap>0&&gap<=160?gap:0;
+ const coverageDelta=scoredMidi&&Number.isFinite(previous?.midi)&&!previous.cue&&gap>0&&gap<=160?gap:0;
  a.lastSampleAt=t;
- a.history.push({t,midi:v,rms:level});
+ a.history.push({t,midi:v,rms:level,cue:cueMasked});
  while(a.history.length&&t-a.history[0].t>6000)a.history.shift();
- if(validMidi){a.low=Math.min(a.low??midi,midi);a.high=Math.max(a.high??midi,midi);}
+ if(scoredMidi){a.low=Math.min(a.low??midi,midi);a.high=Math.max(a.high??midi,midi);}
  const target=trainingTargetAt(a,elapsed);
  if(a.mode==='sustainVoice'){
   const tolerance=SCORE_RULES.sustainTolerance;
@@ -1982,8 +1984,8 @@ function receiveTrainingSample(t,midi,rms){
   }
  }else if(a.mode==='dynamicVoice'){
   if(a.dynamicModel)window.VoiceLineDynamics.receive(a.dynamicModel,t,rms,{voiced:validMidi,onPitch:validMidi&&Math.abs(v-target)*100<=SCORE_RULES.dynamicTolerance,cue:cueMasked});
-  if(validMidi){a.valid++;a.voicedMs+=coverageDelta;}
-  if(validMidi&&Math.abs(v-target)*100<=SCORE_RULES.dynamicTolerance){
+  if(scoredMidi){a.valid++;a.voicedMs+=coverageDelta;}
+  if(scoredMidi&&Math.abs(v-target)*100<=SCORE_RULES.dynamicTolerance){
    a.good++;
    const phaseStart=a.dynamicModel?a.start+window.VoiceLineDynamics.state(a.dynamicModel,t).start:a.start+Math.floor(elapsed/(a.duration/4))*(a.duration/4);
    a.phaseVoicedMs[phase]=(a.phaseVoicedMs[phase]||0)+Math.min(coverageDelta,t-phaseStart);
