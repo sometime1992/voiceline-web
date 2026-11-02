@@ -5,6 +5,7 @@
  const $=id=>document.getElementById(id),el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  const modes=Object.keys(api.MODES),practiceModes=modes.filter(m=>m!=='rest');
  const copy=value=>JSON.parse(JSON.stringify(value));
+ let methodGroup=0;
  function stored(){try{state=api.save(storage,state);return true;}catch(_){status('저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 저장해 주세요.');return false;}}
  function status(text){const node=$('planStatus');if(node)node.textContent=text;}
  function clearClock(){clockToken++;if(clock!==null)clearTimeout(clock);clock=null;}
@@ -64,7 +65,11 @@
     const pattern=select('pattern','연습 패턴',Object.entries(guide.PATTERNS).filter(([,p])=>Boolean(p.smooth)===smooth).map(([id,p])=>[id,p.label]),g);
     pattern.onchange=()=>{g.pattern=pattern.value;Object.assign(g,guide.normalize({...g,rounds:1}));onChange?.(true);};
     const max=guide.normalize({...g,root:94,rounds:1}).root;select('root','기준음',noteOptions(36,max),g);
-    select('listenFirst','진행 방식',[[false,'바로 따라 부르기'],[true,'먼저 듣고 따라 부르기']],g);
+    const method=el('fieldset',undefined,'plan-listen-choice'),options=el('div',undefined,'plan-listen-options'),groupName='plan-listen-'+(++methodGroup);method.append(el('legend','진행 방식'),options);
+    for(const [value,title,description]of [[false,'바로 따라 부르기','준비 후 목표 그래프를 보며 바로 발성'],[true,'먼저 듣고 따라 부르기','한 구절 듣기 → 숨 들이쉬기 → 따라 부르기']]){
+     const label=el('label',undefined,'plan-listen-option'+(g.listenFirst===value?' selected':'')),radio=el('input'),text=el('span');radio.type='radio';radio.name=groupName;radio.value=String(value);radio.required=true;radio.checked=g.listenFirst===value;radio.setAttribute('aria-label',title);radio.onchange=()=>{if(radio.checked){g.listenFirst=value;onChange?.(true);}};text.append(el('strong',title),el('small',description));label.append(radio,text);options.append(label);
+    }
+    box.append(method);
     if(!smooth){const length=select('lengthMode','음 길이 방식',[['seconds','초 직접 입력'],['bpm','BPM에 맞추기']],{lengthMode:g.noteSeconds?'seconds':'bpm'});length.onchange=()=>{g.noteSeconds=length.value==='bpm'?0:1.8;onChange?.(true);};}
     select('shift','반복 시 기준음 이동',[[0,'같은 음역 반복'],[1,'반음씩 올리기'],[-1,'반음씩 내리기']],g);
     select('sound','가이드 소리',Object.entries(guide.SOUNDS),g);number('volume','가이드 음량 (%)',0,100,1,g);
@@ -100,7 +105,7 @@
    const g=params.guide||params;
    const smooth=root.VoiceLineGuideTraining.PATTERNS[g.pattern]?.smooth;
    if(smooth)number('smoothSeconds','연속 왕복 시간 (초)',1,300,.1,g);else if(withinRoutine&&g.noteSeconds===0)number('bpm','빠르기 (BPM)',50,120,1,g);else number('noteSeconds',withinRoutine?'한 음 길이 (초)':'한 음 길이 (초, 0=BPM)',withinRoutine?0.1:0,60,.1,g);
-   number('prepareSeconds','먼저 듣기 전 준비 (초)',0,120,.1,g);number('breathSeconds','발성 전 들이쉬기 (초)',0,120,.1,g);number('restSeconds','회차 사이 쉬기 (초)',0,120,.1,g);
+   const prepare=number('prepareSeconds','먼저 듣기 전 준비 (초)',0,120,.1,g);prepare.disabled=withinRoutine&&!g.listenFirst;number('breathSeconds','발성 전 들이쉬기 (초)',0,120,.1,g);number('restSeconds','회차 사이 쉬기 (초)',0,120,.1,g);
    if(!withinRoutine)number('rounds','반복 횟수 (0=무한 반복)',0,99,1,g);
   }else if(mode==='warmupVoice'){
    const w=params.training?.warmup||params.warmup;

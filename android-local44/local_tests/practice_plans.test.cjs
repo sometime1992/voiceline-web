@@ -86,3 +86,11 @@ test('Guided phrase recovery is not added a second time by the routine runner',a
   await runner.start({steps:[{mode,timing:{seconds:1,rounds:2,rest:9}}]});runner.complete();assert.equal(waited,delay,mode);runner.cancel();
  }
 });
+test('A routine retains both lesson methods as booleans and each executes its matching preparation and response timeline',()=>{
+ const s=storage(),params={...guide.PRACTICE_DEFAULTS,pattern:'hold',root:60,noteSeconds:.3,prepareSeconds:.2,breathSeconds:.4,restSeconds:0,rounds:1};
+ plans.save(s,{routines:[{steps:[{mode:'practice',params:{guide:{...params,listenFirst:false}}},{mode:'practice',params:{guide:{...params,listenFirst:true}}}]}]});
+ const entries=plans.load(s).routines[0].steps;assert.equal(entries[0].params.guide.listenFirst,false);assert.equal(entries[1].params.guide.listenFirst,true);
+ const direct=guide.create(entries[0].params.guide,0),listen=guide.create(entries[1].params.guide,0);
+ assert.equal(direct.start,400);assert.equal(guide.position(direct,400).phase,'answer');assert.equal(guide.position(direct,1600).phase,'done');
+ assert.equal(listen.start,200);assert.equal(guide.position(listen,200).phase,'listen');assert.equal(guide.position(listen,1400).phase,'handoff');assert.equal(guide.position(listen,1800).phase,'answer');assert.equal(guide.position(listen,3000).phase,'done');
+});
