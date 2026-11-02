@@ -118,9 +118,9 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local63-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local64-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local63-ci' in old_package
+    assert 'versionName=2.0.0-local64-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
     wait_visible('VoiceLine', timeout=60)
@@ -129,9 +129,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local64-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local65-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local64-ci' in installed and 'versionCode=79' in installed
+    assert 'versionName=2.0.0-local65-ci' in installed and 'versionCode=80' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -141,8 +141,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local63-ci (78)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local64-ci (79)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local64-ci (79)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local65-ci (80)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -182,20 +182,29 @@ try:
     choose('음정 연습')
     screenshot('02-practice-portrait.png')
     tap('연습 설정', 'customTimingOpen')
-    wait_visible('일반 연습 · 이 기능의 기본 설정')
+    wait_visible('일반 연습에 적용')
     screenshot('settings-summary-android16.png', False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.5')
     time.sleep(1)
     wait_visible('VoiceLine')
-    if not visible('일반 연습 · 이 기능의 기본 설정'):
+    if not visible('일반 연습에 적용'):
         tap('연습 설정', 'customTimingOpen')
-    wait_visible('일반 연습 · 이 기능의 기본 설정')
+    wait_visible('일반 연습에 적용')
+    wait_visible('연습 종류')
     screenshot('settings-font150-android16.png', False)
+    adb('shell', 'wm', 'user-rotation', 'lock', '1')
+    time.sleep(1)
+    wait_visible('일반 연습에 적용')
+    wait_visible('연습 종류')
+    wait_visible('저장하고 시작')
+    screenshot('settings-landscape-font150-android16.png', False)
+    adb('shell', 'wm', 'user-rotation', 'lock', '0')
+    time.sleep(.5)
     adb('shell', 'input', 'keyevent', '4')
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0')
     time.sleep(1)
     assert adb('shell', 'pidof', package).strip()
-    checks.append('Shared practice settings open, render at system font scale 150%, and close with Android back')
+    checks.append('Shared practice settings show editable content and separate actions in portrait and landscape at Android system font scale 150%, and close with Android back')
     choose('발성 강약 조절')
     screenshot('03-dynamics-portrait.png')
     choose('호흡·워밍업')
@@ -219,7 +228,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local63 to Local64 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local64 to Local65 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))

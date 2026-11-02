@@ -28,7 +28,7 @@ function harness(){
   stopMic(){throw Error('rotation stopped microphone');},stopActivity(){throw Error('rotation stopped active session');}
  };
  const code=chunk('const NAMES=','const PITCH_RANGE=')+chunk('function name(m){','function frequency(m){')+
-  chunk('function targetKeyboardBase(','function syncKeyColors(){')+chunk('function releaseHeldKeys(){','function allKeysOff(){')+
+  chunk('function targetKeyboardBase(','function keyboardDetectedMidi(')+chunk('function releaseHeldKeys(){','function allKeysOff(){')+
   chunk('function applyResponsiveLayout(','// Arrows remain visible only when more practice options exist off-screen.')+
   chunk('window.VoiceLineLifecycle={',"window.addEventListener('pagehide'")+
   chunk('function encodePcmChunk(','async function finishVibrato(){')+

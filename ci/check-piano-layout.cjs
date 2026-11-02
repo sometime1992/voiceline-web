@@ -203,10 +203,13 @@ async function checkVolumeRange(page,id,valueId){
   await page.setViewportSize(viewports[0]);await frames(page);await stop();
   await settings({guideListenFirst:'on',guideNoteSeconds:'1.2',guideRounds:'1'});
   await page.locator('#guideKind').selectOption('leaps');await page.locator('#guidePattern').selectOption('triad');await page.locator('#mainButton').click();await phase('listen');
+  const listeningRequest=await page.evaluate(()=>window.__micRequest);
   await sendTone(page,130.812783);assert.equal(await page.locator('#guideAccuracy').textContent(),'—','listening was scored');
+  assert.equal(await page.locator('#keyboard .detected').count(),0,'guide playback leaked purple input keys');
   await phase('handoff');assert.equal(await page.locator('#guideStartCue').isVisible(),true);
   assert.match(await page.locator('#guidePhaseTitle').textContent(),/숨을 들이쉬세요/);
-  await phase('answer');await sendTone(page,130.812783);assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5);await stop();
+  await phase('answer');assert.equal(await page.locator('#keyboard .detected').count(),0,'stale listening pitch flashed on response start');
+  await sendTone(page,130.812783);assert.ok((await graphPixels(page,'guidePhraseGraph')).voice>5);assert.ok(await page.locator('#keyboard .detected').count()>0,'purple voice keys did not resume');assert.equal(await page.evaluate(()=>window.__micRequest),listeningRequest,'listening changed microphone connection');await stop();
   await page.locator('#guideKind').selectOption('smooth');await frames(page);
   assert.equal(await page.locator('#guidePattern option').count(),4);
   await settings({guideListenFirst:'off',guideRounds:'1'});
@@ -402,6 +405,7 @@ async function checkVolumeRange(page,id,valueId){
   assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');await page.locator('#infoClose').click();
   assert.equal(await page.title(),'VoiceLine');assert.equal(await page.locator('.brand').getAttribute('aria-label'),'VoiceLine');
   await require('./check-practice-plans.cjs')(page,choose,output);
+  await require('./check-settings-readability.cjs')(page,choose,output);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
   console.log('PASS: '+report.length+' mode/viewport layouts and '+patternReport.length+' dynamics method previews; complete stepped and crescendo exercises, 0/50/100% volume endpoints, pattern persistence, hidden phase/countdown, rotation and retained results; graph toggles, unified practice, real pixels and recording save.');

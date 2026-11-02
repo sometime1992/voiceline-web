@@ -10,7 +10,9 @@
   const overview=el('section',undefined,'settings-overview');overview.setAttribute('aria-label','현재 연습 설정');
   const scopeText=el('span',scope,'settings-scope'),title=el('strong'),summary=el('p',undefined,'settings-current'),time=el('p',undefined,'settings-duration'),note=el('p',undefined,'settings-explanation');
   const flow=el('div',undefined,'settings-flow'),sequence=el('div',undefined,'settings-sequence'),issue=el('p',undefined,'settings-problem');issue.setAttribute('role','alert');
-  overview.append(scopeText,title,summary,time,flow,sequence,note,issue);box.append(overview);
+  const preview=el('details',undefined,'settings-route-preview'),previewHeading=el('summary','진행 순서·음 보기');
+  preview.dataset.settingsGroup='preview';preview.append(previewHeading,flow,sequence,note);
+  overview.append(scopeText,title,summary,time,preview,issue);box.append(overview);
   const groups={};
   for(const [key,name]of [['content','연습 내용'],['timing','진행 시간·반복'],['audio',mode==='warmupVoice'?'소리·안내':'소리·측정']]){
    const details=el('details',undefined,'settings-section'),head=el('summary'),nameNode=el('strong',name),value=el('span',undefined,'settings-section-value'),body=el('div',undefined,'plan-fields settings-fields');
@@ -125,10 +127,12 @@
   if(apply){apply.type='button';apply.onclick=()=>{if(box.querySelector('input:invalid,select:invalid')){box.querySelector('input:invalid,select:invalid').reportValidity();return;}box.closest('.plan-step').open=false;bridge.notify?.('루틴 저장을 누르면 이 단계 설정이 보관됩니다.');};box.append(apply);}
   function update(){
    if(mode==='dynamicVoice'&&t.customStages){const total=round(t.stages.reduce((a,b)=>a+b,0));const input=box.querySelector('input[data-setting-key="seconds"]');if(input)input.value=String(total);}
-   const d=model.describe(mode,t,p,withinRoutine,bridge.noteLabel),bad=box.querySelector('input:invalid,select:invalid');title.textContent=d.title;summary.textContent=d.compact;time.textContent=d.totalText+(d.voiceSeconds!==null&&d.voiceSeconds>0?' · '+(d.repeats===0?'한 '+d.repeatUnit+' 기준 ':'')+d.voiceLabel+' '+model.formatTime(d.voiceSeconds):'');note.textContent=d.note;
+   const d=model.describe(mode,t,p,withinRoutine,bridge.noteLabel),bad=box.querySelector('input:invalid,select:invalid');title.textContent=d.title;summary.textContent=d.compact;
+   time.replaceChildren(el('span',d.totalText));if(d.voiceSeconds!==null&&d.voiceSeconds>0)time.append(document.createTextNode(' · '),el('span',(d.repeats===0?'한 '+d.repeatUnit+' 기준 ':'')+d.voiceLabel+' '+model.formatTime(d.voiceSeconds)));note.textContent=d.note;
    issue.hidden=!bad&&!d.issues.length;issue.textContent=bad?'입력값을 확인해 주세요. 유효한 값으로 설정 요약을 갱신합니다.':d.issues.join(' ');
    flow.replaceChildren();for(const [i,s]of d.phases.entries()){if(i)flow.append(el('span','→','settings-flow-arrow'));const b=el('button',undefined,'settings-phase');b.type='button';b.dataset.kind=s.kind;b.append(el('span',s.label),el('strong',model.formatTime(s.seconds)));b.onclick=()=>{const input=box.querySelector('[data-setting-key="'+s.key+'"]');if(!input)return;for(let parent=input.parentElement;parent&&parent!==box;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;input.focus({preventScroll:true});input.scrollIntoView({block:'nearest',behavior:'smooth'});};flow.append(b);}
-   sequence.replaceChildren();if(d.notes.length){const show=d.notes.length>9?d.notes.slice(0,9):d.notes;for(const [i,midi]of show.entries()){if(i)sequence.append(el('span','→'));sequence.append(el('span',bridge.noteLabel(midi),'settings-note-label'));}if(d.notes.length>show.length)sequence.append(el('span','외 '+(d.notes.length-show.length)+'음'));}sequence.hidden=!d.notes.length;
+   sequence.replaceChildren();if(d.notes.length){for(const [i,midi]of d.notes.entries()){if(i)sequence.append(el('span','→'));sequence.append(el('span',bridge.noteLabel(midi),'settings-note-label'));}}sequence.hidden=!d.notes.length;
+   preview.hidden=!d.phases.length&&!d.notes.length&&!d.note;
    if(groups.content)groups.content.value.textContent=mode==='practice'?groupOf(model.patternKind(g.pattern))+' · '+bridge.noteLabel(g.root):d.compact;
    if(groups.timing)groups.timing.value.textContent=d.totalText+' · '+(d.repeats?d.repeats+d.repeatUnit:'계속 반복');
    if(groups.audio)groups.audio.value.textContent=d.audio;

@@ -6,7 +6,7 @@ module.exports=async function checkPlans(page,choose,output){
  async function reveal(label,scope=page.locator('#planEditor')){const n=scope.getByLabel(label,{exact:true});assert.equal(await n.count(),1,label);await n.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});return n;}
  async function fill(label,value,scope){await (await reveal(label,scope)).fill(String(value));}
  async function select(label,value,scope){await (await reveal(label,scope)).selectOption(String(value));}
- async function radio(name,scope=page.locator('#planEditor')){const n=scope.getByRole('radio',{name,exact:true});await n.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await n.check();}
+ async function radio(name,scope=page.locator('#planEditor')){const n=scope.getByRole('radio',{name,exact:true,includeHidden:true});await n.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await n.check();}
  async function add(mode){await page.locator('#planAddMode').selectOption(mode);await page.locator('#planAdd').click();const c=page.locator('#planEditor .plan-step').last();assert.notEqual(await c.getAttribute('open'),null);assert.equal(await page.locator('.plan-step[open]').count(),1);return c;}
  await page.setViewportSize({width:390,height:844});await choose(page,'piano');
  for(const mode of ['piano','pitch','practice','record','vibrato','sustainVoice','earVoice','dynamicVoice','warmupVoice','metronome']){

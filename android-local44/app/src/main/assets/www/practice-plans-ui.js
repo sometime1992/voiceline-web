@@ -7,7 +7,7 @@
  const copy=value=>JSON.parse(JSON.stringify(value));
  let methodGroup=0;
  function stored(){try{state=api.save(storage,state);return true;}catch(_){status('저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 저장해 주세요.');return false;}}
- function status(text){const node=$('planStatus');if(node)node.textContent=text;}
+ function status(text){const node=$('planStatus');if(node){node.textContent=text;node.hidden=!text;}}
  function clearClock(){clockToken++;if(clock!==null)clearTimeout(clock);clock=null;}
  function timing(mode){const active=runner?.snapshot();return active?.step.mode===mode?active.step.timing:{...api.timing(mode,state.settings[mode]),...bridge?.legacyTiming(mode)};}
  function locked(){return Boolean(runner?.snapshot())||bridge?.busy();}
@@ -36,12 +36,12 @@
   if(mode!=='rest')text+=' · '+t.rounds+'회';return text;
  }
  function fields(mode,t,params,onChange,withinRoutine=false){
-  return root.VoiceLinePracticeSettingsUI.render({mode,timing:t,params,onChange,withinRoutine,bridge,scope:withinRoutine?'루틴 · 이 단계만 적용':'일반 연습 · 이 기능의 기본 설정'});
+  return root.VoiceLinePracticeSettingsUI.render({mode,timing:t,params,onChange,withinRoutine,bridge,scope:withinRoutine?'루틴 · 이 단계에 적용':'일반 연습에 적용'});
  }
- function rememberEditor(node){return {scroll:$('planDialog').querySelector('section').scrollTop,groups:[...node.querySelectorAll('details[data-settings-group],details.settings-extra')].map(d=>[d.dataset.settingsGroup||'extra',d.open]),label:node.contains(document.activeElement)?document.activeElement?.getAttribute('aria-label'):null};}
- function restoreEditor(node,view){for(const [key,open]of view.groups){const d=node.querySelector(key==='extra'?'details.settings-extra':'[data-settings-group="'+key+'"]');if(d)d.open=open;}if(view.label)[...node.querySelectorAll('[aria-label]')].find(n=>n.getAttribute('aria-label')===view.label)?.focus({preventScroll:true});$('planDialog').querySelector('section').scrollTop=view.scroll;if(draft&&node.querySelector('[data-settings-mode=metronome]')&&((editingMode&&draft.params?.metronome?.customEditor)||(!editingMode&&draft.steps?.some(s=>s.params.metronome?.customEditor)))){const card=node.closest('.plan-step'),params=editingMode?draft.params:draft.steps.find(s=>s.id===card?.dataset.stepId)?.params;if(params?.metronome?.customEditor){const extra=node.querySelector('.settings-extra');if(extra)extra.open=true;node.querySelector('[data-setting-key=numerator]')?.focus({preventScroll:true});delete params.metronome.customEditor;}}}
- function renderSingle(){
-  const editor=$('planEditor'),view=rememberEditor(editor);editor.replaceChildren(fields(editingMode,draft.timing,draft.params,(structural,message)=>{if(structural)renderSingle();if(message)status(message);}));restoreEditor(editor,view);
+ function rememberEditor(node){return {scroll:$('planScroll').scrollTop,groups:[...node.querySelectorAll('details[data-settings-group],details.settings-extra')].map(d=>[d.dataset.settingsGroup||'extra',d.open]),label:node.contains(document.activeElement)?document.activeElement?.getAttribute('aria-label'):null};}
+ function restoreEditor(node,view){for(const [key,open]of view.groups){const d=node.querySelector(key==='extra'?'details.settings-extra':'[data-settings-group="'+key+'"]');if(d)d.open=open;}if(view.label)[...node.querySelectorAll('[aria-label]')].find(n=>n.getAttribute('aria-label')===view.label)?.focus({preventScroll:true});$('planScroll').scrollTop=view.scroll;if(draft&&node.querySelector('[data-settings-mode=metronome]')&&((editingMode&&draft.params?.metronome?.customEditor)||(!editingMode&&draft.steps?.some(s=>s.params.metronome?.customEditor)))){const card=node.closest('.plan-step'),params=editingMode?draft.params:draft.steps.find(s=>s.id===card?.dataset.stepId)?.params;if(params?.metronome?.customEditor){const extra=node.querySelector('.settings-extra');if(extra)extra.open=true;node.querySelector('[data-setting-key=numerator]')?.focus({preventScroll:true});delete params.metronome.customEditor;}}}
+ function renderSingle(reset=false){
+  const editor=$('planEditor'),view=reset?null:rememberEditor(editor);editor.replaceChildren(fields(editingMode,draft.timing,draft.params,(structural,message)=>{if(structural)renderSingle();if(message)status(message);}));if(view)restoreEditor(editor,view);
  }
  function routineSummary(){const node=$('planRoutineSummary');if(!node||editingMode||!draft)return;const d=root.VoiceLinePracticeSettings.routine(draft,bridge.noteLabel);node.textContent=draft.steps.length+'단계 · '+d.totalText+' · 한 번 진행 '+root.VoiceLinePracticeSettings.formatTime(d.oneCycleSeconds);}
  function valid(){
@@ -55,14 +55,15 @@
  function openMode(mode){
   if(locked()){bridge.notify('진행 중인 연습을 중단한 뒤 설정해 주세요.');return;}
   editingMode=mode;draft={timing:copy(timing(mode)),params:root.VoiceLinePracticeSettings.prepare(mode,bridge.capture(mode))};
-  $('planTitle').textContent=(api.MODES[mode]||'녹음')+' 설정';$('planList').hidden=true;renderSingle();$('planRoutineSummary').hidden=true;$('planRoutineEnd').hidden=true;
+  $('planDialog').dataset.editor='general';$('planLibrary').hidden=true;
+  $('planTitle').textContent=(api.MODES[mode]||'녹음')+' 설정';$('planList').hidden=true;renderSingle(true);$('planRoutineSummary').hidden=true;$('planRoutineEnd').hidden=true;
   $('planName').hidden=true;$('planName').disabled=true;$('planRoutineRounds').disabled=true;$('planNameLabel').hidden=true;$('planRoutineRoundsLabel').hidden=true;$('planAddRow').hidden=true;$('planNew').hidden=true;$('planDelete').hidden=true;
-  $('planSave').textContent='설정 저장';$('planSave').hidden=false;$('planRun').textContent='이 설정으로 시작';status('현재 설정과 진행 순서를 확인한 뒤 필요한 항목을 펼쳐 바꾸세요. 저장하면 일반 연습에 적용합니다.');bridge.modalOpen('planDialog');
+  $('planSave').textContent='설정 저장';$('planSave').hidden=false;$('planRun').textContent='저장하고 시작';status('');bridge.modalOpen('planDialog');$('planScroll').scrollTop=0;
  }
  function selectedRoutine(){return state.routines.find(r=>r.id===$('planList').value);}
  function renderList(id){const select=$('planList');select.replaceChildren();for(const r of state.routines){const o=el('option',r.name);o.value=r.id;select.append(o);}if(id)select.value=id;}
  function renderSteps(openId=null,newStep=false){
-  const list=$('planEditor'),modal=$('planDialog').querySelector('section'),scroll=modal.scrollTop,views=new Map([...list.querySelectorAll('.plan-step')].map(c=>[c.dataset.stepId,rememberEditor(c)]));
+  const list=$('planEditor'),modal=$('planScroll'),scroll=modal.scrollTop,views=new Map([...list.querySelectorAll('.plan-step')].map(c=>[c.dataset.stepId,rememberEditor(c)]));
   const selectedId=openId||list.querySelector('.plan-step[open]')?.dataset.stepId;
   list.replaceChildren();
   if(!draft?.steps.length)list.append(el('p','연습을 추가하고 원하는 순서로 배치하세요.','plan-note'));
@@ -81,9 +82,9 @@
  function loadRoutine(value){delete $('planDelete').dataset.confirm;draft=copy(value||api.routine({name:'나의 루틴 '+(state.routines.length+1)}));draft.steps.forEach(prepareStep);$('planName').value=draft.name;$('planRoutineRounds').value=String(draft.rounds);$('planRoutineEnd').value=draft.rounds===0?'forever':'count';$('planRoutineRoundsLabel').hidden=draft.rounds===0;renderSteps();$('planDelete').hidden=!selectedRoutine();}
  function openRoutines(){
   if(locked()){bridge.notify('진행 중인 연습을 중단한 뒤 루틴을 편집해 주세요.');return;}
-  editingMode=null;$('planSave').textContent='루틴 저장';renderList();loadRoutine(selectedRoutine());$('planTitle').textContent='나의 루틴';$('planList').hidden=false;$('planName').disabled=false;$('planRoutineRounds').disabled=draft.rounds===0;
+  editingMode=null;$('planDialog').dataset.editor='routine';$('planLibrary').hidden=false;$('planSave').textContent='루틴 저장';renderList();loadRoutine(selectedRoutine());$('planTitle').textContent='나의 루틴';$('planList').hidden=false;$('planName').disabled=false;$('planRoutineRounds').disabled=draft.rounds===0;
   for(const id of ['planName','planNameLabel','planAddRow','planNew','planSave','planRoutineEnd','planRoutineSummary'])$(id).hidden=false;$('planRoutineRoundsLabel').hidden=draft.rounds===0;
-  $('planRun').textContent='루틴 시작';status('각 단계는 루틴 안에 독립적으로 저장됩니다. 일반 연습 설정을 바꿔도 이 루틴에는 영향을 주지 않습니다.');bridge.modalOpen('planDialog');
+  $('planRun').textContent='루틴 시작';status('각 단계의 설정은 이 루틴에만 저장됩니다.');bridge.modalOpen('planDialog');$('planScroll').scrollTop=0;
  }
  function saveDraft(){
   if(!valid())return false;
@@ -125,7 +126,7 @@
  function mount(callbacks){
   bridge=callbacks;
   const modal=el('div');modal.id='planDialog';modal.className='modal-backdrop plan-backdrop';modal.hidden=true;
-  modal.innerHTML='<section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planTitle"><div class="modal-heading"><h2 id="planTitle">연습 설정</h2><button id="planClose" type="button" class="close-btn" aria-label="연습 설정 닫기">✕</button></div><div class="plan-library"><select id="planList" aria-label="저장한 루틴"></select><button id="planNew" type="button">새 루틴</button><button id="planDelete" type="button">루틴 삭제</button></div><label id="planNameLabel">루틴 이름<input id="planName" maxlength="40" required></label><select id="planRoutineEnd" aria-label="루틴 종료 방식"><option value="count">전체 반복 횟수 지정</option><option value="forever">전체 루틴 계속 반복</option></select><label id="planRoutineRoundsLabel">루틴 전체 반복 횟수<input id="planRoutineRounds" type="number" min="1" max="999" step="1" value="1" required inputmode="numeric"></label><div id="planAddRow" class="plan-add"><select id="planAddMode" aria-label="추가할 연습"></select><button id="planAdd" type="button">단계 추가</button></div><p id="planRoutineSummary" class="settings-routine-summary" role="status"></p><div id="planEditor"></div><p id="planStatus" class="plan-note" role="status"></p><div class="plan-actions"><button id="planSave" type="button">설정 저장</button><button id="planRun" type="button">루틴 시작</button></div></section>';
+  modal.innerHTML='<section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planTitle"><header class="modal-heading"><h2 id="planTitle">연습 설정</h2><button id="planClose" type="button" class="close-btn" aria-label="연습 설정 닫기">✕</button></header><div id="planScroll" class="plan-scroll" tabindex="-1"><div id="planLibrary" class="plan-library"><select id="planList" aria-label="저장한 루틴"></select><button id="planNew" type="button">새 루틴</button><button id="planDelete" type="button">루틴 삭제</button></div><label id="planNameLabel">루틴 이름<input id="planName" maxlength="40" required></label><select id="planRoutineEnd" aria-label="루틴 종료 방식"><option value="count">전체 반복 횟수 지정</option><option value="forever">전체 루틴 계속 반복</option></select><label id="planRoutineRoundsLabel">루틴 전체 반복 횟수<input id="planRoutineRounds" type="number" min="1" max="999" step="1" value="1" required inputmode="numeric"></label><div id="planAddRow" class="plan-add"><select id="planAddMode" aria-label="추가할 연습"></select><button id="planAdd" type="button">단계 추가</button></div><p id="planRoutineSummary" class="settings-routine-summary" role="status"></p><div id="planEditor"></div><p id="planStatus" class="plan-note" role="status" hidden></p></div><div class="plan-actions" role="group" aria-label="설정 저장 및 시작"><button id="planSave" type="button">설정 저장</button><button id="planRun" type="button">루틴 시작</button></div></section>';
   document.body.append(modal);
   for(const [mode,name]of Object.entries(api.MODES).filter(([mode])=>mode!=='record')){const o=el('option',name);o.value=mode;$('planAddMode').append(o);}
   $('planRoutineEnd').onchange=()=>{draft.rounds=$('planRoutineEnd').value==='forever'?0:1;$('planRoutineRounds').value=String(draft.rounds||1);$('planRoutineRoundsLabel').hidden=draft.rounds===0;$('planRoutineRounds').disabled=draft.rounds===0;routineSummary();};$('planRoutineRounds').oninput=()=>{if($('planRoutineRounds').validity.valid){draft.rounds=Number($('planRoutineRounds').value);routineSummary();}};

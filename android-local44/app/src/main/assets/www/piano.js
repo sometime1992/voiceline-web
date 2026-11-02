@@ -360,8 +360,28 @@ function drawKeys(){
  syncKeyColors();
  if(window.VoiceLineToneEngine)updateToneEngineStatus();else preloadAcousticPiano(app.base);
 }
-function syncKeyColors(){
- const detected=app.detected===null?null:Math.round(app.detected);
+// Keep speaker playback from appearing as the user's purple keyboard input.
+// Capture, raw graphs and grading keep their own timing; this only filters keys.
+function keyboardDetectedMidi(now=performance.now()){
+ if(!app.mic||!Number.isFinite(app.detected))return null;
+ const session=app.exercise?.active?app.exercise:app.training?.active?app.training:null;
+ let responseStart=-Infinity;
+ if(session?.mode==='guideVoice'){
+  const p=window.VoiceLineGuideTraining.position(session,now);
+  if(p.phase!=='answer')return null;
+  responseStart=p.answerStart;
+ }else if(session?.mode==='earVoice'){
+  const elapsed=now-session.start;
+  if(elapsed<0||elapsed>=session.duration||trainingPhase(session,elapsed)!=='answer')return null;
+  responseStart=session.start+Math.floor(elapsed/session.earCycleMs)*session.earCycleMs+session.earListenMs+session.earBreathMs;
+ }else if(session&&['sustainVoice','dynamicVoice'].includes(session.mode))responseStart=session.start;
+ if(app.mode==='vibrato'&&app.vibratoPreparation?.active)responseStart=app.vibratoPreparation.start;
+ // A previous listening-frame estimate must not flash when the response opens.
+ if(now<responseStart||responseStart>-Infinity&&!(app.lastTrustedPitchAt>=responseStart))return null;
+ return Math.round(app.detected);
+}
+function syncKeyColors(now=performance.now()){
+ const detected=keyboardDetectedMidi(now);
  const target=app.exercise?.active?app.exercise.target:app.training?.active?app.training.target:app.mode==='vibrato'?app.vibratoRoot:null;
  for(const key of $all('#keyboard [data-midi]')){
    const m=Number(key.dataset.midi);
@@ -2020,7 +2040,7 @@ function updateTraining(t){
   if(['dynamicVoice','sustainVoice'].includes(a.mode)&&(!a.breathStart||t<a.breathStart)&&a.referenceMidi!==a.root){a.referenceMidi=a.root;a.referenceAt=t;if(a.referenceMs>0)playReference(a.root,a.referenceMs/1000);}
   const label=a.breathStart?(t>=a.breathStart?'숨 들이쉬세요':'기준음 듣기'):'잠시 준비';
   setMessage(label+' · '+Math.ceil(-elapsed/1000)+'초 뒤 발성 시작');
-  progress(0,label+' · '+Math.ceil(-elapsed/1000)+'초');renderTrainingOverlay(t);return;
+  progress(0,label+' · '+Math.ceil(-elapsed/1000)+'초');renderTrainingOverlay(t);syncKeyColors(t);return;
  }
  if(elapsed>=a.duration){finishTraining(true);return;}
  const phase=trainingPhase(a,elapsed),target=trainingTargetAt(a,elapsed);
