@@ -18,7 +18,7 @@ module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  });
  await page.waitForFunction(()=>document.querySelector('#guideVoicePanel').dataset.phase==='answer');assert.match(await page.locator('#guidePhaseTitle').textContent(),/아/);
  assert.equal((await geometry(page)).scroll,false);assert.ok((await graphPixels(page,'guidePhraseGraph')).goal>5);await page.screenshot({path:path.join(output,'portrait-vowel-pitch.png')});
- await page.waitForFunction(()=>document.querySelector('#guidePhaseTitle').textContent().includes('에'),{},{timeout:8000});
+ await page.waitForFunction(()=>document.querySelector('#guidePhaseTitle').textContent.includes('에'),{},{timeout:8000});
  await page.setViewportSize({width:844,height:390});await frames(page);assert.equal(await page.evaluate(()=>window.__micRequest),request);
  if(!await page.locator('#guideVoicePanel').isVisible())await page.locator('#graphToggle').click();await frames(page);assert.equal((await geometry(page)).scroll,false);
  await page.screenshot({path:path.join(output,'landscape-vowel-pitch.png')});
