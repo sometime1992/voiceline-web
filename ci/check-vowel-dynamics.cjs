@@ -6,7 +6,7 @@ module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  assert.equal(await page.locator('#dynamicGuide [data-dynamic-step]').count(),5);assert.match(await page.locator('#dynamicGuide').textContent(),/아에이오우/);
  await page.locator('#trainingRoot').selectOption('60');await page.locator('#customTimingOpen').click();
  for(const [label,n]of [['기준음 듣기 (초)',.2],['들이쉬기 (초)',.3],['반복 횟수 (0=무한 반복)',1],['반복 사이 쉬기 (초)',0]])await page.getByLabel(label,{exact:true}).fill(String(n));
- await page.getByText('단계별 시간을 각각 입력',{exact:true}).click();const stages=page.locator('.plan-stage-fields input');assert.equal(await stages.count(),19);
+ await page.getByRole('checkbox',{name:'단계별 시간을 각각 입력',exact:true}).check();const stages=page.locator('.plan-stage-fields input');assert.equal(await stages.count(),19);
  const values=await page.evaluate(()=>window.VoiceLineDynamics.PATTERNS.vowels.segments.map(s=>s.rest?.5:s.calibrate?1.5:1));
  for(let i=0;i<values.length;i++)await stages.nth(i).fill(String(values[i]));
  assert.equal(await page.getByLabel('발성·진행 시간 (초)',{exact:true}).inputValue(),'19.5');await page.locator('#planSave').click();
@@ -28,6 +28,6 @@ module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  const facts=await page.evaluate(()=>{const m=window.__vowelCourse,r=window.VoiceLineDynamics.metrics(m);return {status:'passed',duration:m.duration,order:window.VoiceLineDynamics.VOWELS,baselines:m.baselines,calibrated:r.calibrated,accuracy:r.accuracy,voiceDuration:r.voiceDuration,breathSamples:m.samples.filter(p=>m.segments[p.phase].rest).map(p=>({rms:p.rms,dt:p.dt}))};});
  assert.equal(facts.duration,19500);assert.equal(facts.calibrated,true);assert.ok(facts.baselines.every(n=>n>0));assert.ok(facts.breathSamples.length>0&&facts.breathSamples.every(p=>p.rms===null&&p.dt===0));
  await page.screenshot({path:path.join(output,'landscape-vowel-dynamics-result.png')});fs.writeFileSync(path.join(output,'vowel-dynamics.json'),JSON.stringify(facts,null,2));
- await page.locator('#trainingResultClose').click();await page.setViewportSize({width:390,height:844});await page.locator('#customTimingOpen').click();await page.getByText('단계별 시간을 각각 입력',{exact:true}).click();await page.locator('#planSave').click();
+ await page.locator('#trainingResultClose').click();await page.setViewportSize({width:390,height:844});await page.locator('#customTimingOpen').click();await page.getByRole('checkbox',{name:'단계별 시간을 각각 입력',exact:true}).uncheck();await page.locator('#planSave').click();
  await page.locator('#dynamicPattern').selectOption('steps');await page.locator('#dynamicDuration').selectOption('12');
 };
