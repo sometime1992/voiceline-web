@@ -84,15 +84,20 @@ def settings_rect(label, identifier=None, document=None):
     raise AssertionError('Settings control has no visible bounds: '+label)
 
 def assert_settings_readable(landscape=False, selected='모음 · 아에이오우'):
-    document=tree()
-    label=settings_rect('연습 종류',document=document)
-    field=settings_rect(selected,document=document)
-    pattern=settings_rect('아에이오우 · 5음 음계 왕복',document=document)
-    confirm=settings_rect('변경 확인','planRun',document)
-    close=settings_rect('연습 설정 닫기','planClose',document)
-    assert label[1]>=close[3] and field[3]<=confirm[1] and pattern[3]<=confirm[1],(label,field,pattern,confirm,close)
+    # A single editor can scroll vertically. Verify each field at its reachable
+    # position rather than requiring all long selects above the footer at once.
+    geometry={}
+    for key,text in [('label','연습 종류'),('field',selected),('pattern','아에이오우 · 5음 음계 왕복')]:
+        scroll_settings_to(text)
+        document=tree()
+        rect=settings_rect(text,document=document)
+        confirm=settings_rect('변경 확인','planRun',document)
+        close=settings_rect('연습 설정 닫기','planClose',document)
+        assert rect[1]>=close[3] and rect[3]<=confirm[1],(key,rect,confirm,close)
+        geometry[key]=rect
     name='settings-landscape-geometry.json' if landscape else 'settings-portrait-geometry.json'
-    (qa/name).write_text(json.dumps({'status':'passed','field':field,'pattern':pattern,'label':label,'actions':confirm,'header':close,'landscape':landscape},indent=2))
+    (qa/name).write_text(json.dumps({'status':'passed','fields':geometry,'actions':confirm,'header':close,'landscape':landscape,'single_editor':True},indent=2))
+
 
 def scroll_settings_to(label):
     def in_view(document):
