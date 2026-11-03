@@ -397,12 +397,14 @@ async function checkVolumeRange(page,id,valueId){
   assert.match(await page.locator('#infoBody').textContent(),/VoiceLine Android 앱/);
   assert.match(await page.locator('#infoBody').textContent(),/마이크 권한/);
   assert.deepEqual(await page.evaluate(()=>window.__publicLinks),[]);assert.deepEqual(policyRequests,[],'policy reading contacted a server');
+  await require('./check-contrast.cjs')(page)('.privacy-policy-date,.privacy-policy-summary,#infoTitle','privacy');
   await page.screenshot({path:path.join(output,'portrait-privacy-policy.png')});
   await page.locator('#privacyWebOpen').click();await page.locator('#privacySupportOpen').click();await page.locator('#privacyHomeOpen').click();
   assert.deepEqual(await page.evaluate(()=>window.__publicLinks),['privacy','support','home']);
   await page.locator('#infoClose').click();assert.deepEqual((await geometry(page)).keyboard,beforePrivacy.keyboard);
   await page.locator('#menuOpen').click();await page.locator('[data-screen="help"]').click();await page.locator('#helpPrivacyOpen').click();
   assert.equal(await page.locator('#infoTitle').textContent(),'개인정보처리방침');await page.locator('#infoClose').click();
+  await page.locator('#menuOpen').click();await page.locator('[data-screen=history]').click();await require('./check-contrast.cjs')(page)('.history-tab,.history-tab-description,#infoTitle','history');await page.screenshot({path:path.join(output,'portrait-history-light.png')});await page.locator('#infoClose').click();
   assert.equal(await page.title(),'VoiceLine');assert.equal(await page.locator('.brand').getAttribute('aria-label'),'VoiceLine');
   await require('./check-practice-plans.cjs')(page,choose,output);
   await require('./check-settings-readability.cjs')(page,choose,output);

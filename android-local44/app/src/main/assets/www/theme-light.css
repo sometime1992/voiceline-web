@@ -72,3 +72,18 @@ html,body,.app{background:#f2f7fa;color:#19374c}
 #metronomePanel #metroMuteQuick{color:#315f79;background:#eef5f9}
 #metronomePanel #metroMuteQuick[aria-pressed=true]{color:#7c531e;background:#fff0d9;border-color:#d5af72}
 .piano-volume-control label:before{color:#176b58}
+.training-result-modal p strong{color:#1b536c}
+.training-result-modal .training-result-status.success{color:#126b43}
+.training-result-modal .training-result-status.failure{color:#a23a2b}
+.training-result-modal .training-result-status.stopped{color:#5b5b72}
+.training-result-modal .training-result-status.guided{color:#236787}
+.info-body .history-tabs{background:#f4f8fb}
+.info-body .history-tab{color:#355f79;background:#fff;border-color:#abc9da}
+.info-body .history-tab[aria-selected=true]{color:#155e4c;background:#e0f2eb;border-color:#63a38e;box-shadow:inset 0 0 0 1px #63a38e55}
+.history-tab-description,.privacy-policy-date{color:#506b7f}
+.privacy-policy-summary{color:#284d60;background:#e6f4ef;border-color:#a7cfbf}
+.info-body .history-search-row input,.record-tools-modal input,.warmup-settings-fields input{color:#234e68;background:#fff;border-color:#a8c5d6}
+.record-tools-modal button:not(.close-btn),.warmup-settings-modal button:not(.close-btn){color:#265872;background:#fff;border-color:#aac7d7}
+.record-tools-modal .record-export-actions button{color:#fff;background:#167661;border-color:#167661}
+.record-tools-modal .record-danger{color:#a02f43;background:#fff0f3;border-color:#d6a2b1}
+.record-tools-bottom p,.recovery-error{color:#855624}

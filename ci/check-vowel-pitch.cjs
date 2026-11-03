@@ -23,7 +23,7 @@ module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  await page.screenshot({path:path.join(output,'landscape-vowel-pitch.png')});
  await page.locator('#graphToggle').click();assert.match(await page.locator('#graphHiddenStatus').textContent(),/아|에|이|오|우/);assert.equal(await page.evaluate(()=>window.__micRequest),request);await page.locator('#graphToggle').click();
  await page.waitForFunction(()=>!document.querySelector('#trainingResultDialog').hidden,{},{timeout:35000});await page.evaluate(()=>clearInterval(window.__vowelPitchSignal));
- assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공');
+ assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공');await require('./check-contrast.cjs')(page)('#trainingResultDialog strong,#trainingResultDialog p,#trainingResultDialog span,#trainingResultDialog h2','training result');
  const facts=await page.evaluate(()=>{const s=window.__vowelPitchCourse;return {status:'passed',pattern:s.settings.pattern,smooth:s.smooth,steps:s.pattern.steps,vowels:window.__vowelsSeen,sets:s.sets,phrases:s.rounds,duration:s.duration,metrics:window.VoiceLineGuideTraining.metrics(s),bins:s.bins.map((bins,i)=>({vowel:s.pattern.vowels[i%5],notes:bins.map(b=>({midi:b.midi,voiced:b.voiced,expected:b.expected}))}))};});
  assert.deepEqual(facts.vowels,['아','에','이','오','우']);assert.equal(facts.smooth,false);assert.equal(facts.sets,1);assert.equal(facts.phrases,5);assert.equal(facts.duration,29000);assert.ok(facts.metrics.each);
  fs.writeFileSync(path.join(output,'vowel-pitch.json'),JSON.stringify(facts,null,2));await page.screenshot({path:path.join(output,'landscape-vowel-pitch-result.png')});
