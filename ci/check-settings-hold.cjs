@@ -45,7 +45,7 @@ module.exports=async function checkSettingsHold(page,choose,output){
   await fill(label,1,id);await down(plus);const afterBlur=await value(input);
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await settled(input,afterBlur,'window blur cancels');await page.mouse.up();
   await down(plus);const afterHidden=await value(input);
-  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));delete document.hidden;});
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});
   await settled(input,afterHidden,'background visibility cancels');await page.mouse.up();
   await down(plus);const afterClose=await value(input);await page.locator('#planClose').evaluate(e=>e.click());
   await settled(input,afterClose,'closing the dialog cancels');await page.mouse.up();
