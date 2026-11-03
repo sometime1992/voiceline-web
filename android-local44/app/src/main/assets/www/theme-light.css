@@ -1,0 +1,74 @@
+/* Bright surfaces and dark readable text; graphs retain their own dark canvas palette. */
+:root{color-scheme:light;--bg:#f2f7fa;--panel:#fff;--line:#cadce6;--text:#19374c}
+html,body,.app{background:#f2f7fa;color:#19374c}
+.toolbar,.info-strip{background:#fff;border-color:#c9dce5}
+.toolbar,.note-panel,.exercise-panel,.piano-topline,.modal{--muted:#4d687d}
+.brand .brand-title{color:#204761}.brand .brand-title>span{color:#087d70}
+#modeChip{color:#176d60;background:#e3f5ed;border-color:#9dcdbf}
+.toolbar-center .mic-toggle{background:#eff5f8;color:#23495f;border-color:#afc8d6}
+.toolbar-center .mic-toggle #micToggleAction{color:#145c4d;background:#def3e9;border-color:#92bfad}
+.toolbar-center .mic-toggle.active{background:#e1f3eb;color:#175e4f;border-color:#539e86}
+.toolbar-center .mic-toggle.active #micToggleAction{background:#ffebec;color:#8d3040;border-color:#dca8b3}
+.icon-btn,.close-btn{background:#fff;color:#244c67;border-color:#b5ccd9}
+.icon-btn span{background:#244c67}
+.note-panel{background:#e8f5f4;border:1px solid #afcec9}
+.note-values strong{color:#076e64}.note-values span{color:#375c70}
+.exercise-controls :is(select,input,button),.sub-button,.octave-tools button{color:#234b64;background:#fff;border-color:#aac4d2}
+.exercise-heading strong{color:#173e55}.exercise-heading span,.exercise-footer,.control-note{color:#4d687d}
+.progress-track{background:#dbe8ed}.progress-track span{background:linear-gradient(90deg,#118b76,#5d8ec3)}
+.main-button{background:#117f6e;color:#fff}.main-button.recording{background:#af3e54;color:#fff}
+.mode-guide-button,.mic-sensitivity-button,.plan-time-button{color:#245a75!important;background:#fff!important;border-color:#a5c7d7!important}
+.legend{color:#3e5f73}.key-legend.detected{background:#8a65d0}.key-legend.target{background:#0f9d85}
+.piano-sound-chip.ready{color:#1b6857;background:#e4f4ec;border-color:#a1c9ba}
+.modal-backdrop{background:#193b534f;backdrop-filter:blur(5px)}
+.modal{background:#f4f8fb;color:#17384c;border-color:#bad0dc;box-shadow:0 20px 65px #193b5338}
+.modal h1,.modal h2,.modal h3{color:#173d55}.modal-heading p,.local-note{color:#4b687c}
+.eyebrow,.tile-icon{color:#157868}
+.menu-tile{background:#fff;color:#1e4158;border-color:#bfd4df;box-shadow:0 2px 6px #284c6410}
+.menu-tile:active{background:#dfeef5}.menu-tile small{color:#4e6b80}
+.info-body{color:#284b62}.info-body h3{color:#174c68}.info-body button,.history-row button{color:#245875;background:#fff;border-color:#a8c5d6}
+.history-row{border-color:#c6d9e3}.info-body .danger{color:#a42a43}
+.mode-guide-section,.mode-guide-intro,.mode-guide-rule{background:#fff!important;border-color:#bfd7e3!important;color:#2f5268!important}
+.mode-guide-section :is(p,li,small,strong){color:inherit}.mode-guide-caution{background:#fff5e1!important;border-color:#d8bb83!important;color:#7f5320!important}
+.training-result-modal,.history-delete-modal{background:#f5f9fc;color:#24465d;border-color:#b9cfdb}
+.training-result-modal :is(p,span,small,dt){color:#4c687d}.training-result-modal :is(strong,dd){color:#194a65}
+.training-result-close,.history-load-more,.history-tab{background:#fff;color:#265872;border-color:#aac8d8}
+.history-tab[aria-selected=true]{background:#e0f2eb;color:#155e4c;border-color:#63a38e}
+.history-delete-warning,.history-delete-eyebrow{color:#974227}
+.metro-rhythm-card,.metro-tempo-card,.metro-saved-card,.metro-settings-modal{background:#fff;color:#244c65;border-color:#b9d2df}
+.metro-rhythm-card :is(small,label),.metro-tempo-card :is(small,label){color:#47697e}
+.metro-overline,.metro-section-heading,.metro-inline-footer{color:#456b81}
+.metro-state{color:#176b58;background:#e0f3e9;border-color:#a0cbb8}
+.metro-beat{background:#eef5f9;color:#3f617a;border-color:#acc9da}
+.metro-beat.accent{background:#e1f4ed;color:#185e4e;border-color:#6eaf98}
+.metro-current-beat{color:#156f5b}.metro-play-toggle{background:#117f6e;color:#fff;border-color:#117f6e}
+.metro-inline-fields :is(select,input),.metro-inline-toolbar button,.metro-beat-pager button{color:#234e68;background:#fff;border-color:#afcad9}
+#planDialog .plan-modal{box-shadow:none}
+.plan-banner{color:#176c58}
+.metro-bpm-display,.metro-beat-readout,.metro-position,.metro-beat-meta{color:#25526f}
+.record-tools-modal,.warmup-settings-modal{background:#f4f8fb;color:#244b63;border-color:#b9d1df}
+.record-tools-info{background:#fff;color:#365b72;border-color:#c4d9e5}
+.record-tools-modal label,.record-tools-modal p,.record-storage-info{color:#4c6b80}
+#pianoVolumeValue,#metroVolumeValue{color:#146c5a}
+.piano-volume-control label,.piano-volume-control>span{color:#476b7f}
+.app.metronome-mode .info-strip{background:#fff;border-color:#c9dce5}
+.app.metronome-mode #modeTitle{color:#173e55}
+.metronome-panel .metro-section-heading>strong,.metronome-panel .metro-current-beat>strong{color:#176e5b}
+.metronome-panel .metro-bpm-display input{color:#1c526c}
+.metronome-panel .metro-bpm-display>span,.metronome-panel .metro-position,.metronome-panel .metro-slider-row,.metronome-panel .metro-inline-field,.metronome-panel .metro-groups,.metronome-panel .metro-group-message{color:#486a80}
+.metronome-panel :is(select,input:not([type=range])),.metro-settings-modal input:not([type=range]){background:#fff;color:#234e68;border-color:#afcad9}
+.metronome-panel .metro-tempo>button{background:#edf5f9;color:#255675;border-color:#aac9da}
+.metronome-panel .metro-play-toggle{background:#117f6e;color:#fff;border-color:#117f6e}
+.metronome-panel .metro-play-toggle[aria-pressed=true]{background:#a83d56;color:#fff;border-color:#a83d56}
+.metronome-panel .metro-mute-button{background:#eef5f9;color:#315f79;border-color:#abc8d9}
+.metronome-panel .metro-mute-button[aria-pressed=true]{background:#fff0d9;color:#7c531e;border-color:#d5af72}
+.metronome-panel input::placeholder{color:#637d90;opacity:1}
+.app.metronome-mode .mode-heading-row #modeTitle{color:#173e55}
+#metronomePanel :is(button,input:not([type=range]),select){color:#234e68;background:#fff;border-color:#aac6d6}
+#metronomePanel #metroBpm{background:transparent;color:#1b526b}
+#metronomePanel #metroSignature,#metronomePanel #metroCount{color:#176b58}
+#metronomePanel #metroToggle{color:#fff;background:#117f6e;border-color:#117f6e}
+#metronomePanel #metroToggle[aria-pressed=true]{color:#fff;background:#a83d56;border-color:#a83d56}
+#metronomePanel #metroMuteQuick{color:#315f79;background:#eef5f9}
+#metronomePanel #metroMuteQuick[aria-pressed=true]{color:#7c531e;background:#fff0d9;border-color:#d5af72}
+.piano-volume-control label:before{color:#176b58}

@@ -37,11 +37,11 @@
  }
  function help(label,text){$('planHelpTitle').textContent=label;$('planHelpText').textContent=text;$('planHelp').hidden=false;$('planHelpClose').focus();}
  function contextStep(){return !editingMode&&activeStepId&&activeStepId!=='meta'&&activeStepId!=='add'?draft.steps.find(s=>s.id===activeStepId):null;}
- function rememberForm(form){return {anchor:form.pager.state().anchor,invalid:[...form.querySelectorAll('input:invalid')].map(n=>[n.getAttribute('aria-label'),n.value]),focus:form.contains(document.activeElement)?document.activeElement.getAttribute('aria-label'):null};}
- function restoreForm(form,memory){if(!memory)return;form.pager.showPage(memory.anchor,false);for(const [label,value]of memory.invalid){const input=[...form.querySelectorAll('input')].find(n=>n.getAttribute('aria-label')===label);if(input){input.value=value;input.oninput?.();}}if(memory.focus){const input=[...form.querySelectorAll('input,select')].find(n=>n.getAttribute('aria-label')===memory.focus);if(input){form.pager.showControl(input,false);if(input.type==='number'&&memory.invalid.some(([s])=>s===memory.focus))form.pager.showControl(input,true);}}}
+ function rememberForm(form){return {scroll:form.isConnected?$('planScroll').scrollTop:form._scrollTop||0,anchor:form.pager.state().anchor,invalid:[...form.querySelectorAll('input:invalid')].map(n=>[n.getAttribute('aria-label'),n.value]),focus:form.contains(document.activeElement)?document.activeElement.getAttribute('aria-label'):null};}
+ function restoreForm(form,memory){if(!memory)return;form._scrollTop=memory.scroll||0;form.pager.showPage(memory.anchor,false);for(const [label,value]of memory.invalid){const input=[...form.querySelectorAll('input')].find(n=>n.getAttribute('aria-label')===label);if(input){input.value=value;input.oninput?.();}}if(memory.focus){const input=[...form.querySelectorAll('input,select')].find(n=>n.getAttribute('aria-label')===memory.focus);if(input){form.pager.showControl(input,false);if(input.type==='number'&&memory.invalid.some(([s])=>s===memory.focus))form.pager.showControl(input,true);}}}
  function stateChanged(form,state){
   if(!form.isConnected)return;if(state.action&&['edit','menu'].includes(state.view)&&['edit','menu'].includes(editorView))editorView=state.view;
-  if(state.action){bridge.stopPreview?.();$('planScroll').scrollTop=0;status('');}updateActions();scheduleFit();
+  if(state.action){bridge.stopPreview?.();if(form.dataset.presentation!=='integrated')$('planScroll').scrollTop=0;status('');}updateActions();scheduleFit();
  }
  function fields(mode,t,params,onChange,withinRoutine=false,extraUnits=[]){
   let form;form=root.VoiceLinePracticeSettingsUI.render({mode,timing:t,params,withinRoutine,bridge,extraUnits,onChange,onPageChange:(_,state)=>stateChanged(form,state)});return form;
@@ -65,7 +65,7 @@
   if(activeStepId==='add'){if(!addForm)addForm=makeAddForm();return addForm;}
   const step=contextStep();if(!step)return null;if(!routineForms.has(step.id))rebuildForm(step.id);return routineForms.get(step.id);
  }
- function mountDisplay(box){box.dataset.scope=editingMode?'general':'routine';displayBox=box;$('planEditor').replaceChildren(box);$('planScroll').scrollTop=0;updateActions();fitCurrent();scheduleFit();}
+ function mountDisplay(box){box.dataset.scope=editingMode?'general':'routine';if(displayBox?.isConnected)displayBox._scrollTop=$('planScroll').scrollTop;displayBox=box;$('planEditor').replaceChildren(box);$('planScroll').scrollTop=box._scrollTop||0;updateActions();fitCurrent();scheduleFit();}
  function newPager(units,onState){const box=el('div',undefined,'settings-editor');box.pager=root.VoiceLineSettingsPages.create({box,units,onState:s=>{onState?.(s);if(box.isConnected){updateActions();scheduleFit();}}});return box;}
  function summaryBox(rows,meta,kind='overview',empty=''){const box=newPager([]);box.pager.showSummary({rows,meta,kind,label:kind==='review'?'최종 저장할 설정':'현재 연습 설정',empty});return box;}
  function snapshotForm(mode,t,params,withinRoutine=false){return fields(mode,copy(t),copy(params),null,withinRoutine);}
@@ -90,9 +90,9 @@
  function showRoutine(){
   activeStepId=null;editorView='routine';$('planLibrary').hidden=true;const entries=[];
   function entry(key,title,value,open){const node=el('div',undefined,'settings-unit');entries.push({node,key,label:title,shortLabel:title,topic:{id:key,title,open},transient:true,value});}
-  entry('routine-meta','기본 설정',()=>draft.name+' · '+(draft.rounds?draft.rounds+'회':'계속 반복'),()=>{activeStepId='meta';editorView='menu';renderFocus();});
+  entry('routine-meta','기본 설정',()=>draft.name+' · '+(draft.rounds?draft.rounds+'회':'계속 반복'),()=>{activeStepId='meta';editorView='edit';renderFocus();});
   entry('routine-add','단계 추가',()=>draft.steps.length+' / 40단계',()=>{activeStepId='add';editorView='edit';renderFocus();});
-  draft.steps.forEach((step,i)=>entry('step-'+step.id,(i+1)+'. '+api.MODES[step.mode],()=>root.VoiceLinePracticeSettings.describe(step.mode,step.timing,step.params,true,bridge.noteLabel).title,()=>{activeStepId=step.id;editorView='menu';renderFocus();}));
+  draft.steps.forEach((step,i)=>entry('step-'+step.id,(i+1)+'. '+api.MODES[step.mode],()=>root.VoiceLinePracticeSettings.describe(step.mode,step.timing,step.params,true,bridge.noteLabel).title,()=>{activeStepId=step.id;editorView='edit';renderFocus();}));
   const box=newPager(entries);box.classList.add('settings-routine-outline');box.pager.showMenu(false);mountDisplay(box);
  }
  function makeMetaForm(){
@@ -101,11 +101,11 @@
   const end=c.selectField({key:'routineEnd',label:'전체 반복 방식',value:draft.rounds===0?'forever':'count',options:[['count','횟수 지정'],['forever','계속 반복']],onChange:value=>{const memory=rememberForm(box);draft.rounds=value==='forever'?0:1;hasChanges=true;metaForm=makeMetaForm();restoreForm(metaForm,memory);renderFocus();}});end.input.id='planRoutineEnd';
   const count=c.numberField({key:'routineRounds',label:'루틴 전체 반복 횟수',value:draft.rounds||1,min:1,max:999,step:1,presets:[1,2,4],onHelp,onInput:(input,ok)=>{if(ok)draft.rounds=Number(input.value);hasChanges=true;status('');scheduleFit();}});count.input.id='planRoutineRounds';count.input.disabled=draft.rounds===0;
   for(const [control,key,label,topic]of [[name,'name','루틴 이름',{id:'name',title:'루틴 이름'}],[end,'routineEnd','반복 방식',{id:'repeat',title:'전체 반복'}],[count,'routineRounds','반복 횟수',{id:'repeat',title:'전체 반복'}]]){control.node.dataset.unitKey=key;units.push({...control,key,label,shortLabel:label,topic});}
-  box.pager=c.create({box,units,onState:s=>stateChanged(box,s)});return box;
+  box.pager=c.create({box,units,integrated:true,title:'기본 설정',onState:s=>stateChanged(box,s)});return box;
  }
  function makeAddForm(){
-  const box=el('div',undefined,'settings-editor'),c=root.VoiceLineSettingsPages,control=c.selectField({key:'addMode',label:'추가할 연습',value:addMode,options:Object.entries(api.MODES).filter(([mode])=>mode!=='record'),onChange:value=>{addMode=value;}});control.input.id='planAddMode';const add=el('button','추가');add.id='planAdd';add.type='button';add.onclick=()=>{if(draft.steps.length>=40){status('한 루틴은 최대 40단계까지 만들 수 있습니다.');return;}const mode=control.input.value,step=prepareStep(api.step({mode,timing:timing(mode),params:copy(bridge.capture(mode))}));draft.steps.push(step);hasChanges=true;activeStepId=step.id;editorView='menu';renderFocus();};control.node.querySelector('.settings-control-row').append(add);
-  box.pager=c.create({box,units:[{...control,key:'addMode',label:'추가할 연습',shortLabel:'추가할 연습',topic:{id:'add',title:'단계 추가'}}],onState:s=>stateChanged(box,s)});return box;
+  const box=el('div',undefined,'settings-editor'),c=root.VoiceLineSettingsPages,control=c.selectField({key:'addMode',label:'추가할 연습',value:addMode,options:Object.entries(api.MODES).filter(([mode])=>mode!=='record'),onChange:value=>{addMode=value;}});control.input.id='planAddMode';const add=el('button','추가');add.id='planAdd';add.type='button';add.onclick=()=>{if(draft.steps.length>=40){status('한 루틴은 최대 40단계까지 만들 수 있습니다.');return;}const mode=control.input.value,step=prepareStep(api.step({mode,timing:timing(mode),params:copy(bridge.capture(mode))}));draft.steps.push(step);hasChanges=true;activeStepId=step.id;editorView='edit';renderFocus();};control.node.querySelector('.settings-control-row').append(add);
+  box.pager=c.create({box,integrated:true,title:'단계 추가',units:[{...control,key:'addMode',label:'추가할 연습',shortLabel:'추가할 연습',topic:{id:'add',title:'단계 추가'}}],onState:s=>stateChanged(box,s)});return box;
  }
  function fitCurrent(){
   if(!displayBox?.isConnected||$('planDialog').hidden)return;$('planDialog').style.setProperty('--settings-height',(window.visualViewport?.height||window.innerHeight)+'px');const area=$('planScroll'),style=getComputedStyle(area),available=area.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-($('planLibrary').hidden?0:$('planLibrary').getBoundingClientRect().height+8);displayBox.pager.fit(Math.max(1,available));
@@ -114,10 +114,10 @@
  function updateActions(){
   if(!displayBox)return;const state=displayBox.pager.state(),focus=['edit','menu'].includes(editorView),routine=editorView==='routine';$('planDialog').dataset.view=editorView;
   const titles={overview:'현재 설정',saved:'저장 완료',menu:'수정할 항목',routine:'루틴 구성',review:'저장할까요?',details:'전체 설정'};$('planTitle').textContent=editorView==='edit'?state.title:titles[editorView]||'연습 설정';$('planStage').textContent=state.count>1?(state.index+1)+'/'+state.count:'';$('planStage').hidden=state.count<=1;
-  $('planBack').textContent=['overview','saved','review'].includes(editorView)?'전체':editorView==='details'?'뒤로':editorView==='edit'?'항목':editingMode?'현재':activeStepId?'단계':'현재';
+  $('planBack').textContent=['overview','saved','review'].includes(editorView)?'전체':editorView==='details'?'뒤로':editorView==='edit'?(editingMode?'현재':'단계'):editingMode?'현재':activeStepId?'단계':'현재';
   $('planSave').hidden=focus||routine;$('planSave').textContent=editorView==='review'?'다시 수정':editorView==='details'?'돌아가기':hasChanges?'수정 계속':'수정';
   $('planRun').textContent=focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;
-  const arrows=focus||routine||state.count>1;$('planPrev').hidden=$('planNext').hidden=!arrows;$('planPrev').disabled=!state.previous;$('planNext').disabled=!state.next;
+  const arrows=state.count>1;$('planPrev').hidden=$('planNext').hidden=!arrows;$('planPrev').disabled=!state.previous;$('planNext').disabled=!state.next;
  }
  function changeView(view){
   bridge.stopPreview?.();document.activeElement?.blur();status('');editorView=view;
@@ -125,7 +125,7 @@
  }
  function back(){
   if($('planDialog')?.hidden)return false;if(!$('planHelp').hidden){$('planHelp').hidden=true;return true;}
-  if(editorView==='details'){changeView(detailsOrigin);return true;}if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);return true;}if(editorView==='edit'){changeView('menu');return true;}
+  if(editorView==='details'){changeView(detailsOrigin);return true;}if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);return true;}if(editorView==='edit'){if(editingMode)changeView('overview');else showRoutine();return true;}
   if(editorView==='menu'){if(editingMode)changeView('overview');else showRoutine();return true;}if(editorView==='routine'){changeView('overview');return true;}return false;
  }
  function revealBad(form,bad,stepId){if(!editingMode)activeStepId=stepId;editorView='edit';renderFocus();form.pager.showControl(bad,true);fitCurrent();bad.reportValidity();}
@@ -184,7 +184,7 @@
   $('planClose').onclick=()=>{bridge.stopPreview?.();$('planHelp').hidden=true;document.activeElement?.blur();bridge.modalClose('planDialog');};modal.onclick=e=>{if(e.target===modal)$('planClose').click();};
   $('planBack').onclick=()=>{if(['overview','saved','review'].includes(editorView)){detailsOrigin=editorView;changeView('details');}else back();};
   $('planPrev').onclick=()=>{bridge.stopPreview?.();document.activeElement?.blur();displayBox.pager.move(-1);fitCurrent();};$('planNext').onclick=()=>{bridge.stopPreview?.();document.activeElement?.blur();displayBox.pager.move(1);fitCurrent();};
-  $('planSave').onclick=()=>{if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);}else if(editorView==='details')back();else changeView(editingMode?'menu':'routine');};
+  $('planSave').onclick=()=>{if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);}else if(editorView==='details')back();else changeView(editingMode?'edit':'routine');};
   $('planRun').onclick=async()=>{
    if(['edit','menu','routine'].includes(editorView)){if(!valid())return;reviewReturn={view:editorView==='menu'?'edit':editorView,step:activeStepId};changeView('review');return;}
    if(editorView==='details'){back();return;}if(editorView==='review'){if(!saveDraft())return;savedDraft=copy(draft);hasChanges=false;changeView('saved');return;}

@@ -18,6 +18,7 @@ module.exports=function settingsActions(page){
  }
  async function locate(label,id){
   await enter();await step(id);let n=editor().getByLabel(label,{exact:true});assert.equal(await n.count(),1,'missing setting '+label);
+  if(await editor().getAttribute('data-presentation')==='integrated'){await n.evaluate(e=>e.closest('.settings-unit').scrollIntoView({block:'nearest'}));return n;}
   if(!await n.isVisible()){
    if(await view()==='edit')await page.locator('#planBack').click();const topic=await n.evaluate(e=>e.closest('.settings-unit').dataset.topic);await menu(topic);
    for(let guard=0;guard<40;guard++){
@@ -33,6 +34,6 @@ module.exports=function settingsActions(page){
  async function choice(text,id){await enter();await step(id);const options=editor().locator('select option').filter({hasText:new RegExp('^'+text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$')});assert.equal(await options.count(),1,'choice '+text);const info=await options.evaluate(e=>({label:e.parentElement.getAttribute('aria-label'),value:e.value}));await select(info.label,info.value,id);}
  async function save(close=true){await page.locator('#planRun').click();assert.equal(await view(),'review');await page.locator('#planRun').click();assert.equal(await view(),'saved');if(close)await page.locator('#planClose').click();}
  async function reviewText(){let result='';await page.locator('#planRun').click();assert.equal(await view(),'review');for(let i=0;i<80;i++){result+=await page.locator('#planEditor').textContent();const next=page.locator('#planNext');if(!await next.isVisible()||await next.isDisabled())break;await next.click();}await page.locator('#planSave').click();return result;}
- async function add(mode){await enter();if(await view()==='edit')await page.locator('#planBack').click();if(await view()==='menu')await page.locator('#planBack').click();assert.equal(await view(),'routine');await menu('routine-add');await page.locator('#planAddMode').selectOption(mode);await page.locator('#planAdd').click();assert.equal(await view(),'menu');return editor().getAttribute('data-step-id');}
+ async function add(mode){await enter();if(await view()==='edit')await page.locator('#planBack').click();if(await view()==='menu')await page.locator('#planBack').click();assert.equal(await view(),'routine');await menu('routine-add');await page.locator('#planAddMode').selectOption(mode);await page.locator('#planAdd').click();assert.equal(await view(),'edit');return editor().getAttribute('data-step-id');}
  return {view,editor,menu,enter,step,locate,reveal,fill,select,choice,save,reviewText,add};
 };

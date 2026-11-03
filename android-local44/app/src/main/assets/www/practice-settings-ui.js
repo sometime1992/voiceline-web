@@ -45,7 +45,7 @@
    else if(['tolerance','choice:음정 감지 감도 · 앱 공통'].includes(key)){id='measurement';name='측정';}
    return {id,title:name};
   }
-  function shortLabel(key,label){const names={'choice:음정 감지 감도 · 앱 공통':'음정 감도','choice:시간 입력 방식':'시간 방식','choice:반복 방식':'반복 방식','choice:종료 방식':'종료 방식','choice:진행 방식':'진행 방식','choice:음 길이 방식':'길이 방식',kind:'연습 종류',pattern:'연습 패턴',earPattern:'청음 방법',earCount:'들을 음 수',earNoteIndex:'음 순서 선택',root:'기준음',vibratoRoot:'기준음',base:'시작 옥타브',shift:'반복 음역',prepareSeconds:'시작 준비',breathSeconds:'들이쉬기',restSeconds:'회복 시간',noteSeconds:'한 음 길이',smoothSeconds:'왕복 시간',prepare:'시작 준비',reference:'기준음 듣기',listen:'음 듣기',breath:'들이쉬기',answer:'따라 부르기',noteRest:'음 사이 쉬기',rest:'회복 시간',rounds:'반복 횟수',seconds:'진행 시간',pianoVolume:'기준음 음량',volume:'음량',dynamicCueVolume:'전환 안내음',numerator:'한 마디 박 수',denominator:'기준 음표',unit:'BPM 기준',subdivision:'한 박 세분',beatIndex:'편집할 박',accentValue:'박의 강세'};return names[key]||label.replace(/ \((?:초|%|BPM)\)$/,'').replace(/번째 청음/,'번째 음');}
+  function shortLabel(key,label){const names={'choice:음정 감지 감도 · 앱 공통':'음정 감도','choice:시간 입력 방식':'시간 방식','choice:반복 방식':'반복 방식','choice:종료 방식':'종료 방식','choice:진행 방식':'진행 방식','choice:음 길이 방식':'길이 방식',kind:'연습 종류',pattern:'연습 패턴',earPattern:'청음 방법',earCount:'들을 음 수',earNoteIndex:'음 순서 선택',root:'기준음',vibratoRoot:'기준음',base:'시작 옥타브',shift:'반복 음역',prepareSeconds:'시작 준비',breathSeconds:'들이쉬기',restSeconds:'회복 시간',noteSeconds:'한 음 길이',smoothSeconds:'왕복 시간',prepare:'시작 준비',reference:'기준음 듣기',listen:'음 듣기',breath:'들이쉬기',answer:'따라 부르기',noteRest:'음 사이 쉬기',rest:'회복 시간',rounds:'반복 횟수',seconds:'진행 시간',pianoVolume:'기준음 음량',volume:'가이드 음량',dynamicCueVolume:'전환 안내음',numerator:'한 마디 박 수',denominator:'기준 음표',unit:'BPM 기준',subdivision:'한 박 세분',beatIndex:'편집할 박',accentValue:'박의 강세'};return names[key]||label.replace(/ \((?:초|%|BPM)\)$/,'').replace(/번째 청음/,'번째 음');}
   function register(c,key,label,transient=false){const unit={...c,key:String(key),label,shortLabel:shortLabel(key,label),topic:topicFor(key,label),transient};c.node.dataset.unitKey=String(key);c.node.dataset.unitLabel=label;units.push(unit);into.append(c.node);return c.input;}
   function numeric(key,label,min,max,step=.1,obj=t,description=''){
    const defaults=/세트|횟수/.test(label)?[1,2,4]:/쉬기|준비|들이쉬기/.test(label)?[0,2,3]:key==='noteSeconds'?[.5,1,2]:null;
@@ -175,7 +175,7 @@
    box.dataset.valid=String(!bad&&!d.issues.length);box.description=d;box.pager?.refresh();
   }
   box.update=update;update();
-  units.push(...extraUnits);box.pager=controls.create({box,units,description:()=>box.description,onState:state=>onPageChange?.(state.key,state)});
+  units.push(...extraUnits);box.pager=controls.create({box,units,integrated:true,title:plans.MODES[mode]||'상세 설정',description:()=>box.description,onState:state=>onPageChange?.(state.key,state)});
   box.getRows=allRows;box.compactRows=compactRows;box.meta=()=>{const d=box.description;return d.totalText+(d.voiceSeconds>0?' · '+d.voiceLabel+' '+model.formatTime(d.voiceSeconds):'');};
   box.showPage=(key,notify=true)=>box.pager.showPage(key,notify);box.showMenu=notify=>box.pager.showMenu(notify);box.showSummary=(label='현재 연습 설정',rows=compactRows(),kind='overview',empty='')=>box.pager.showSummary({label,rows,kind,meta:box.meta(),empty});
   box.pageKeys=box.pager.pages.map(p=>p.key);return box;

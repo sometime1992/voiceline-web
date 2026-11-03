@@ -94,26 +94,29 @@ def assert_settings_readable(landscape=False, selected='모음 · 아에이오�
     name='settings-landscape-geometry.json' if landscape else 'settings-portrait-geometry.json'
     (qa/name).write_text(json.dumps({'status':'passed','field':field,'pattern':pattern,'label':label,'actions':confirm,'header':close,'landscape':landscape},indent=2))
 
-def tap_settings_item(name):
-    # Match the actual menu button; a section can have the same visible title.
-    for attempt in range(35):
+def scroll_settings_to(label):
+    def in_view(document):
+        try:
+            r=settings_rect(label,document=document)
+            top=settings_rect('연습 설정 닫기','planClose',document)[3]
+            bottom=settings_rect('변경 확인','planRun',document)[1]
+            return r[1]>=top and r[3]<=bottom
+        except AssertionError:return False
+    document=tree()
+    if in_view(document):return
+    close=settings_rect('연습 설정 닫기','planClose',document)
+    confirm=settings_rect('변경 확인','planRun',document)
+    x=str((close[0]+close[2])//2)
+    for _ in range(5):adb('shell','input','swipe',x,str(close[3]+35),x,str(confirm[1]-35),'200')
+    for _ in range(18):
         document=tree()
-        for n in document.iter('node'):
-            a=n.attrib
-            if a.get('resource-id','').split('/')[-1].startswith('settings-menu-') and any((name+' 설정') in a.get(k,'') for k in ('text','content-desc')):
-                values=[int(v) for v in re.findall(r'\d+',a.get('bounds',''))]
-                if len(values)==4 and values[2]>values[0] and values[3]>values[1]:
-                    adb('shell','input','tap',str((values[0]+values[2])//2),str((values[1]+values[3])//2))
-                    time.sleep(.5)
-                    return
-        forward=next((n for n in document.iter('node') if n.attrib.get('resource-id','').endswith('planNext') and n.attrib.get('enabled')=='true'),None)
-        backward=next((n for n in document.iter('node') if n.attrib.get('resource-id','').endswith('planPrev') and n.attrib.get('enabled')=='true'),None)
-        node=forward if forward is not None else backward
-        if node is None:break
-        v=[int(v) for v in re.findall(r'\d+',node.attrib.get('bounds',''))]
-        adb('shell','input','tap',str((v[0]+v[2])//2),str((v[1]+v[3])//2))
+        if in_view(document):return
+        close=settings_rect('연습 설정 닫기','planClose',document)
+        confirm=settings_rect('변경 확인','planRun',document)
+        left,right=close[0],close[2]
+        adb('shell','input','swipe',str((left+right)//2),str(confirm[1]-35),str((left+right)//2),str(close[3]+35),'350')
         time.sleep(.3)
-    raise AssertionError('Settings menu item not found: '+name)
+    raise AssertionError('Single-page settings control not reachable: '+label)
 
 def choose_vowel_settings():
     # Click the select in the current modal rather than the similar underlying control.
@@ -168,9 +171,9 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local67-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local68-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local67-ci' in old_package
+    assert 'versionName=2.0.0-local68-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
     wait_visible('VoiceLine', timeout=60)
@@ -179,9 +182,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local68-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local69-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local68-ci' in installed and 'versionCode=83' in installed
+    assert 'versionName=2.0.0-local69-ci' in installed and 'versionCode=84' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -191,8 +194,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local67-ci (82)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local68-ci (83)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local68-ci (83)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local69-ci (84)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -225,10 +228,30 @@ try:
     choose('나의 루틴')
     assert visible('현재 설정') and visible('새 루틴')
     screenshot('routine-editor-android16.png', False)
+    tap('새 루틴','planNew')
+    tap('단계 추가',partial=True)
+    tap('추가할 연습','planAddMode')
+    tap('호흡·워밍업',partial=True)
+    tap('추가','planAdd')
+    wait_visible('들이쉬기 직접 입력')
+    wait_visible('내쉬기 직접 입력')
+    assert not visible('수정할 항목')
+    document=tree()
+    assert not any(n.attrib.get('resource-id','').endswith(('planPrev','planNext')) for n in document.iter('node'))
+    screenshot('routine-step-single-page-android16.png',False)
+    tap('허밍 늘리기')
+    tap('변경 확인','planRun')
+    wait_visible('최종 저장')
+    tap('다시 수정','planSave')
+    wait_visible('허밍 직접 입력')
+    adb('shell', 'input', 'keyevent', '4')
+    wait_visible('루틴 구성')
+    adb('shell', 'input', 'keyevent', '4')
+    wait_visible('현재 설정')
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(.5)
     assert not visible('새 루틴')
-    checks.append('Saved-routine editor opens and Android16 back closes it')
+    checks.append('Routine overview and outline retained; step opens all warmup controls directly in one page, edit/review/back retains draft; closing discards the unsaved new routine')
     choose('음정 연습')
     screenshot('02-practice-portrait.png')
     tap('연습 설정', 'customTimingOpen')
@@ -242,8 +265,6 @@ try:
         tap('연습 설정', 'customTimingOpen')
     wait_visible('현재 설정')
     tap('수정', 'planSave')
-    wait_visible('수정할 항목')
-    tap_settings_item('연습 선택')
     wait_visible('연습 종류')
     choose_vowel_settings()
     assert_settings_readable()
@@ -253,14 +274,14 @@ try:
     wait_visible('연습 종류')
     assert_settings_readable(landscape=True)
     screenshot('settings-landscape-font150-android16.png', False)
-    tap('항목','planBack')
-    tap_settings_item('음 길이')
+    scroll_settings_to('한 음 길이 직접 입력')
     wait_visible('한 음 길이 직접 입력')
     ime=adb('shell','dumpsys','input_method')
     assert not re.search(r'\bmInputShown=true\b',ime)
     screenshot('settings-stepper-font150-android16.png', False)
     adb('shell','wm','user-rotation','lock','0')
     time.sleep(.6)
+    scroll_settings_to('한 음 길이 직접 입력')
     tap('한 음 길이 직접 입력')
     time.sleep(.8)
     document=tree()
@@ -299,7 +320,7 @@ try:
     wait_visible('0.5초/음')
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(.5)
-    checks.append('Fullscreen focused settings: 150% portrait/landscape controls above actions, default stepper without keyboard, optional numeric IME geometry, review/back/final save and reopened 0.5-second vowel settings')
+    checks.append('Bright single-page settings: 150% portrait/landscape controls above actions, all fields in one page and default stepper without keyboard, optional numeric IME geometry, review/back/final save and reopened 0.5-second vowel settings')
     choose('발성 강약 조절')
     screenshot('03-dynamics-portrait.png')
     choose('호흡·워밍업')
@@ -323,7 +344,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local67 to Local68 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local68 to Local69 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))

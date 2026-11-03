@@ -18,6 +18,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.net.Uri;
 import android.graphics.Color;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowManager;
@@ -52,7 +53,7 @@ public class MainActivity extends Activity {
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
         web = new PracticeWebView(this);
-        web.setBackgroundColor(Color.rgb(16, 15, 27));
+        web.setBackgroundColor(Color.rgb(242, 247, 250));
         NativeMicBridge.DocumentActions actions=new NativeMicBridge.DocumentActions(){
             public void open(String operation,String source,String name,String mime,String job){recordingDocuments.open(operation,source,name,mime,job);}
             public String begin(String job,String mime,long bytes){return recordingDocuments.begin(job,mime,bytes);}
@@ -65,7 +66,7 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(nativeMic, "VoiceLineNative");
         web.addJavascriptInterface(new PublicAppLinks(), "VoiceLinePublicLinks");
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(16, 15, 27));
+        root.setBackgroundColor(Color.rgb(242, 247, 250));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         if (Build.VERSION.SDK_INT >= 35) {
             root.setOnApplyWindowInsetsListener((v, insets) -> {
@@ -76,9 +77,11 @@ public class MainActivity extends Activity {
             });
         }
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        getWindow().setStatusBarColor(Color.rgb(16, 15, 27));
-        getWindow().setNavigationBarColor(Color.rgb(16, 15, 27));
+        getWindow().setStatusBarColor(Color.rgb(242, 247, 250));
+        getWindow().setNavigationBarColor(Color.rgb(242, 247, 250));
         setContentView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        getWindow().getDecorView().setSystemUiVisibility(
+            getWindow().getDecorView().getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setSupportZoom(false);
