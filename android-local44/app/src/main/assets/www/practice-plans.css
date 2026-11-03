@@ -6,6 +6,7 @@
 #planDialog #planTitle{flex:1;min-width:0;margin:0;color:var(--text);font-size:1.125rem;line-height:1.3;font-weight:750;word-break:keep-all;overflow-wrap:anywhere}
 #planDialog #planStage{flex:none;color:var(--muted);font-size:.75rem;line-height:1.3;white-space:nowrap;font-variant-numeric:tabular-nums}
 #planDialog #planBack{flex:0 0 44px;width:44px;padding:4px;font-size:1rem;background:transparent;border-color:transparent}
+#planDialog #planBack[data-kind=all]{flex-basis:auto;width:auto;min-width:44px;padding-inline:8px;font-size:.8125rem;white-space:nowrap}
 #planDialog #planClose{flex:0 0 44px;width:44px;height:44px;padding:0;font-size:1.125rem}
 #planDialog .plan-scroll{flex:1;min-height:0;min-width:0;overflow:auto;overflow-x:hidden;padding:10px 12px;scroll-padding:8px;overscroll-behavior:contain;overflow-anchor:none;box-sizing:border-box;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#82759466 transparent}
 #planDialog #planEditor,#planDialog .settings-editor{position:relative;min-width:0;margin:0;padding:0}
@@ -83,7 +84,7 @@
 #planDialog #planActionHint{margin:0 0 4px;color:var(--muted);font-size:.75rem;line-height:1.4;text-align:center;word-break:keep-all}
 #planDialog .plan-actions{display:flex;align-items:stretch;gap:6px;margin:0;padding:0}
 #planDialog .plan-actions button{flex:1;min-width:0;min-height:48px;margin:0;font-size:.9375rem;font-weight:700}
-#planDialog :is(#planPrev,#planNext){flex:0 0 44px;width:44px;padding:4px;font-size:.75rem}
+#planDialog :is(#planPrev,#planNext){flex:0 0 52px;width:52px;padding:4px;font-size:.75rem;white-space:nowrap}
 #planDialog #planRun{background:var(--settings-accent);border-color:var(--settings-accent);color:#12232a;font-weight:800}
 #planDialog #planRun:not(:disabled):active{background:#a1f4e5}
 #planDialog #planSave{background:#5fe6cf0c;border-color:#5fe6cf66;color:#b3f5e8}
