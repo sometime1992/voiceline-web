@@ -108,9 +108,9 @@
 @media(min-width:640px){
  #planDialog .plan-modal{width:min(820px,88vw)}
  #planDialog .settings-integrated-page{grid-template-columns:repeat(2,minmax(0,1fr))}
- #planDialog .settings-summary-rows{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}
  #planDialog .settings-editor:not(.settings-routine-outline)>.settings-item-menu{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+@media(min-width:960px){#planDialog .settings-summary-rows{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}}
 @media(max-height:500px){
  #planDialog .plan-modal{height:calc(var(--settings-height,100dvh) - 28px)}
  #planDialog .modal-heading{padding:3px 10px;min-height:50px}
