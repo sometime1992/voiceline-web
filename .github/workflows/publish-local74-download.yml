@@ -1,9 +1,9 @@
-name: VoiceLine Local73 direct downloads
+name: VoiceLine Local74 direct downloads
 
 on:
   push:
     branches: [build/android-apk]
-    paths: [.github/workflows/publish-local73-download.yml]
+    paths: [.github/workflows/publish-local74-download.yml]
   workflow_dispatch:
 
 permissions: {}
@@ -18,16 +18,16 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: voiceline-local73-ci
-      SOURCE_RUN_ID: '41622961139'
-      SOURCE_COMMIT: 3830d4f330bb340dbf09eecf9e49338fe39b5b3d
+      RELEASE_TAG: voiceline-local74-ci
+      SOURCE_RUN_ID: '41632424673'
+      SOURCE_COMMIT: 1c5c9d3ec1e1dab44048db7d296936562868c205
     steps:
       - name: Verify complete build and Android results before publishing
         run: |
           gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
           gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
           gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$GITHUB_SHA" > publication-compare.json
-          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local73-Store-Media --dir verified-media
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local74-Store-Media --dir verified-media
           python3 - <<'PY'
           import json, os
           from pathlib import Path
@@ -46,28 +46,28 @@ jobs:
           assert json.loads((qa/'ANDROID16_SMOKE.json').read_text())['status']=='passed'
           update=json.loads((qa/'CI_INSTALL_NAME.json').read_text())
           assert update['status']=='passed'
-          assert update['before_version']=='2.0.0-local72-ci (87)'
-          assert update['after_version']=='2.0.0-local73-ci (88)'
+          assert update['before_version']=='2.0.0-local73-ci (88)'
+          assert update['after_version']=='2.0.0-local74-ci (89)'
           assert update['update_installed_without_uninstall'] and update['private_test_file_preserved']
           PY
       - name: Download and verify the exact tested APK
         run: |
-          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local73-APKs --dir dist
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local74-APKs --dir dist
           python3 - <<'PY'
           import hashlib, json, os, zipfile
           from pathlib import Path
           dist=Path('dist')
-          apk=dist/'VoiceLine-Local73-CI.apk'
+          apk=dist/'VoiceLine-Local74-CI.apk'
           verified=json.loads((dist/'APK_LABEL_VERIFIED.json').read_text())
           assert verified['source_commit']==os.environ['SOURCE_COMMIT']
-          assert verified['version_name']=='2.0.0-local73-ci' and verified['version_code']==88
+          assert verified['version_name']=='2.0.0-local74-ci' and verified['version_code']==89
           assert verified['package']=='com.voiceline.app.local18.ci45'
           assert verified['certificate_sha256']=='e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
           assert hashlib.sha256(apk.read_bytes()).hexdigest()==verified['apk_sha256']
           with zipfile.ZipFile(apk) as archive:
               assert archive.testzip() is None
           assert os.environ['SOURCE_COMMIT'] in (dist/'BUILD_INFO.txt').read_text()
-          package=dist/'VoiceLine-Local73-CI.zip'
+          package=dist/'VoiceLine-Local74-CI.zip'
           with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as archive:
               entry=zipfile.ZipInfo(apk.name,date_time=(2026,11,3,0,0,0))
               entry.compress_type=zipfile.ZIP_DEFLATED
@@ -77,32 +77,32 @@ jobs:
       - name: Create public test download links
         run: |
           cat > release-notes.md <<'NOTES'
-          ## VoiceLine Local73 · 가로·세로 스크롤 설정
+          ## VoiceLine Local74 · 루틴 연습 목록 정리
 
-          - 세로·가로 모두 루틴 구성의 전체 단계를 한 페이지에서 스크롤
-          - 현재 설정·전체 설정·변경 확인도 이전·다음 페이지 없이 스크롤
-          - 팝업 제목·닫기·하단 버튼은 고정해 언제든 적용·확인 가능
-          - 단계 관리 버튼을 펼쳐도 다른 단계가 다음 페이지로 밀리지 않음
-          - 단계 이동·삭제와 상세 적용 후 보던 목록 위치를 유지
-          - 기존 반투명 팝업 디자인과 일반 연습·녹음·채점 기능 유지
+          - 루틴 추가 목록에서 음정 측정과 녹음 제외
+          - 저장한 루틴을 불러올 때에도 두 기능의 단계는 제외
+          - 나머지 단계의 순서·고유 ID·시간·반복·상세설정과 루틴 이름 유지
+          - 일반 화면의 음정 측정과 녹음 기능 및 별도 설정 유지
+          - 녹음 파일·기록 저장 방식과 공통 실행 엔진 유지
+          - 세로·가로 스크롤 목록과 반투명 설정 팝업 디자인 유지
           - 기능·화면·Android16·업데이트 설치 검증 후 동일 APK 배포
-          - 버전 2.0.0-local73-ci (88), 기존 CI 인증서·패키지 유지
+          - 버전 2.0.0-local74-ci (89), 기존 CI 인증서·패키지 유지
 
-          앱 소스: https://github.com/sometime1992/voiceline-web/commit/3830d4f330bb340dbf09eecf9e49338fe39b5b3d
-          검증: https://github.com/sometime1992/voiceline-web/actions/runs/41622961139
+          앱 소스: https://github.com/sometime1992/voiceline-web/commit/1c5c9d3ec1e1dab44048db7d296936562868c205
+          검증: https://github.com/sometime1992/voiceline-web/actions/runs/41632424673
 
           APK 다운로드가 막히면 ZIP을 풀어 안의 동일 APK를 설치하세요. 기존 CI 앱 위에 업데이트 설치합니다. 실제 S24 Ultra 실기기 검사는 수행하지 않았습니다.
           NOTES
           if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local73 가로·세로 스크롤 설정 APK' --notes-file release-notes.md
-            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local73-CI.apk dist/VoiceLine-Local73-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+            gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local74 루틴 연습 목록 정리 APK' --notes-file release-notes.md
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local74-CI.apk dist/VoiceLine-Local74-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
           else
-            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --prerelease --title 'VoiceLine Local73 가로·세로 스크롤 설정 APK' --notes-file release-notes.md dist/VoiceLine-Local73-CI.apk dist/VoiceLine-Local73-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --prerelease --title 'VoiceLine Local74 루틴 연습 목록 정리 APK' --notes-file release-notes.md dist/VoiceLine-Local74-CI.apk dist/VoiceLine-Local74-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
           fi
       - name: Verify public downloads without authentication
         run: |
           mkdir -p "$RUNNER_TEMP/public-download-check"
-          for filename in VoiceLine-Local73-CI.apk VoiceLine-Local73-CI.zip; do
+          for filename in VoiceLine-Local74-CI.apk VoiceLine-Local74-CI.zip; do
             curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
           done
           cd "$RUNNER_TEMP/public-download-check"
@@ -110,7 +110,7 @@ jobs:
       - name: Keep the verified public download files
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local73-Public-Downloads
+          name: VoiceLine-Local74-Public-Downloads
           path: dist/
           if-no-files-found: error
           compression-level: 0
