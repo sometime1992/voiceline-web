@@ -45,7 +45,7 @@
    rounds:Math.round(numeric(value.rounds,1,0,999)),steps:Array.isArray(value.steps)?value.steps.slice(0,40).map(step):[]};
  }
  function normalize(value={}){
-  const settings={};for(const mode of [...Object.keys(MODES),'record'])settings[mode]=timing(mode,value?.settings?.[mode]);
+  const settings={};for(const mode of [...Object.keys(MODES),'record'])settings[mode]=timing(mode,['pitch','record'].includes(mode)?{seconds:0,rounds:1,rest:0}:value?.settings?.[mode]);
   const seen=new Set(),routines=[];
   for(const raw of (Array.isArray(value?.routines)?value.routines:[]).slice(0,50)){const r=routine(raw);r.steps=r.steps.filter(step=>ROUTINE_MODES.includes(step.mode));if(seen.has(r.id))r.id=id();seen.add(r.id);routines.push(r);}
   return {version:1,settings,routines};

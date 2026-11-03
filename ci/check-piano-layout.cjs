@@ -65,6 +65,8 @@ async function checkVolumeRange(page,id,valueId){
   await page.addInitScript(()=>{
    // Observe the real public mount callbacks without exposing test state in
    // the shipped app or reaching into piano.js's private closure.
+   // Reproduce an upgrade with obsolete automatic timers still in storage.
+   try{if(!localStorage.getItem('voiceline-ci-direct-mode-probe')){const key='voiceline-plans-v1',raw=JSON.parse(localStorage.getItem(key)||'{}');raw.settings=raw.settings||{};for(const mode of ['pitch','record'])raw.settings[mode]={seconds:.1,rounds:3,rest:.1};localStorage.setItem(key,JSON.stringify(raw));localStorage.setItem('voiceline-ci-direct-mode-probe','1');}}catch(_){}
    let dynamics;
    Object.defineProperty(window,'VoiceLineDynamics',{configurable:true,get:()=>dynamics,set(value){
     dynamics={...value,create(...args){const m=value.create(...args);if(m.patternId==='vowels'&&m.start>performance.now()+50)window.__vowelCourse=m;return m;},receive(...args){const result=value.receive(...args),p=args[0].samples.at(-1);if(p)window.__dynamicSamples.push({phase:p.phase,cue:p.cue,liveRms:p.liveRms,rms:p.rms,dt:p.dt});return result;}};window.__dynamicSamples=[];

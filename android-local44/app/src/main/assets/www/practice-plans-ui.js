@@ -3,7 +3,7 @@
  const api=root.VoiceLinePracticePlans;let storage;try{storage=root.localStorage;}catch(_){}
  let bridge=null,state=api.load(storage),runner=null,clock=null,clockToken=0,single=false,draft=null,editingMode=null,original=null;
  const $=id=>document.getElementById(id),el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
- const modes=Object.keys(api.MODES),practiceModes=modes.filter(m=>m!=='rest');
+ const modes=Object.keys(api.MODES),settingsModes=modes.filter(m=>!['rest','pitch','record'].includes(m));
  const copy=value=>JSON.parse(JSON.stringify(value));
  let editorView='overview',savedDraft=null,hasChanges=false,singleForm=null,displayBox=null,metaForm=null,addForm=null,activeStepId=null,addMode='practice',outlineAnchor='routine-meta',outlineScrollTop=0,detailsOrigin='overview',reviewReturn={view:'edit',step:null},layoutFrame=0;const routineForms=new Map();
  function stored(){try{state=api.save(storage,state);return true;}catch(_){status('저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 저장해 주세요.');return false;}}
@@ -139,6 +139,7 @@
   }return true;
  }
  function openMode(mode){
+  if(!settingsModes.includes(mode))return;
   if(locked()){bridge.notify('진행 중인 연습을 중단한 뒤 설정해 주세요.');return;}editingMode=mode;draft={timing:copy(timing(mode)),params:root.VoiceLinePracticeSettings.prepare(mode,bridge.capture(mode))};savedDraft=copy(draft);singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=false;editorView='overview';$('planDialog').dataset.editor='general';renderCurrent();status('');bridge.modalOpen('planDialog');fitCurrent();scheduleFit();
  }
  function selectedRoutine(){return state.routines.find(r=>r.id===$('planList').value);}
@@ -205,6 +206,6 @@
   if(menu){const b=el('button',undefined,'menu-tile');b.id='openRoutines';b.type='button';b.innerHTML='<span class="tile-icon">≡</span><span><strong>나의 루틴</strong><small>순서·시간·반복을 직접 구성</small></span>';b.onclick=()=>{bridge.modalClose('menuDialog');openRoutines();};menu.insertBefore(b,menu.querySelector('[data-screen="help"]'));}
   return root.VoiceLinePlansUI;
  }
- function controls(container,mode){$('customTimingOpen')?.remove();if(!bridge||!['record',...practiceModes].includes(mode))return;const b=el('button','연습 설정','mode-guide-button plan-time-button');b.type='button';b.id='customTimingOpen';b.setAttribute('aria-haspopup','dialog');b.onclick=()=>openMode(mode);$('modeGuideButton').parentElement.append(b);}
+ function controls(container,mode){$('customTimingOpen')?.remove();if(!bridge||!settingsModes.includes(mode))return;const b=el('button','연습 설정','mode-guide-button plan-time-button');b.type='button';b.id='customTimingOpen';b.setAttribute('aria-haspopup','dialog');b.onclick=()=>openMode(mode);$('modeGuideButton').parentElement.append(b);}
  root.VoiceLinePlansUI={mount,controls,timing,openMode,openRoutines,back,startSingle,cancel,trainingEnded,patternChanged,arm,volumeChanged:n=>{if(original)original.pianoVolume=n;},owns:token=>runner?.owns(token),showFinalResult:()=>{const s=runner?.snapshot();return single&&s&&s.plan.rounds!==0&&s.round===s.plan.rounds&&s.index===s.plan.steps.length-1&&s.stepRound===s.step.timing.rounds;},get active(){return Boolean(runner?.snapshot());},get token(){return runner?.token;}};
 })(globalThis);
