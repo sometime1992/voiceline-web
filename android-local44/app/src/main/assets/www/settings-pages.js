@@ -1,6 +1,10 @@
 'use strict';
 (function(root){
- let serial=0;
+ let serial=0,activeHold=null;
+ function cancelHold(){activeHold?.cancel();activeHold=null;}
+ root.addEventListener?.('blur',cancelHold);
+ root.addEventListener?.('resize',cancelHold);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelHold();});
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  const cleanLabel=label=>label.replace(/ \((?:초|%|BPM)\)$/,'');
  function heading(node,label,input,help,onHelp){
@@ -22,8 +26,14 @@
   const sync=()=>{output.textContent=input.value||'입력';minus.disabled=input.disabled||Number(input.value)<=min;plus.disabled=input.disabled||Number(input.value)>=max;if(chips)for(const b of chips.children)b.setAttribute('aria-pressed',String(Number(b.dataset.value)===Number(input.value)&&input.value!==''));};
   function check(){const ok=valid();error.hidden=ok;error.textContent=ok?'':min+'~'+max+' '+unitText+' · '+(step===1?'정수':'0.1 단위');return ok;}
   const activate=()=>{input.hidden=false;readout.hidden=true;input.focus({preventScroll:true});};readout.onclick=activate;
-  function change(delta){const old=Number(input.value),next=Math.min(max,Math.max(min,Math.round(((Number.isFinite(old)&&input.value!==''?old:Number(value))+delta)*10)/10));input.value=String(next);input.oninput();input.onchange?.();}
-  const minus=el('button','−','settings-number-minus'),plus=el('button','+','settings-number-plus');minus.type=plus.type='button';minus.setAttribute('aria-label',cleanLabel(label)+' 줄이기');plus.setAttribute('aria-label',cleanLabel(label)+' 늘리기');minus.onclick=()=>change(-step);plus.onclick=()=>change(step);
+  function change(delta){const old=Number(input.value),next=Math.min(max,Math.max(min,Math.round(((Number.isFinite(old)&&input.value!==''?old:Number(value))+delta)*10)/10));input.value=String(next);input.oninput();input.onchange?.();return next!==old;}
+  const minus=el('button','−','settings-number-minus'),plus=el('button','+','settings-number-plus');minus.type=plus.type='button';minus.setAttribute('aria-label',cleanLabel(label)+' 줄이기');plus.setAttribute('aria-label',cleanLabel(label)+' 늘리기');
+  for(const [button,delta]of [[minus,-step],[plus,step]]){
+   const hold=root.VoiceLineMetronome.bindRepeatButton(button,()=>change(delta),{
+    beforeStart:()=>{cancelHold();activeHold=hold;},
+    allowed:()=>!document.hidden&&node.isConnected&&button.getClientRects().length>0
+   });
+  }
   let chips=null;if(presets){chips=el('div',undefined,'settings-presets');for(const n of presets.filter(n=>n>=min&&n<=max)){const b=el('button',n+unitText);b.type='button';b.dataset.value=n;b.onclick=()=>{input.value=String(n);input.oninput();input.onchange?.();};chips.append(b);}}
   input.oninput=()=>{check();sync();onInput?.(input,valid());};input.onblur=()=>{if(input._settingsReflow)return;if(check()){input.hidden=true;readout.hidden=false;}sync();};input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();input.blur();}};input.syncControl=sync;
   heading(node,label,input,help,onHelp);const middle=el('div',undefined,'settings-number-middle');middle.append(readout,input);row.append(minus,middle,plus);node.append(row);if(chips)node.append(chips);node.append(error);sync();

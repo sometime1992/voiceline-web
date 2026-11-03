@@ -17,6 +17,7 @@ module.exports=async function checkPlans(page,choose,output){
   }
   await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});await page.locator('#planClose').click();report.push(mode+' shared settings, summary and 100/120/150% reflow in portrait and landscape');
  }
+ report.push(await require('./check-settings-hold.cjs')(page,choose,output));
  // Review is a draft transaction: neither preferences nor live audio change until final save.
  await choose(page,'practice');await page.locator('#customTimingOpen').click();
  const snapshot=()=>page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()}));const initial=await snapshot();
