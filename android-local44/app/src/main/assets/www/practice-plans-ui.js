@@ -117,7 +117,7 @@
   $('planBack').textContent=['overview','saved','review'].includes(editorView)?'전체':editorView==='details'?'뒤로':editorView==='edit'?(editingMode?'현재':'단계'):editingMode?'현재':activeStepId?'단계':'현재';
   $('planSave').hidden=focus||routine;$('planSave').textContent=editorView==='review'?'다시 수정':editorView==='details'?'돌아가기':hasChanges?'수정 계속':'수정';
   $('planRun').textContent=focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;
-  const arrows=state.count>1;$('planPrev').hidden=$('planNext').hidden=!arrows;$('planPrev').disabled=!state.previous;$('planNext').disabled=!state.next;
+  const arrows=routine||state.count>1;$('planPrev').hidden=$('planNext').hidden=!arrows;$('planPrev').disabled=!state.previous;$('planNext').disabled=!state.next;
  }
  function changeView(view){
   bridge.stopPreview?.();document.activeElement?.blur();status('');editorView=view;
