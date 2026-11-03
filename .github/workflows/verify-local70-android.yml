@@ -1,4 +1,5 @@
 name: VoiceLine Local70 exact APK Android verification
+# Use the current smoke driver with a fresh Activity after font-scale setup.
 
 on:
   push:
