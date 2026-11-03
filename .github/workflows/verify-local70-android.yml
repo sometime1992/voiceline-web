@@ -1,5 +1,6 @@
 name: VoiceLine Local70 exact APK Android verification
 # Use the current smoke driver with a fresh Activity after font-scale setup.
+# Scroll through observed card gutters to avoid native select controls.
 
 on:
   push:
