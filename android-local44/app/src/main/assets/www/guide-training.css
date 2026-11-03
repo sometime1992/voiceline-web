@@ -1,0 +1,62 @@
+/* The phrase occupies the existing piano area; settings stay in a dialog. */
+.menu-tile .guide-menu-icon{display:block;width:1em;height:1em;max-width:100%;margin:auto;overflow:hidden}
+.app.guide-mode .piano-topline,.app.guide-mode #keyboard{display:none}
+.app.guide-mode #exerciseControls{overflow:hidden;gap:7px;padding-right:0}
+.app.guide-mode #exerciseControls label{flex:1 1 auto;min-width:0}
+.app.guide-mode #guidePattern{min-width:0;max-width:100%;width:100%}
+.app.guide-mode .practice-scroll-arrow{display:none!important}
+.app.guide-mode .piano-area{padding:7px 10px max(7px,env(safe-area-inset-bottom))}
+.guide-voice-panel{display:flex;flex:1;min-height:0;overflow:hidden;background:#1b2034;border:1px solid #6ed4be70;border-radius:15px;padding:10px;gap:12px}
+.guide-phrase-main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:5px}
+.guide-phase-row{display:flex;gap:10px;align-items:center;justify-content:space-between;min-width:0}
+.guide-phase-row strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9df8df;font-size:clamp(17px,2.6vw,27px);line-height:1.15}
+.guide-phase-row span{flex:0 1 auto;min-width:0;max-width:55%;overflow:hidden;text-overflow:ellipsis;color:#c5c9dd;font-size:12px;white-space:nowrap}
+.guide-voice-panel[data-phase=answer] .guide-phase-row strong{color:#efb4ff}
+.guide-phrase-main>p{margin:0;color:#cdd5e7;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guide-graph-stage{position:relative;flex:1;min-height:0;overflow:hidden}
+.guide-phrase-main canvas{position:absolute;inset:0;display:block;min-height:0;width:100%;height:100%}
+.guide-start-cue{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+ background:#121a2de8;border:1px solid #ffd68166;border-radius:10px;color:#fff0bd;pointer-events:none;overflow:hidden;padding:5px}
+.guide-start-cue strong{font-size:clamp(30px,11vh,70px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums}
+.guide-start-cue span{font-size:clamp(11px,1.4vw,15px);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.guide-voice-panel[data-phase=answer] .guide-start-cue{inset:5px 9px auto auto;flex-direction:row;gap:7px;padding:6px 10px;background:#3b294cf2;border-color:#efb4ff88;color:#f6d9ff}
+.guide-voice-panel[data-phase=answer] .guide-start-cue strong{font-size:20px}
+.guide-voice-panel[data-phase=handoff]{border-color:#ffd681b0}
+.guide-voice-panel[data-phase=handoff] .guide-phase-row strong{color:#ffdc91}
+.guide-legend{display:flex;gap:8px;flex:none;min-width:0;height:12px;line-height:12px;overflow:hidden;font-size:10px;color:#d1d7e9}
+.guide-legend span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guide-legend span:last-child{text-align:right}
+.guide-legend span:before{content:"";display:inline-block;width:12px;height:3px;background:#83f5d6;vertical-align:middle;margin-right:5px}
+.guide-legend span:last-child:before{background:#efb4ff}
+.guide-scoreboard{flex:0 0 clamp(130px,20%,220px);display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:6px;min-height:0}
+.guide-scoreboard>div{background:#12182c;border:1px solid #ffffff18;border-radius:10px;padding:7px 9px;display:flex;flex-direction:column;justify-content:center;min-height:0;gap:2px}
+.guide-scoreboard span,.guide-scoreboard small{font-size:10px;color:#c2c9df}
+.guide-scoreboard strong{font-size:clamp(17px,2.2vw,27px);color:#b9fce5;line-height:1.1;font-variant-numeric:tabular-nums}
+.guide-scoreboard strong[data-match=near]{color:#9af0cf}
+.guide-scoreboard strong[data-match=away]{color:#ffd38b}
+.guide-settings-modal{max-width:740px}
+.guide-settings-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.guide-settings-fields label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#cfd3e6;min-width:0}
+.guide-settings-fields select,.guide-settings-fields input{min-width:0;min-height:39px;border:1px solid #ffffff40;border-radius:9px;background:#2b2c45;color:#fff;padding:7px}
+.guide-settings-fields input[type=range]{accent-color:#8aeccd;padding:0}
+.guide-settings-note{font-size:12px;line-height:1.5;color:#cdd2e7}
+.guide-settings-actions{display:flex;justify-content:flex-end;gap:9px}
+.guide-settings-actions button{border:1px solid #75d6bc80;border-radius:9px;background:#244e48;color:#c4ffed;padding:9px 18px}
+@media(max-height:410px){
+ .guide-voice-panel{padding:6px 8px;gap:8px;border-radius:11px}
+ .guide-phase-row strong{font-size:18px}.guide-phase-row span{font-size:10px}
+ .guide-phrase-main{gap:3px}.guide-phrase-main>p{font-size:10px}
+ .guide-scoreboard{flex-basis:135px;gap:4px}.guide-scoreboard>div{padding:4px 7px}
+ .guide-scoreboard strong{font-size:19px}.guide-scoreboard small{font-size:9px}
+ .guide-settings-modal{padding:12px 16px}.guide-settings-modal h2{font-size:20px}
+ .guide-settings-fields{gap:7px 12px}.guide-settings-fields select,.guide-settings-fields input{min-height:32px;padding:4px 7px}
+ .guide-settings-note{font-size:11px;margin:7px 0}
+}
+@media(max-width:720px){
+ .app.guide-mode .note-panel{width:auto;overflow:hidden}
+ .app.guide-mode .note-panel .label{overflow:hidden}
+ .app.guide-mode #guideSettingsOpen{font-size:10px;padding:3px 7px}
+ .app.guide-mode #guidePattern{font-size:10px}
+ .guide-scoreboard{flex-basis:114px}.guide-scoreboard strong{font-size:17px}
+ .guide-phase-row span{max-width:45%;overflow:hidden;text-overflow:ellipsis}
+}

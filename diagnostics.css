@@ -1,0 +1,25 @@
+/* Mobile-first microphone health indicators, independent of the pitch renderer. */
+.mic-monitor{padding:11px 14px;margin:5px 0 13px;border:1px solid #536679;background:#1a2b37;border-radius:14px;min-width:0}
+.mic-monitor[hidden]{display:none!important}
+.mic-monitor-head{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#e0fff8;font-size:13px;font-weight:750}
+.mic-monitor-head strong{font-variant-numeric:tabular-nums;flex-shrink:0}
+.mic-meter-track{background:#304453;height:8px;border-radius:999px;overflow:hidden;margin-top:9px}
+#micLevelBar{display:block;height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#8be1e4,#cfb6ff);transition:width .1s ease}
+.mic-monitor p{color:#bfced6;font-size:12px;line-height:1.5;margin:7px 0 0}
+.diagnostic-panel{margin:20px 0;padding:18px 20px}
+.diagnostic-panel summary{cursor:pointer;font-weight:750;line-height:1.5;font-size:15px;color:#f8f5ff;list-style:revert}
+.diagnostic-panel p{font-size:13px;color:#e0d9e8;line-height:1.6}
+.diagnostic-data{font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.8;background:#151923;padding:14px;color:#d5f6ed;border:1px solid #506073;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.diagnostic-buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.diagnostic-buttons button{min-height:44px;font-size:13px}
+.diagnostic-foot{font-size:12px!important}
+@media(max-width:600px){
+ .live-card #micMonitor{order:2}
+ .live-card .readout{order:3}
+ .live-card .graph-head{order:4}
+ .live-card .chart-wrap{order:5}
+ .live-card .graph-bottom{order:6}
+ .live-card .progress-section{order:7}
+ .live-card .notice{order:8}
+ .diagnostic-panel{padding:15px}
+}

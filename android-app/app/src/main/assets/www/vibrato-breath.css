@@ -1,0 +1,26 @@
+/* Accessible controls for new breathing and vibrato training modes */
+.field input[type=number]{color:#fff;background:#282438;border:1px solid #65577f;border-radius:10px;width:100%;height:44px;padding:9px 12px;font-size:15px;font-weight:650;min-width:0}
+.field input[type=range]{accent-color:#a9e8ea;width:100%;height:30px;cursor:pointer}
+.field span b{color:#a8eef3;font-variant-numeric:tabular-nums;font-size:13px}
+.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.metric-grid>div{background:#312c47;border:1px solid #5d506f;border-radius:11px;padding:11px 10px;min-width:0}
+.metric-grid small{display:block;color:#d0c9df;font-size:11px;line-height:1.5}
+.metric-grid strong{font-size:clamp(15px,2.3vw,22px);color:white;font-variant-numeric:tabular-nums;display:block;margin-top:4px;overflow-wrap:anywhere}
+.metric-caption{font-size:12px;color:#d5ccec;line-height:1.65}
+.breath-stage{background:linear-gradient(130deg,#302347,#18283e);padding:18px;border:1px solid #645486;border-radius:16px;text-align:center}
+.breath-orb{height:160px;width:160px;max-width:95%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:50%;margin:5px auto 15px;background:radial-gradient(circle at 35% 30%,#bcb1f7,#7757c2 65%,#3e2a6b);border:2px solid #c5b5ff;box-shadow:0 0 35px #ac90fb42;transition:transform .4s ease,background .4s ease}
+.breath-orb[data-stage=in]{transform:scale(1.07)}
+.breath-orb[data-stage=out]{transform:scale(.92);background:radial-gradient(circle at 35% 30%,#8cd7d9,#498cae 65%,#275779)}
+.breath-orb[data-stage=hold]{background:radial-gradient(circle at 35% 30%,#e3c4da,#99688e 65%,#5f3b62)}
+.breath-orb span{font-size:17px;color:#fff;font-weight:800}
+.breath-orb strong{font-size:35px;color:white;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.breath-stage p{font-size:14px;color:#eae5fa;font-weight:650}
+.breath-stage .progress-track{height:9px}
+.breath-presets{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0 4px}
+.breath-presets button{padding:8px 9px;min-height:40px;border:1px solid #7968a1;border-radius:10px;background:#312744;color:#eae2ff;font-size:12px}
+.breath-presets button:hover{background:#55416e}
+.breath-actions{margin-top:12px}
+.breath-actions .btn-outline{margin-top:0;flex:1}
+.breath-actions .btn-secondary{min-height:43px}
+#breathControls .desc{margin:15px 0}
+@media(max-width:420px){.metric-grid{gap:5px}.metric-grid>div{padding:8px 6px}.metric-grid small{font-size:10px}.metric-grid strong{font-size:15px}.breath-orb{width:140px;height:140px}.breath-orb strong{font-size:30px}}

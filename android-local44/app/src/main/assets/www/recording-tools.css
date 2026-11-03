@@ -1,0 +1,27 @@
+/* Recording management stays in a dialog; the landscape keyboard keeps its space. */
+.record-storage-info{display:block;color:#badfcf;font-size:11px;line-height:1.3;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-search-row{display:flex;gap:8px;margin:6px 0 12px;min-width:0}
+.info-body .history-search-row input{flex:1;min-width:0;min-height:38px;font:inherit;font-size:14px;border:1px solid #85809d;border-radius:9px;padding:7px 10px;background:#24263d;color:#f4f2ff}
+.info-body .record-more{min-width:38px;font-size:20px;padding:3px 9px;line-height:1}
+.record-tools-backdrop,.warmup-settings-backdrop{z-index:70}
+.record-tools-modal,.warmup-settings-modal{width:min(640px,94vw);padding:16px;color:#f3f3ff}
+.record-tools-modal h2,.warmup-settings-modal h2{margin:0;font-size:20px}
+.record-tools-modal .modal-heading,.warmup-settings-modal .modal-heading{align-items:center;margin-bottom:10px}
+.record-tools-info{font-size:12px;line-height:1.4;color:#c8c7db;margin:7px 0 12px;overflow-wrap:anywhere}
+.record-tools-modal label,.warmup-settings-modal label{font-size:13px;color:#e1dfef}
+.record-title-row{display:flex;gap:8px;margin-top:5px;min-width:0}
+.record-tools-modal button:not(.close-btn),.warmup-settings-modal button:not(.close-btn){min-height:38px;font-family:inherit;font-size:13px;border:1px solid #7e7895;border-radius:9px;padding:7px 12px;background:#303249;color:#f6f4ff;white-space:nowrap}
+.record-tools-modal input,.warmup-settings-fields input{min-height:38px;min-width:0;max-width:100%;font:inherit;font-size:15px;color:#f6f4ff;background:#26283e;border:1px solid #827d99;border-radius:9px;padding:7px 10px}
+.record-title-row input{flex:1}.record-export-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+.record-tools-modal .record-export-actions button{background:#28564d;border-color:#87d8bc;font-size:15px;font-weight:750;min-height:43px}
+.record-tools-bottom{display:flex;align-items:center;gap:12px;justify-content:space-between}.record-tools-bottom p{margin:5px 0;font-size:12px;line-height:1.4;color:#d2f5e5;overflow-wrap:anywhere}
+.record-tools-modal .record-danger{background:#583348;border-color:#d89db8;color:#ffe9f2}
+.record-tools-modal button:disabled{opacity:.5}
+.warmup-settings-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.warmup-settings-fields label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.warmup-cue-option{display:flex;align-items:center;gap:8px;margin:12px 0}.warmup-cue-option input{accent-color:#83e4bf;width:20px;height:20px}
+.warmup-settings-actions{display:flex;justify-content:flex-end;gap:8px}
+.record-tools-modal :is(input,button):focus-visible,.warmup-settings-modal :is(input,button):focus-visible{outline:3px solid #b0ffe4;outline-offset:2px}
+.recovery-error{font-size:12px;line-height:1.4;color:#ffdcaa}
+@media(max-height:360px){.record-tools-modal,.warmup-settings-modal{padding:11px 14px}.record-tools-info{margin:5px 0 8px}.record-export-actions{margin-top:9px}.record-tools-modal h2,.warmup-settings-modal h2{font-size:17px}.record-export-actions{gap:7px}}
+@media(max-width:600px){.warmup-settings-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.record-tools-modal button:not(.close-btn){padding:6px 8px;font-size:12px}}

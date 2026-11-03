@@ -1,0 +1,12 @@
+VoiceLine Local 25 — 저장 기록 삭제 확인창 개선
+
+- 기존 Android WebView window.confirm() 삭제: 가상 주소(appassets.androidplatform.net)가 표시되지 않습니다.
+- 녹음 삭제/연습 기록 삭제에 앱 고유 확인창 적용, 취소/삭제 및 복구불가 안내.
+- 삭제 확인은 사용자가 직접 선택할 때까지 유지되며, 확인 전에는 IndexedDB가 변경되지 않습니다.
+- 취소, ESC 키 또는 창 바깥 누르기로 삭제하지 않고 닫습니다.
+- 삭제 성공 시 기존과 같이 현재 목록·개수·빈 상태를 즉시 갱신합니다.
+- 삭제 중 중복 터치 차단 및 오류 처리 유지.
+- 기존 피아노, 비브라토, 마이크, 녹음, 반복 연습 등 유지.
+- GitHub Actions, 온라인 빌드 사용하지 않음.
+
+Android Studio: VoiceLine_AndroidStudio 폴더를 연 뒤 Gradle 동기화, Run(app).

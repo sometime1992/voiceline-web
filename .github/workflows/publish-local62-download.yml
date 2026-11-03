@@ -1,0 +1,99 @@
+name: VoiceLine Local62 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local62-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local62-ci
+      SOURCE_RUN_ID: '41403897225'
+      SOURCE_COMMIT: 39580262910e6bfa254531648a2e27193ce91145
+      APK_SHA256: cf052b13078efe3e9010cc71a3420f2f0f4fde3b32516c0c8356d10c4769b5ed
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh run watch "$SOURCE_RUN_ID" --repo "$GH_REPO" --exit-status --interval 10
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local62-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local62-CI.apk'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ['APK_SHA256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local62-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 2, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## VoiceLine Local62 · 모음 강약 연습
+
+          - 발성 강약 조절의 연습 방법에 모음 강약 · 아에이오우 추가
+          - 아 → 에 → 이 → 오 → 우, 각 모음에서 약하게 → 점점 크게 → 점점 작게
+          - 기본은 모음마다 2·3·3초, 모음 사이 들이쉬기 3초로 총 52초
+          - 모음마다 약한 목소리 기준을 따로 설정하고, 모음 사이 호흡은 채점 제외
+          - 시간·반복과 루틴에서 19개 구간의 길이와 반복을 각각 저장
+          - 현재 모음·강약 방향·그래프·남은 시간, 가로/세로와 그래프 숨김 지원
+          - 발음 자체가 아닌 음정과 상대 강약을 측정
+          - 버전 2.0.0-local62-ci (77), 설치 이름 VoiceLine
+          - 기존 Local61 테스트 앱에 삭제 없이 업데이트 설치
+
+          발성 강약 조절 → 연습 방법 → 모음 강약 · 아에이오우를 선택하세요. 편안한 범위에서 발성하고 시간·반복에서 구간 길이를 조절할 수 있습니다. 이 파일은 설치 테스트용이며 Play 업로드용 서명 AAB는 별도입니다.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local62-CI.apk dist/VoiceLine-Local62-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local62 모음 강약 연습 APK' --notes-file release-notes.md dist/VoiceLine-Local62-CI.apk dist/VoiceLine-Local62-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local62-CI.apk VoiceLine-Local62-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
+      - name: Verify public privacy policy without authentication
+        run: |
+          curl --fail --location --retry 2 --retry-all-errors --max-time 45 --output "$RUNNER_TEMP/voiceline-public-policy.html" 'https://mindup-studio.pages.dev/apps/voiceline/privacy.html'
+          python3 - <<'PY_POLICY'
+          import os
+          from pathlib import Path
+          text = (Path(os.environ['RUNNER_TEMP']) / 'voiceline-public-policy.html').read_text()
+          assert 'VoiceLine 개인정보처리방침' in text
+          assert '마이크' in text and '마인드업 스튜디오' in text and 'grand4870@gmail.com' in text
+          PY_POLICY

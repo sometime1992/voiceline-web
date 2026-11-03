@@ -1,0 +1,18 @@
+{
+  "name": "voiceline-android-audio-build",
+  "private": true,
+  "version": "2.0.0-beta15",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/piano.test.cjs",
+    "piano:download": "node scripts/fetch-salamander-samples.mjs",
+    "piano:bundle": "esbuild scripts/tone-piano-entry.mjs --bundle --format=iife --platform=browser --target=es2020 --minify --outfile=android-app/app/src/main/assets/www/vendor/tone-piano.js"
+  },
+  "dependencies": {
+    "@tonejs/piano": "0.2.1",
+    "tone": "14.7.77"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

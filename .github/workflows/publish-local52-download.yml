@@ -1,0 +1,88 @@
+name: VoiceLine Local52 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local52-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local52-ci
+      SOURCE_RUN_ID: '41256427165'
+      SOURCE_COMMIT: 08372ec71bebdfc446427dfc88137271ae33e530
+      APK_SHA256: 11dacdd7406c0bf3cb8d86771240f6fd65202f299f85c6348bd4b7694d3b2120
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local52-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local52-CI.apk'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ['APK_SHA256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local52-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 1, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## 보이스라인 Local52 테스트 APK
+
+          아래 Assets에서 APK 또는 ZIP을 받아 기존 앱에 업데이트 설치하세요.
+
+          - 음계·도약에서 목표음 사이의 민트색 수직 연결선 제거
+          - 각 음의 유지 시간을 독립된 가로선과 음정 허용 범위로 표시
+          - 연속 슬라이드는 이어진 목표선 유지
+          - 화면 안내·설명·접근성 설명에 두 방식의 차이 반영
+          - 목표 음정·시간·음원·채점 기준 유지
+          - 자동 검사 280개, 가로·세로 화면 배치 63건과 실제 그래프·훈련·회전·숨김 검사 통과
+          - APK 서명과 모든 내장 파일 검증 완료
+
+          기존 CI45~51 앱의 녹음·연습 기록을 유지합니다. 기존 앱에 업데이트 설치하세요.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local52-CI.apk dist/VoiceLine-Local52-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local52 CI45 테스트 APK' --notes-file release-notes.md dist/VoiceLine-Local52-CI.apk dist/VoiceLine-Local52-CI.zip dist/BUILD_INFO.txt dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local52-CI.apk VoiceLine-Local52-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"

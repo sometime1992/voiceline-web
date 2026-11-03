@@ -1,0 +1,114 @@
+name: VoiceLine Local68 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local68-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local68-ci
+      SOURCE_RUN_ID: '41558881033'
+      SOURCE_COMMIT: 2eaa725868067cac66718539963ff0c6d365a527
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh run watch "$SOURCE_RUN_ID" --repo "$GH_REPO" --exit-status --interval 10
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$GITHUB_SHA" > publication-compare.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          comparison=json.loads(Path('publication-compare.json').read_text())
+          assert comparison['status'] in ('ahead','identical')
+          assert not any(f['filename'].startswith('android-local44/') for f in comparison['files']), 'App changed since verification'
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local68-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local68-CI.apk'
+          verified = json.loads((dist / 'APK_LABEL_VERIFIED.json').read_text())
+          assert verified['source_commit'] == os.environ['SOURCE_COMMIT']
+          assert verified['version_name'] == '2.0.0-local68-ci' and verified['version_code'] == 83
+          assert verified['package'] == 'com.voiceline.app.local18.ci45'
+          assert verified['certificate_sha256'] == 'e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == verified['apk_sha256'] == 'e758774638aa2996a6c78a6cda52bdc4327542f3ca0df93581a6b899b0a2491a'
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local68-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 3, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## VoiceLine Local68 · 전체 화면과 항목별 짧은 설정 페이지
+
+          - 현재 설정 → 수정 → 항목별 편집 → 변경 확인 → 최종 저장
+          - 전체 화면을 사용하고 한 페이지에 관련 설정 1~2개만 표시
+          - 항목 메뉴로 바로 이동하며 이전·다음으로 페이지 전환
+          - 숫자는 −/+와 빠른 값으로 조절, 값을 눌렀을 때만 키보드로 직접 입력
+          - 키보드·회전 중에도 입력 중인 항목과 값·포커스 유지
+          - 확인 화면은 변경 항목부터 표시하고 전체 상세 설정은 페이지로 확인
+          - 최대 20음 청음·64박 강세·40단계 루틴도 긴 목록 없이 편집
+          - 일반 설정과 루틴의 임시 변경은 최종 저장 전까지 실행 설정에 적용하지 않음
+          - 듣기·호흡 준비 중 보라색 감지 건반을 숨기는 기존 동작 유지
+          - 347개 회귀 검사, 251개 설정 화면 흐름, 22개 일반 설정·루틴 실행 검사 통과
+          - 가로·세로, 글자 100/120/150%에서 편집 본문 스크롤·가림 검사
+          - Android 16 시스템 글자 150% 가로·세로·직접 입력·확인 후 복귀·저장 재열기 검증
+          - 앱 소스: https://github.com/sometime1992/voiceline-web/commit/2eaa725868067cac66718539963ff0c6d365a527
+          - 버전 2.0.0-local68-ci (83), 설치 이름 VoiceLine
+          - Local67에서 삭제 없는 업데이트 설치와 내부 시험 파일 보존 확인
+
+          APK 다운로드가 막히면 ZIP을 받아 압축을 푼 뒤 APK를 실행하세요. 실제 휴대폰 검사는 별도로 필요하며 Play Console 업로드·심사 제출은 수행하지 않았습니다.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local68 항목별 전체 화면 설정 APK' --notes-file release-notes.md
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local68-CI.apk dist/VoiceLine-Local68-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --prerelease --title 'VoiceLine Local68 항목별 전체 화면 설정 APK' --notes-file release-notes.md dist/VoiceLine-Local68-CI.apk dist/VoiceLine-Local68-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local68-CI.apk VoiceLine-Local68-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
+      - name: Verify public privacy policy without authentication
+        run: |
+          curl --fail --location --retry 2 --retry-all-errors --max-time 45 --output "$RUNNER_TEMP/voiceline-public-policy.html" 'https://mindup-studio.pages.dev/apps/voiceline/privacy.html'
+          python3 - <<'PY_POLICY'
+          import os
+          from pathlib import Path
+          text = (Path(os.environ['RUNNER_TEMP']) / 'voiceline-public-policy.html').read_text()
+          assert 'VoiceLine 개인정보처리방침' in text
+          assert '마이크' in text and '마인드업 스튜디오' in text and 'grand4870@gmail.com' in text
+          PY_POLICY

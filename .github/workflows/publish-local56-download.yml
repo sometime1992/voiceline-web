@@ -1,0 +1,111 @@
+name: VoiceLine Local56 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local56-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local56-ci
+      SOURCE_RUN_ID: '41293263668'
+      SOURCE_COMMIT: b542a58544b32fc8fcdc63041253038aee976ee7
+      APK_SHA256: e727d2d36e20ae018eae4192e5e50163e7a4b39040b97785673f6410129a586d
+    steps:
+      - name: Verify the exact successful source build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run = json.loads(Path('source-run.json').read_text())
+          assert run['conclusion'] == 'success', run['conclusion']
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT'], run['head_sha']
+          PY
+      - name: Download and verify the already tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local56-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, os, zipfile
+          from pathlib import Path
+          dist = Path('dist')
+          apk = dist / 'VoiceLine-Local56-CI.apk'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest() == os.environ['APK_SHA256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          info = (dist / 'BUILD_INFO.txt').read_text()
+          assert os.environ['SOURCE_COMMIT'] in info
+          assert 'com.voiceline.app.local18.ci45' in info
+          package = dist / 'VoiceLine-Local56-CI.zip'
+          with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
+              entry = zipfile.ZipInfo(apk.name, date_time=(2026, 11, 1, 0, 0, 0))
+              entry.compress_type = zipfile.ZIP_DEFLATED
+              archive.writestr(entry, apk.read_bytes())
+          sums = [hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name
+                  for p in [apk, package]]
+          (dist / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## VoiceLine Local56 설치 이름 수정
+
+          설치 이름을 VoiceLine으로 수정한 업데이트 APK입니다.
+
+          - 테스트 APK 전용의 ‘보이스라인 CI45’ 이름 덮어쓰기 제거
+          - 버전 2.0.0-local56-ci (71)
+          - 실제 APK의 앱 이름과 런처 이름을 검사해 VoiceLine과 다르면 빌드 중단
+          - Android16에서 이전 제공 Local55 APK 위에 삭제 없이 업데이트하고, Android 앱 정보에 VoiceLine으로 표시되는 것 확인
+          - 기존 패키지·CI 서명 유지, 비공개 저장 공간의 테스트 파일 보존 확인
+          - 피아노·연습·호흡·녹음 등 기존 기능 유지
+
+          기존 CI 앱을 삭제하지 말고 이 APK로 업데이트 설치하세요.
+          이 파일은 설치 테스트용 APK이며, 앞서 제공한 Play 제출용 AAB 2.0.0 (70)은 그대로 사용할 수 있습니다.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local56-CI.apk dist/VoiceLine-Local56-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$SOURCE_COMMIT" --prerelease --title 'VoiceLine Local56 설치 이름 수정 APK' --notes-file release-notes.md dist/VoiceLine-Local56-CI.apk dist/VoiceLine-Local56-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local56-CI.apk VoiceLine-Local56-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
+      - name: Verify public privacy policy without authentication
+        run: |
+          curl --fail --location --retry 2 --retry-all-errors --max-time 45 --output "$RUNNER_TEMP/voiceline-public-policy.html" 'https://voiceline-privacy-sometime1992.quantum4870.chatgpt.site/'
+          python3 - <<'PY_POLICY'
+          import os
+          from pathlib import Path
+          text = (Path(os.environ['RUNNER_TEMP']) / 'voiceline-public-policy.html').read_text()
+          assert '<title>VoiceLine 개인정보처리방침</title>' in text
+          assert '마이크' in text and '운영자' in text and '개발자 문의' in text
+          PY_POLICY
+      - name: Correct the previous release name notice
+        run: |
+          gh release view voiceline-local55-ci --repo "$GH_REPO" --json body > previous-notes.json
+          python3 - <<'PY_NOTES'
+          import json
+          from pathlib import Path
+          body = json.loads(Path('previous-notes.json').read_text()).get('body') or ''
+          marker = '설치 이름 수정: Local56'
+          if marker not in body:
+              body = '## 설치 이름 수정: Local56\n\n이 Local55 APK에는 테스트용 설치 이름이 남아 있습니다. [수정된 Local56 APK·ZIP](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local56-ci)을 받으세요. 기존 앱은 삭제하지 않고 업데이트할 수 있습니다.\n\n' + body
+          Path('previous-notes-updated.md').write_text(body)
+          PY_NOTES
+          gh release edit voiceline-local55-ci --repo "$GH_REPO" --notes-file previous-notes-updated.md

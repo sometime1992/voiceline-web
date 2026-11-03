@@ -1,0 +1,130 @@
+name: VoiceLine Local72 exact APK Android verification
+# Reuse the exact tested APK after the first emulator disconnected.
+# A fresh runner isolates Android verification from browser and Gradle processes.
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/verify-local72-android.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_RUN_ID: '41612317822'
+      SOURCE_COMMIT: e6bb87264face0fd5c2418bf2863eb0eb9ae4b57
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify the existing exact source build
+        run: |
+          git fetch --depth=1 origin "$SOURCE_COMMIT"
+          git diff --exit-code "$SOURCE_COMMIT" HEAD -- android-local44
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run=json.loads(Path('source-run.json').read_text())
+          assert run['head_sha']==os.environ['SOURCE_COMMIT']
+          jobs=json.loads(Path('source-jobs.json').read_text())['jobs']
+          steps=next(j['steps'] for j in jobs if j['name']=='apk')
+          required=['Test recording, dynamics calibration, training and adaptive layout','Check every keyboard size and live graph in Chromium','Build separately installable CI APK','Verify signatures, package IDs, version and every offline asset','Check unsigned release AAB and Android lint','Verify release-review bundle assets','Validate production bundle and prepare emulator review APK']
+          for name in required: assert next(s for s in steps if s['name']==name)['conclusion']=='success',name
+          assert [s['name'] for s in steps if s['conclusion']=='failure']==['Android 16 production smoke test and store screenshots']
+          PY
+      - name: Reuse the exact verified APKs and bundle runtime
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local72-APKs --dir dist
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local72-Release-Readiness --dir .
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local72-Store-Media --dir old-media
+          python3 - <<'PY'
+          import hashlib,json,os,shutil,zipfile
+          from pathlib import Path
+          apk=Path('dist/VoiceLine-Local72-CI.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='14dec1d732a5520e6d69879d172590015a7a9e5a3386b333c1683bb9ab57513a'
+          info=json.loads(Path('dist/APK_LABEL_VERIFIED.json').read_text())
+          assert info['source_commit']==os.environ['SOURCE_COMMIT'] and info['version_code']==87
+          assert info['certificate_sha256']=='e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          assets=Path('android-local44/app/src/main/assets')
+          with zipfile.ZipFile(apk) as z:
+              for p in assets.rglob('*'):
+                  if p.is_file():assert p.read_bytes()==z.read('assets/'+p.relative_to(assets).as_posix()),p
+          assert hashlib.sha256(Path('release-review/previous-Local71-CI.apk').read_bytes()).hexdigest()=='107681cd1d046f82f94a302d499bb6be88a20a1a7180a258f4c239eddca1b6d7'
+          Path('store-media').mkdir(exist_ok=True)
+          for name in ['icon-512.png','feature-graphic-1024x500.png','MEDIA_INFO.json']:shutil.copyfile(Path('old-media/store-media')/name,Path('store-media')/name)
+          PY
+      - name: Wait for WebView accessibility after keyboard resize
+        run: |
+          python3 - <<'PYWAIT'
+          from pathlib import Path
+          p=Path('ci/android-release-smoke.py')
+          old="""    document=tree()
+              edit=next((n for n in document.iter('node') if n.attrib.get('class')=='android.widget.EditText' and n.attrib.get('focused')=='true'),None)
+              assert edit is not None,'Direct numeric input did not focus an EditText'"""
+          new="""    edit=None
+              focus_deadline=time.monotonic()+30
+              while time.monotonic()<focus_deadline:
+                  try:
+                      document=tree()
+                      edit=next((n for n in document.iter('node') if n.attrib.get('class')=='android.widget.EditText' and n.attrib.get('focused')=='true'),None)
+                      if edit is not None:break
+                  except HierarchyUnavailable:
+                      pass
+                  time.sleep(.4)
+              assert edit is not None,'Direct numeric input did not focus an EditText'"""
+          assert old in p.read_text()
+          p.write_text(p.read_text().replace(old,new,1))
+          compile(p.read_text(),str(p),'exec')
+          PYWAIT
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify the exact APK in Android 16
+        timeout-minutes: 12
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: python3 ci/android-release-smoke.py
+      - name: Verify all store media dimensions
+        run: |
+          python3 ci/verify-store-media.py
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          smoke=json.loads(Path('android-smoke/ANDROID16_SMOKE.json').read_text())
+          assert smoke['status']=='passed'
+          facts={'status':'passed','app_source_commit':os.environ['SOURCE_COMMIT'],'app_build_run':os.environ['SOURCE_RUN_ID'],'verification_commit':os.environ['GITHUB_SHA'],'verification_run':os.environ['GITHUB_RUN_ID'],'apk_sha256':hashlib.sha256(Path('dist/VoiceLine-Local72-CI.apk').read_bytes()).hexdigest(),'app_sources_unchanged':True,'keyboard_accessibility_wait_seconds':30}
+          Path('android-smoke/EXACT_APK_VERIFICATION.json').write_text(json.dumps(facts,indent=2)+'\n')
+          PY
+      - name: Keep exact APK Android verification
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local72-Android-Verified
+          path: |
+            android-smoke/
+            store-media/
+          retention-days: 7
+          if-no-files-found: warn

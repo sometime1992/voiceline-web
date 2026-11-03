@@ -1,0 +1,43 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.voiceline.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.voiceline.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 30
+        versionName '2.0.0-beta15'
+    }
+
+    buildTypes {
+        debug {
+            // Published Tone Piano integration beta is separate from prior test app IDs to protect on-device recordings.
+            applicationIdSuffix '.vib15'
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+
+// Keep the bundled offline Android app in sync with the latest web UI.
+tasks.register('syncWebAssets', Copy) {
+    onlyIf { new File(rootProject.projectDir.parentFile, 'piano.js').isFile() && new File(rootProject.projectDir.parentFile, 'piano.css').isFile() }
+    from(rootProject.projectDir.parentFile) {
+        include 'index.html', 'piano.css', 'piano.js', 'sw.js', 'manifest.webmanifest'
+        include 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'
+    }
+    into('src/main/assets/www')
+}
+tasks.named('preBuild').configure { dependsOn tasks.named('syncWebAssets') }
