@@ -189,9 +189,9 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local70-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local71-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local70-ci' in old_package
+    assert 'versionName=2.0.0-local71-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
     wait_visible('VoiceLine', timeout=60)
@@ -200,9 +200,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local71-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local72-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local71-ci' in installed and 'versionCode=86' in installed
+    assert 'versionName=2.0.0-local72-ci' in installed and 'versionCode=87' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -212,8 +212,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local70-ci (85)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local71-ci (86)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local71-ci (86)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local72-ci (87)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -351,7 +351,7 @@ try:
     wait_visible('0.5초/음')
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(.5)
-    checks.append('Bright single-page settings: 150% portrait/landscape controls above actions, all fields in one page and default stepper without keyboard, optional numeric IME geometry, review/back/final save and reopened 0.5-second vowel settings')
+    checks.append('Translucent inset settings popup: 150% portrait/landscape controls above actions, all fields in one page and default stepper without keyboard, optional numeric IME geometry, review/back/final save and reopened 0.5-second vowel settings')
     choose('발성 강약 조절')
     screenshot('03-dynamics-portrait.png')
     choose('호흡·워밍업')
@@ -375,7 +375,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local70 to Local71 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local71 to Local72 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))

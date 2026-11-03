@@ -24,6 +24,11 @@
   function help(label,text){box.dispatchEvent(new CustomEvent('settings-help',{bubbles:true,detail:{label,text}}));}
   function topicFor(key,label){
    key=String(key);let id='content',name='연습 선택';
+   if(mode==='warmupVoice'){
+    if(['inhale','exhale','hum'].includes(key))return {id:'breath',title:'호흡'};
+    if(['rest','prepare'].includes(key))return {id:'timing',title:'시간'};
+    if(['rounds','choice:반복 방식','cues'].includes(key))return {id:'repeat',title:'반복'};
+   }
    if(key==='id'){id='preset';name='리듬 불러오기';}
    else if(key==='earNoteIndex'||/번째 청음/.test(label)){id='notes';name='음 순서';}
    else if(key==='beatIndex'||key==='accentValue'){id='beats';name='박별 강세';}
@@ -136,7 +141,7 @@
    select('sound','가이드 소리',Object.entries(guide.SOUNDS),g);volume('volume','가이드 음량 (%)',g,v=>bridge.previewSound?.({midi:g.root,sound:g.sound,volume:v}));
    if(!guide.PATTERNS[g.pattern].smooth)select('tolerance','음정 허용 범위',[[35,'정밀하게 · ±35cent'],[50,'기본 · ±50cent'],[75,'여유롭게 · ±75cent']],g,'목표 음정에서 허용하는 높이 차이입니다.');else into.append(el('p','연속 이동의 허용 범위는 ±110cent입니다.','settings-help'));
   }else if(mode==='metronome'){select('sound','클릭 소리',[['click','클릭'],['wood','우드'],['bell','벨']],m);volume('volume','메트로놈 음량 (%)',m);check('muted','메트로놈 음소거',m);}
-  else if(mode==='warmupVoice')check('cues','단계 전환 안내음 켜기',w);
+  else if(mode==='warmupVoice')check('cues','단계 전환 안내음',w);
   else if(['piano','sustainVoice','earVoice','dynamicVoice','vibrato'].includes(mode))volume('pianoVolume','건반·기준음 음량 (%)',p,v=>bridge.previewSound?.({midi:mode==='vibrato'?p.vibratoRoot:tr.root,sound:'piano',volume:v}));
   if(mode==='dynamicVoice')volume('dynamicCueVolume','단계 전환 안내음 크기 (%)',tr,v=>bridge.previewCue?.(v));
   if(mode==='vibrato')into.append(el('p','측정 기준: 최근 3초 · 3~9Hz · 진폭 ±7~125cent. 자세한 기준은 기능 설명에서 확인합니다.','settings-help'));
