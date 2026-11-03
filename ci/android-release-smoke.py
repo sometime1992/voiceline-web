@@ -138,6 +138,7 @@ def start():
     # A cold emulator can still be starting WebView after the Activity is visible.
     wait_visible('VoiceLine', timeout=60)
     wait_visible('C3 · 1옥 도', timeout=40)
+    wait_visible('메뉴 열기', timeout=40)
 
 def choose(label):
     tap('메뉴 열기', 'menuOpen')
@@ -274,10 +275,11 @@ try:
     screenshot('settings-summary-android16.png', False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.5')
     time.sleep(1)
-    wait_visible('VoiceLine')
-    if not visible('현재 설정'):
-        choose('음정 연습')
-        tap('연습 설정', 'customTimingOpen')
+    # font_scale recreates the Activity. Start a fresh Activity at the selected
+    # scale rather than using a partially rebuilt accessibility tree.
+    start()
+    choose('음정 연습')
+    tap('연습 설정', 'customTimingOpen')
     wait_visible('현재 설정')
     tap('수정', 'planSave')
     wait_visible('연습 종류')
