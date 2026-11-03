@@ -1,3 +1,4 @@
+# Publish the exact APK from the complete verified Local74 source snapshot.
 name: VoiceLine Local74 direct downloads
 
 on:
