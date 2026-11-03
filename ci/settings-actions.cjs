@@ -6,7 +6,7 @@ module.exports=function settingsActions(page){
  async function menu(topic){
   const target=page.locator('.settings-menu-entry[data-topic="'+topic+'"]');assert.equal(await target.count(),1,'missing item '+topic);
   for(let guard=0;guard<60&&!await target.isVisible();guard++){
-   const before=await target.evaluate(e=>{const all=[...e.parentElement.children],visible=all.findIndex(n=>!n.hidden);return all.indexOf(e)<visible;});await page.locator(before?'#planPrev':'#planNext').click();
+   const before=await target.evaluate(e=>{const card=e.closest('.settings-menu-card')||e,all=[...card.parentElement.children],visible=all.findIndex(n=>!n.hidden);return all.indexOf(card)<visible;});await page.locator(before?'#planPrev':'#planNext').click();
   }
   await target.click();
  }
@@ -32,8 +32,9 @@ module.exports=function settingsActions(page){
  async function fill(label,value,id){await (await reveal(label,id)).fill(String(value));}
  async function select(label,value,id){await (await reveal(label,id)).selectOption(String(value));}
  async function choice(text,id){await enter();await step(id);const options=editor().locator('select option').filter({hasText:new RegExp('^'+text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$')});assert.equal(await options.count(),1,'choice '+text);const info=await options.evaluate(e=>({label:e.parentElement.getAttribute('aria-label'),value:e.value}));await select(info.label,info.value,id);}
- async function save(close=true){await page.locator('#planRun').click();assert.equal(await view(),'review');await page.locator('#planRun').click();assert.equal(await view(),'saved');if(close)await page.locator('#planClose').click();}
- async function reviewText(){let result='';await page.locator('#planRun').click();assert.equal(await view(),'review');for(let i=0;i<80;i++){result+=await page.locator('#planEditor').textContent();const next=page.locator('#planNext');if(!await next.isVisible()||await next.isDisabled())break;await next.click();}await page.locator('#planSave').click();return result;}
+ async function review(){if(await view()==='edit'&&await editor().getAttribute('data-scope')==='routine'){await page.locator('#planRun').click();assert.equal(await view(),'routine');}await page.locator('#planRun').click();assert.equal(await view(),'review');}
+ async function save(close=true){await review();await page.locator('#planRun').click();assert.equal(await view(),'saved');if(close)await page.locator('#planClose').click();}
+ async function reviewText(){let result='';await review();for(let i=0;i<80;i++){result+=await page.locator('#planEditor').textContent();const next=page.locator('#planNext');if(!await next.isVisible()||await next.isDisabled())break;await next.click();}await page.locator('#planSave').click();return result;}
  async function add(mode){await enter();if(await view()==='edit')await page.locator('#planBack').click();if(await view()==='menu')await page.locator('#planBack').click();assert.equal(await view(),'routine');await menu('routine-add');await page.locator('#planAddMode').selectOption(mode);await page.locator('#planAdd').click();assert.equal(await view(),'edit');return editor().getAttribute('data-step-id');}
  return {view,editor,menu,enter,step,locate,reveal,fill,select,choice,save,reviewText,add};
 };

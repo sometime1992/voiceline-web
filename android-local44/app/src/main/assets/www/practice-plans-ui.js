@@ -5,7 +5,7 @@
  const $=id=>document.getElementById(id),el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  const modes=Object.keys(api.MODES),practiceModes=modes.filter(m=>m!=='rest');
  const copy=value=>JSON.parse(JSON.stringify(value));
- let editorView='overview',savedDraft=null,hasChanges=false,singleForm=null,displayBox=null,metaForm=null,addForm=null,activeStepId=null,addMode='practice',detailsOrigin='overview',reviewReturn={view:'edit',step:null},layoutFrame=0;const routineForms=new Map();
+ let editorView='overview',savedDraft=null,hasChanges=false,singleForm=null,displayBox=null,metaForm=null,addForm=null,activeStepId=null,addMode='practice',outlineAnchor='routine-meta',detailsOrigin='overview',reviewReturn={view:'edit',step:null},layoutFrame=0;const routineForms=new Map();
  function stored(){try{state=api.save(storage,state);return true;}catch(_){status('저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 저장해 주세요.');return false;}}
  function status(text){const node=$('planStatus');if(node){node.textContent=text;node.hidden=!text;}}
  function clearClock(){clockToken++;if(clock!==null)clearTimeout(clock);clock=null;}
@@ -47,16 +47,14 @@
   let form;form=root.VoiceLinePracticeSettingsUI.render({mode,timing:t,params,withinRoutine,bridge,extraUnits,onChange,onPageChange:(_,state)=>stateChanged(form,state)});return form;
  }
  function stepActions(step){
-  const node=el('div',undefined,'settings-unit plan-step-actions');
-  for(const [delta,label]of [[-1,'위로'],[1,'아래로']]){const b=el('button',label);b.type='button';b.dataset.stepMove=delta;b.onclick=()=>{const i=draft.steps.findIndex(s=>s.id===step.id),j=i+delta;if(j<0||j>=draft.steps.length)return;const [s]=draft.steps.splice(i,1);draft.steps.splice(j,0,s);hasChanges=true;refreshStepActions();status('단계 순서를 바꿨습니다.');};node.append(b);}
-  const remove=el('button','단계 삭제');remove.type='button';remove.onclick=()=>{draft.steps=draft.steps.filter(s=>s.id!==step.id);routineForms.delete(step.id);activeStepId=null;hasChanges=true;showRoutine();};node.append(remove);
-  return [{node,key:'manage',label:'단계 관리',shortLabel:'단계 관리',topic:{id:'manage',title:'단계 관리'},transient:true,value:()=>{const i=draft.steps.findIndex(s=>s.id===step.id);return (i+1)+'번째 · 순서·삭제';}}];
+  const node=el('div',undefined,'plan-step-actions');node.dataset.stepId=step.id;node.setAttribute('role','group');const index=draft.steps.indexOf(step);node.setAttribute('aria-label',(index+1)+'단계 관리');
+  for(const [delta,label]of [[-1,'↑'],[1,'↓']]){const b=el('button',label);b.type='button';b.dataset.stepMove=delta;b.setAttribute('aria-label',(index+1)+'단계 '+(delta<0?'위로':'아래로')+' 이동');b.disabled=delta<0?index===0:index===draft.steps.length-1;b.onclick=()=>{const i=draft.steps.findIndex(s=>s.id===step.id),j=i+delta;if(j<0||j>=draft.steps.length)return;const [s]=draft.steps.splice(i,1);draft.steps.splice(j,0,s);hasChanges=true;showRoutine('step-'+step.id);status('단계 순서를 바꿨습니다.');};node.append(b);}
+  const remove=el('button','삭제');remove.type='button';remove.dataset.stepDelete=step.id;remove.setAttribute('aria-label',(index+1)+'단계 삭제');remove.onclick=()=>{const i=draft.steps.findIndex(s=>s.id===step.id),neighbor=draft.steps[i+1]||draft.steps[i-1];draft.steps=draft.steps.filter(s=>s.id!==step.id);routineForms.delete(step.id);hasChanges=true;showRoutine(neighbor?'step-'+neighbor.id:'routine-add');status((i+1)+'단계를 삭제했습니다.');};node.append(remove);return node;
  }
- function refreshStepActions(){const step=contextStep();if(!step)return;const form=routineForms.get(step.id),i=draft.steps.indexOf(step);for(const b of form?.querySelectorAll('[data-step-move]')||[])b.disabled=Number(b.dataset.stepMove)<0?i===0:i===draft.steps.length-1;}
  function rebuildForm(id){
   const old=id==='single'?singleForm:routineForms.get(id),memory=old?rememberForm(old):null,step=id==='single'?{mode:editingMode,...draft}:draft.steps.find(s=>s.id===id);if(!step)return;
   const change=(structural,message)=>{hasChanges=true;if(structural){rebuildForm(id);renderFocus();}else{if(!getDraftForm().querySelector('input:invalid,select:invalid'))status('');scheduleFit();}if(message)status(message);};
-  const next=fields(step.mode,step.timing,step.params,change,id!=='single',id==='single'?[]:stepActions(step));if(id==='single')singleForm=next;else routineForms.set(id,next);restoreForm(next,memory);
+  const next=fields(step.mode,step.timing,step.params,change,id!=='single');if(id==='single')singleForm=next;else routineForms.set(id,next);restoreForm(next,memory);
   if(step.params.metronome?.customEditor){const input=next.querySelector('[data-setting-key=numerator]');if(input)next.pager.showControl(input,false);delete step.params.metronome.customEditor;}
  }
  function getDraftForm(){
@@ -85,15 +83,16 @@
   $('planLibrary').hidden=Boolean(editingMode);const data=editingMode?generalSummary(savedDraft):routineSummaryData(savedDraft);mountDisplay(summaryBox(data.rows,data.meta,editorView,!editingMode&&!savedDraft.steps.length?'저장한 단계가 없습니다. 수정을 눌러 연습을 추가하세요.':''));
  }
  function renderFocus(){
-  $('planLibrary').hidden=true;const form=getDraftForm();if(!form)return;form.dataset.stepId=editingMode?'single':activeStepId;mountDisplay(form);if(editorView==='menu')form.pager.showMenu(false);else form.pager.showPage(form.pager.state().key,false);refreshStepActions();fitCurrent();updateActions();
+  $('planLibrary').hidden=true;const form=getDraftForm();if(!form)return;form.dataset.stepId=editingMode?'single':activeStepId;mountDisplay(form);if(editorView==='menu')form.pager.showMenu(false);else form.pager.showPage(form.pager.state().key,false);fitCurrent();updateActions();
  }
- function showRoutine(){
+ function showRoutine(anchor=outlineAnchor){
+  outlineAnchor=anchor;
   activeStepId=null;editorView='routine';$('planLibrary').hidden=true;const entries=[];
-  function entry(key,title,value,open){const node=el('div',undefined,'settings-unit');entries.push({node,key,label:title,shortLabel:title,topic:{id:key,title,open},transient:true,value});}
+  function entry(key,title,value,open,actions){const node=el('div',undefined,'settings-unit');entries.push({node,key,label:title,shortLabel:title,topic:{id:key,title,open:()=>{outlineAnchor=key;open();},actions},transient:true,value});}
   entry('routine-meta','기본 설정',()=>draft.name+' · '+(draft.rounds?draft.rounds+'회':'계속 반복'),()=>{activeStepId='meta';editorView='edit';renderFocus();});
   entry('routine-add','단계 추가',()=>draft.steps.length+' / 40단계',()=>{activeStepId='add';editorView='edit';renderFocus();});
-  draft.steps.forEach((step,i)=>entry('step-'+step.id,(i+1)+'. '+api.MODES[step.mode],()=>root.VoiceLinePracticeSettings.describe(step.mode,step.timing,step.params,true,bridge.noteLabel).title,()=>{activeStepId=step.id;editorView='edit';renderFocus();}));
-  const box=newPager(entries);box.classList.add('settings-routine-outline');box.pager.showMenu(false);mountDisplay(box);
+  draft.steps.forEach((step,i)=>entry('step-'+step.id,(i+1)+'. '+api.MODES[step.mode],()=>{const d=root.VoiceLinePracticeSettings.describe(step.mode,step.timing,step.params,true,bridge.noteLabel);return step.mode==='practice'?d.title+' · '+d.compact:d.compact;},()=>{activeStepId=step.id;editorView='edit';renderFocus();},()=>stepActions(step)));
+  const box=newPager(entries);box.classList.add('settings-routine-outline');box.pager.showMenu(false);mountDisplay(box);box.pager.showMenu(false,anchor);fitCurrent();
  }
  function makeMetaForm(){
   const box=el('div',undefined,'settings-editor'),c=root.VoiceLineSettingsPages,units=[],onHelp=(label,text)=>help(label,text);
@@ -116,7 +115,7 @@
   const titles={overview:'현재 설정',saved:'저장 완료',menu:'수정할 항목',routine:'루틴 구성',review:'저장할까요?',details:'전체 설정'};$('planTitle').textContent=editorView==='edit'?state.title:titles[editorView]||'연습 설정';$('planStage').textContent=state.count>1?(state.index+1)+'/'+state.count:'';$('planStage').hidden=state.count<=1;
   $('planBack').textContent=['overview','saved','review'].includes(editorView)?'전체':editorView==='details'?'뒤로':editorView==='edit'?(editingMode?'현재':'단계'):editingMode?'현재':activeStepId?'단계':'현재';
   $('planSave').hidden=focus||routine;$('planSave').textContent=editorView==='review'?'다시 수정':editorView==='details'?'돌아가기':hasChanges?'수정 계속':'수정';
-  $('planRun').textContent=focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;
+  const routineEdit=!editingMode&&editorView==='edit';$('planRun').hidden=routineEdit&&activeStepId==='add';$('planRun').textContent=routineEdit?'적용 완료':focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;
   const arrows=routine||state.count>1;$('planPrev').hidden=$('planNext').hidden=!arrows;$('planPrev').disabled=!state.previous;$('planNext').disabled=!state.next;
  }
  function changeView(view){
@@ -129,9 +128,9 @@
   if(editorView==='menu'){if(editingMode)changeView('overview');else showRoutine();return true;}if(editorView==='routine'){changeView('overview');return true;}return false;
  }
  function revealBad(form,bad,stepId){if(!editingMode)activeStepId=stepId;editorView='edit';renderFocus();form.pager.showControl(bad,true);fitCurrent();bad.reportValidity();}
- function valid(){
-  const entries=editingMode?[{mode:editingMode,timing:draft.timing,params:draft.params,id:'single'}]:draft.steps;
-  if(!editingMode){if(!draft.name.trim()){activeStepId='meta';const form=getDraftForm(),input=form.querySelector('#planName');revealBad(form,input,'meta');status('루틴 이름을 입력해 주세요.');return false;}if(!draft.steps.length){status('연습 단계를 하나 이상 추가해 주세요.');return false;}if(metaForm){const bad=metaForm.querySelector('input:invalid,select:invalid');if(bad){revealBad(metaForm,bad,'meta');status('전체 반복 횟수를 확인해 주세요.');return false;}}}
+ function valid(onlyId=null){
+  const entries=editingMode?[{mode:editingMode,timing:draft.timing,params:draft.params,id:'single'}]:onlyId?draft.steps.filter(s=>s.id===onlyId):draft.steps;
+  if(!editingMode&&(!onlyId||onlyId==='meta')){if(!draft.name.trim()){activeStepId='meta';const form=getDraftForm(),input=form.querySelector('#planName');revealBad(form,input,'meta');status('루틴 이름을 입력해 주세요.');return false;}if(!onlyId&&!draft.steps.length){status('연습 단계를 하나 이상 추가해 주세요.');return false;}if(metaForm){const bad=metaForm.querySelector('input:invalid,select:invalid');if(bad){revealBad(metaForm,bad,'meta');status('전체 반복 횟수를 확인해 주세요.');return false;}}}
   for(const [index,step]of entries.entries()){
    const form=editingMode?getDraftForm():routineForms.get(step.id),bad=form?.querySelector('input:invalid,select:invalid');if(bad){revealBad(form,bad,step.id);status('표시된 범위 안에서 값을 입력해 주세요.');return false;}
    const issue=root.VoiceLinePracticeSettings.describe(step.mode,step.timing,step.params,!editingMode,bridge.noteLabel).issues[0];if(issue){if(!editingMode)activeStepId=step.id;const f=getDraftForm(),input=f.querySelector(step.mode==='metronome'?'[data-setting-key=bpm]':step.mode==='dynamicVoice'&&step.timing.customStages?'[data-unit-key="0"] input':'[data-setting-key=rounds],[data-setting-key=seconds]');if(input)revealBad(f,input,step.id);status((editingMode?'':(index+1)+'단계: ')+issue);return false;}
@@ -142,7 +141,7 @@
  }
  function selectedRoutine(){return state.routines.find(r=>r.id===$('planList').value);}
  function renderList(id){const select=$('planList');select.replaceChildren();for(const r of state.routines){const o=el('option',r.name);o.value=r.id;select.append(o);}if(id)select.value=id;}
- function loadRoutine(value,editing=false){draft=copy(value||api.routine({name:'나의 루틴 '+(state.routines.length+1)}));draft.steps.forEach(prepareStep);savedDraft=copy(draft);singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=false;delete $('planDelete').dataset.confirm;$('planDelete').hidden=!selectedRoutine();if(editing)showRoutine();else changeView('overview');}
+ function loadRoutine(value,editing=false){draft=copy(value||api.routine({name:'나의 루틴 '+(state.routines.length+1)}));draft.steps.forEach(prepareStep);savedDraft=copy(draft);singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;outlineAnchor='routine-meta';hasChanges=false;delete $('planDelete').dataset.confirm;$('planDelete').hidden=!selectedRoutine();if(editing)showRoutine();else changeView('overview');}
  function openRoutines(){if(locked()){bridge.notify('진행 중인 연습을 중단한 뒤 루틴을 편집해 주세요.');return;}editingMode=null;$('planDialog').dataset.editor='routine';renderList();loadRoutine(selectedRoutine());bridge.modalOpen('planDialog');fitCurrent();scheduleFit();}
  function saveDraft(){
   if(!valid())return false;if(editingMode){const previous=copy(state);state.settings[editingMode]=api.timing(editingMode,draft.timing);if(!stored()){state=previous;return false;}bridge.apply(editingMode,draft.timing,draft.params);return true;}
@@ -186,6 +185,7 @@
   $('planPrev').onclick=()=>{bridge.stopPreview?.();document.activeElement?.blur();displayBox.pager.move(-1);fitCurrent();};$('planNext').onclick=()=>{bridge.stopPreview?.();document.activeElement?.blur();displayBox.pager.move(1);fitCurrent();};
   $('planSave').onclick=()=>{if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);}else if(editorView==='details')back();else changeView(editingMode?'edit':'routine');};
   $('planRun').onclick=async()=>{
+   if(!editingMode&&editorView==='edit'){const id=activeStepId;if(id==='add'||!valid(id))return;bridge.stopPreview?.();document.activeElement?.blur();showRoutine(id==='meta'?'routine-meta':'step-'+id);status('설정을 루틴 구성에 반영했습니다.');return;}
    if(['edit','menu','routine'].includes(editorView)){if(!valid())return;reviewReturn={view:editorView==='menu'?'edit':editorView,step:activeStepId};changeView('review');return;}
    if(editorView==='details'){back();return;}if(editorView==='review'){if(!saveDraft())return;savedDraft=copy(draft);hasChanges=false;changeView('saved');return;}
    const mode=editingMode,plan=copy(savedDraft);bridge.modalClose('planDialog');bridge.unlock();if(mode)await startSingle(mode);else if(plan.steps.length)await startPlan(plan);

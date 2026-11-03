@@ -45,8 +45,8 @@
   }
   function emit(action=false){onState?.({...state(),action});}
   function topicValue(t){return activeUnits(t).map(u=>u.value()).filter(Boolean).join(' · ');}
-  const entries=new Map();for(const t of topics){const b=el('button',undefined,'settings-menu-entry');b.type='button';b.id='settings-menu-'+(++serial);b.dataset.topic=t.id;b.setAttribute('aria-label',t.title+' 설정');const name=el('strong',t.title),value=el('span');b.append(name,value);b.onclick=()=>{if(t.open){t.open();return;}const p=pages.find(p=>p.topic===t.id);if(p)showPage(p.key,true);};menu.append(b);entries.set(t.id,{button:b,value});}
-  function refreshValues(){epoch++;for(const t of topics){const e=entries.get(t.id);e.value.textContent=topicValue(t);e.button.setAttribute('aria-label',t.title+' 설정 · '+topicValue(t));e.button.hidden=!activeUnits(t).length;}if(view==='summary')paintSummary();}
+  const entries=new Map();for(const t of topics){const b=el('button',undefined,'settings-menu-entry');b.type='button';b.id='settings-menu-'+(++serial);b.dataset.topic=t.id;b.setAttribute('aria-label',t.title+' 설정');const name=el('strong',t.title),value=el('span');b.append(name,value);b.onclick=()=>{if(t.open){t.open();return;}const p=pages.find(p=>p.topic===t.id);if(p)showPage(p.key,true);};let node=b;if(t.actions){node=el('div',undefined,'settings-menu-card');node.dataset.topic=t.id;node.append(b,t.actions());}menu.append(node);entries.set(t.id,{node,button:b,value});}
+  function refreshValues(){epoch++;for(const t of topics){const e=entries.get(t.id);e.value.textContent=topicValue(t);e.button.setAttribute('aria-label',t.title+' 설정 · '+topicValue(t));e.node.hidden=e.button.hidden=!activeUnits(t).length;}if(view==='summary')paintSummary();}
   function rebuild(parts,anchor){
    const focus=box.contains(document.activeElement)?document.activeElement:null;const previous=pages[current]?.units[0]?.id;if(focus)focus._settingsReflow=true;
    pages=parts.map(part=>{const node=el('section',undefined,'settings-section settings-focus-page'),key=part.topic+'-'+part.units[0].index;node.id='settings-page-'+(++serial);node.dataset.settingsGroup=part.topic;node.dataset.pageKey=key;node.dataset.count=String(part.units.length);node.setAttribute('aria-label',part.title+' 편집 페이지');if(integrated){node.classList.add('settings-integrated-page');for(const t of topics){const active=part.units.filter(u=>u.topic.id===t.id);if(!active.length)continue;const card=el('section',undefined,'settings-topic-card');card.dataset.settingsGroup=t.id;card.dataset.fields=active.length;card.setAttribute('aria-label',t.title+' 설정 영역');const h=el('h3',t.title,'settings-topic-title'),fields=el('div',undefined,'settings-topic-fields');card.append(h,fields);for(const u of active){const label=u.node.querySelector('.settings-label label');if(label)label.textContent=u.shortLabel||label.textContent;fields.append(u.node);}node.append(card);}}else for(const u of part.units)node.append(u.node);node.hidden=true;return {...part,key,node};});
@@ -67,11 +67,11 @@
    }finally{fitting=false;}
   }
   function fitMenu(height){
-   const all=topics.filter(t=>activeUnits(t).length);for(const t of all)entries.get(t.id).button.hidden=false;
-   const cols=getComputedStyle(menu).gridTemplateColumns.split(' ').filter(Boolean).length||1,max=Math.max(1,...all.map(t=>entries.get(t.id).button.getBoundingClientRect().height));
+   const all=topics.filter(t=>activeUnits(t).length);for(const t of all){const e=entries.get(t.id);e.node.hidden=e.button.hidden=false;}
+   const cols=getComputedStyle(menu).gridTemplateColumns.split(' ').filter(Boolean).length||1,max=Math.max(1,...all.map(t=>entries.get(t.id).node.getBoundingClientRect().height));
    menuCapacity=Math.max(1,Math.floor((height+8)/(max+8)))*cols;menuIndex=Math.min(menuIndex,Math.max(0,Math.ceil(all.length/menuCapacity)-1));paintMenu();
   }
-  function paintMenu(){const all=topics.filter(t=>activeUnits(t).length);all.forEach((t,i)=>{const b=entries.get(t.id).button;b.hidden=i<menuIndex*menuCapacity||i>=(menuIndex+1)*menuCapacity;b.setAttribute('aria-current',String(t.id===pages[current]?.topic));});}
+  function paintMenu(){const all=topics.filter(t=>activeUnits(t).length);all.forEach((t,i)=>{const e=entries.get(t.id),b=e.button;e.node.hidden=b.hidden=i<menuIndex*menuCapacity||i>=(menuIndex+1)*menuCapacity;b.setAttribute('aria-current',String(t.id===pages[current]?.topic));});}
   function rowNode(row){const n=el('div',undefined,'settings-summary-row');n.dataset.summaryKey=row.key||row.label;n.append(el('dt',row.label),el('dd',row.value));return n;}
   function fitSummary(height){
    paintSummary(true);const available=Math.max(40,height-(meta.hidden?0:meta.getBoundingClientRect().height+10)),cols=getComputedStyle(rows).gridTemplateColumns.split(' ').filter(Boolean).length||1,nodes=[...rows.children],out=[];let bucket=[],used=0;
@@ -85,7 +85,7 @@
    if(view==='menu')paintMenu();if(view==='summary')paintSummary();
   }
   function showPage(key,notify=true){current=Math.max(0,pages.findIndex(p=>p.key===key||p.units.some(u=>u.id===key||u.key===key)));view='edit';paint();emit(notify);return pages[current]?.key;}
-  function showMenu(notify=true){if(integrated)return showPage('all',notify);view='menu';paint();refreshValues();emit(notify);}
+  function showMenu(notify=true,topicId=null){if(integrated)return showPage('all',notify);if(topicId){const index=topics.filter(t=>activeUnits(t).length).findIndex(t=>t.id===topicId);if(index>=0){menuIndex=Math.floor(index/menuCapacity);current=Math.max(0,pages.findIndex(p=>p.topic===topicId));}}view='menu';refreshValues();paint();emit(notify);}
   function showSummary({kind='overview',label='현재 연습 설정',rows:nextRows=[],meta:nextMeta='',empty:emptyText=''}={}){view='summary';epoch++;summaryKind=kind;summaryRows=nextRows;summaryMeta=nextMeta;summaryEmpty=emptyText;summaryPages=[nextRows];summaryIndex=0;summary.setAttribute('aria-label',label);paint();emit(false);}
   function move(delta){if(view==='edit'){current=Math.max(0,Math.min(pages.length-1,current+delta));}else if(view==='menu'){const count=Math.ceil(topics.filter(t=>activeUnits(t).length).length/menuCapacity);menuIndex=Math.max(0,Math.min(count-1,menuIndex+delta));}else summaryIndex=Math.max(0,Math.min(summaryPages.length-1,summaryIndex+delta));paint();emit(true);}
   function showControl(node,focus=true){const unit=units.find(u=>u.node.contains(node));if(!unit)return;showPage(unit.id);if(focus){unit.activate?.(node);node.focus({preventScroll:true});}if(integrated&&node.isConnected)requestAnimationFrame(()=>node.scrollIntoView({block:'nearest'}));return unit;}

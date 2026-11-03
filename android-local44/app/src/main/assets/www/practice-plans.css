@@ -94,18 +94,26 @@
 .plan-banner span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 .plan-banner button{pointer-events:auto;flex:none}
 .plan-time-button{white-space:nowrap;flex:none;font-size:12px!important;padding-inline:7px!important}
-.mic-sensitivity-choices{position:fixed;z-index:90;top:100px;right:14px;display:flex;gap:7px;padding:10px;border:1px solid #b0c7d2;border-radius:13px;background:#ffffff;box-shadow:0 6px 20px #0008;max-width:calc(100vw - 20px);flex-wrap:wrap}
-.mic-sensitivity-choices button{min-height:48px;padding:8px 14px;background:#edf4f8;color:#1d3d51;border:1px solid #a3bdcc;border-radius:10px}
-.mic-sensitivity-choices [aria-pressed=true]{background:#e1f3eb;border-color:#5c9e88}
+.mic-sensitivity-choices{position:fixed;z-index:90;top:100px;right:14px;display:flex;gap:7px;padding:10px;border:1px solid #897b9c;border-radius:13px;background:#272335;box-shadow:0 6px 20px #0008;max-width:calc(100vw - 20px);flex-wrap:wrap}
+.mic-sensitivity-choices button{min-height:48px;padding:8px 14px;background:#44394e;color:#f5f3ff;border:1px solid #96849f;border-radius:10px}
+.mic-sensitivity-choices [aria-pressed=true]{background:#265b4d;border-color:#9ce5cd}
 
 /* All fields for one exercise share a single editor; overview and outline stay paged. */
-#planDialog{color-scheme:light}
+#planDialog{color-scheme:light;--bg:#f1f6f9;--panel:#fff;--line:#cbdce4;--text:#183348;--muted:#4d687d}
+#planDialog .plan-modal{box-shadow:none}
+#planDialog :is(h1,h2,h3){color:#173d55}
+#planDialog .modal-heading p{color:#4b687c}
 #planDialog .modal-heading{background:#fff;border-bottom-color:#c9dce5}
 #planDialog #planTitle{font-weight:750;color:#18384c}
 #planDialog .plan-actions{background:#fff;box-shadow:0 -3px 14px #264b6410}
 #planDialog .settings-menu-entry{box-shadow:0 2px 5px #25445908;border-radius:12px}
 #planDialog .settings-menu-entry strong{color:#183e55;font-weight:750}
 #planDialog .settings-menu-entry[aria-current=true]{border-color:#64a99c;background:#e4f5ed}
+#planDialog .settings-menu-card{min-width:0;border:1px solid #c5d9e4;border-radius:12px;background:#fff;box-shadow:0 2px 5px #25445908;overflow:hidden}
+#planDialog .settings-menu-card>.settings-menu-entry{width:100%;border:0;border-radius:0;box-shadow:none}
+#planDialog .settings-menu-card .plan-step-actions{display:flex;flex-wrap:nowrap;gap:4px;padding:0 8px 8px}
+#planDialog .settings-menu-card .plan-step-actions button{flex:1;min-width:0;min-height:44px;padding:5px 3px;font-size:.8125rem;background:#edf5f8;color:#255775;border-color:#a9c6d5}
+#planDialog .settings-menu-card [data-step-delete]{color:#a22e3d!important;background:#fff1f2!important;border-color:#d8a3ac!important}
 #planDialog .settings-summary-row{background:#fff;padding:10px 12px;border-bottom:1px solid #d2e0e7}
 #planDialog .settings-summary-row dt{font-weight:550}
 #planDialog .settings-summary-row dd{font-weight:650}

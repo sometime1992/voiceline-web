@@ -8,7 +8,7 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 36
-        versionCode 84
+        versionCode 85
         versionName '2.0.0'
     }
 
@@ -36,7 +36,7 @@ android {
         debug {
             // Standalone debug install; does not alter previous Beta15 recordings.
             applicationIdSuffix '.local18'
-            versionNameSuffix '-local70'
+            versionNameSuffix '-local71'
         }
         release {
             minifyEnabled false
@@ -47,7 +47,7 @@ android {
         ciDebug {
             initWith debug
             applicationIdSuffix '.local18.ci45'
-            versionNameSuffix '-local70-ci'
+            versionNameSuffix '-local71-ci'
             matchingFallbacks = ['debug']
             if (System.getenv('VOICELINE_CI_KEYSTORE')) {
                 signingConfig signingConfigs.ciSigning
@@ -60,10 +60,10 @@ android {
     }
 }
 
-// CI updates have their own package and version sequence; release is 2.0.0 (84).
+// CI updates have their own package and version sequence; release is 2.0.0 (85).
 androidComponents {
     onVariants(selector().withBuildType('ciDebug')) { variant ->
-        variant.outputs.each { output -> output.versionCode.set(85) }
+        variant.outputs.each { output -> output.versionCode.set(86) }
     }
 }
 
