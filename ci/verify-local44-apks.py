@@ -15,20 +15,20 @@ sdk_tools = Path(os.environ["ANDROID_HOME"]) / "build-tools/35.0.0"
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
 report = [
-    "VoiceLine Local73 - GitHub Actions debug APKs",
+    "VoiceLine Local74 - GitHub Actions debug APKs",
     "Commit: " + os.environ["GITHUB_SHA"],
     "Run: https://github.com/" + os.environ["GITHUB_REPOSITORY"]
     + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
     "Original Local44 source ZIP SHA-256: "
     "2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1",
-    "Local73 shows every routine step and every settings summary row in one scrolling popup in portrait and landscape. Header and footer stay fixed; step management and Apply preserve the outline position. Training, recording, scoring and native code are unchanged.",
+    "Local74 excludes pitch measurement and recording from saved routines and the step picker. Remaining routine steps retain their identity, order, timing and settings. Standalone pitch measurement and recording are unchanged, including the shared serial runner. The scrolling translucent popup remains unchanged.",
     "CI45 APK: separate application and separate storage; keeps earlier PC/CI installations and recordings intact.",
     "Do not uninstall an existing app to resolve a signature mismatch.",
     "CI45 signing uses an explicit cached key. Once pinned, a missing or different key blocks future builds.",
     "",
 ]
 variants = [
-    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local73-ci", "VoiceLine-Local73-CI.apk"),
+    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local74-ci", "VoiceLine-Local74-CI.apk"),
 ]
 certificates = []
 for variant, app_id, version, filename in variants:
@@ -37,7 +37,7 @@ for variant, app_id, version, filename in variants:
     apk = outputs[0]
     badging = subprocess.check_output([str(sdk_tools / "aapt"), "dump", "badging", str(apk)], text=True)
     assert "package: name='" + app_id + "'" in badging, badging
-    assert "versionCode='88'" in badging, badging
+    assert "versionCode='89'" in badging, badging
     assert "versionName='" + version + "'" in badging, badging
     assert "sdkVersion:'26'" in badging, badging
     assert "targetSdkVersion:'36'" in badging, badging
@@ -72,7 +72,7 @@ for variant, app_id, version, filename in variants:
     report.extend([
         filename,
         "  Application ID: " + app_id,
-        "  Version: " + version + " (88)",
+        "  Version: " + version + " (89)",
         "  Application and effective launcher label: VoiceLine",
         "  SHA-256: " + hashlib.sha256(target.read_bytes()).hexdigest(),
         "  Signing certificate SHA-256: " + digest.group(1),
@@ -82,7 +82,7 @@ for variant, app_id, version, filename in variants:
     ])
     (dist / 'APK_LABEL_VERIFIED.json').write_text(json.dumps({
         'source_commit': os.environ['GITHUB_SHA'], 'package': app_id,
-        'version_name': version, 'version_code': 88, 'application_labels': app_labels,
+        'version_name': version, 'version_code': 89, 'application_labels': app_labels,
         'launcher_labels': launcher_labels, 'effective_launcher_label': 'VoiceLine',
         'apk_sha256': hashlib.sha256(target.read_bytes()).hexdigest(),
         'certificate_sha256': digest.group(1), 'offline_assets_verified': count,

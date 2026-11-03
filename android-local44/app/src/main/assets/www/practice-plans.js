@@ -1,6 +1,7 @@
 'use strict';
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.VoiceLinePracticePlans=api;})(globalThis,()=>{
  const MODES=Object.freeze({piano:'피아노 자유 연습',pitch:'음정 측정',practice:'음정 연습',sustainVoice:'발성 유지',earVoice:'청음 연습',dynamicVoice:'발성 강약 조절',vibrato:'비브라토',warmupVoice:'호흡·워밍업',metronome:'메트로놈',record:'녹음',rest:'쉬기'});
+ const ROUTINE_MODES=Object.freeze(Object.keys(MODES).filter(mode=>!['pitch','record'].includes(mode)));
  const DEFAULTS=Object.freeze({seconds:30,rounds:1,rest:3,reference:1.8,breath:3,prepare:1.8,listen:1.5,answer:3.2,noteRest:0,customStages:false,stages:[]});
  const EAR_PATTERNS=Object.freeze({legacy:'기존 고정 순서',same:'같은 음 반복',up:'장조 상행',down:'장조 하행',triad:'3화음 왕복',chromatic:'반음 상행',custom:'음을 하나씩 직접 지정'});
  const EAR_OFFSETS={same:[0],up:[0,2,4,5,7,9,11,12],down:[12,11,9,7,5,4,2,0],triad:[0,4,7,4,0],chromatic:[0,1,2,3,4,5,6,7,8,9,10,11,12]};
@@ -46,7 +47,7 @@
  function normalize(value={}){
   const settings={};for(const mode of [...Object.keys(MODES),'record'])settings[mode]=timing(mode,value?.settings?.[mode]);
   const seen=new Set(),routines=[];
-  for(const raw of (Array.isArray(value?.routines)?value.routines:[]).slice(0,50)){const r=routine(raw);if(seen.has(r.id))r.id=id();seen.add(r.id);routines.push(r);}
+  for(const raw of (Array.isArray(value?.routines)?value.routines:[]).slice(0,50)){const r=routine(raw);r.steps=r.steps.filter(step=>ROUTINE_MODES.includes(step.mode));if(seen.has(r.id))r.id=id();seen.add(r.id);routines.push(r);}
   return {version:1,settings,routines};
  }
  function vowelGuide(training={}){return {pattern:'vowelFive',root:training.root??48,noteSeconds:1.8,bpm:80,rounds:1,shift:0,listenFirst:false,sound:'piano',volume:70,tolerance:50,prepareSeconds:1.8,breathSeconds:3,restSeconds:3};}
@@ -104,5 +105,5 @@
   }
   return {start,cancel,complete,snapshot,owns:token=>Boolean(active)&&token===generation,get token(){return generation;}};
  }
- return {vowelGuide,migrateVowelPractice,MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
+ return {vowelGuide,migrateVowelPractice,MODES,ROUTINE_MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
 });

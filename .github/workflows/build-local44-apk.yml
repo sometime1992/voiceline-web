@@ -1,4 +1,4 @@
-name: VoiceLine Local73 APK
+name: VoiceLine Local74 APK
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local73-Test-Report
+          name: VoiceLine-Local74-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -74,7 +74,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local73-Layout-Report
+          name: VoiceLine-Local74-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -112,7 +112,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local73-APKs
+          name: VoiceLine-Local74-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -130,8 +130,8 @@ jobs:
           echo "378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584  $bundletool_jar" | sha256sum --check
           export VOICELINE_BUNDLETOOL_JAR="$bundletool_jar"
           python3 ci/verify-app-bundle.py
-          curl --fail --location --retry 3 --output release-review/previous-Local72-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local72-ci/VoiceLine-Local72-CI.apk
-          echo '14dec1d732a5520e6d69879d172590015a7a9e5a3386b333c1683bb9ab57513a  release-review/previous-Local72-CI.apk' | sha256sum --check
+          curl --fail --location --retry 3 --output release-review/previous-Local73-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local73-ci/VoiceLine-Local73-CI.apk
+          echo '6875e80b17b4873918000f645e8a39e4c82806469acbf171411f26cd8d4d9dce  release-review/previous-Local73-CI.apk' | sha256sum --check
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -155,7 +155,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local73-Store-Media
+          name: VoiceLine-Local74-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -165,7 +165,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local73-Release-Readiness
+          name: VoiceLine-Local74-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*
