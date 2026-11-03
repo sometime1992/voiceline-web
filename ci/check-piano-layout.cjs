@@ -159,15 +159,15 @@ async function checkVolumeRange(page,id,valueId){
    await page.waitForFunction(()=>document.querySelector('#micToggle').getAttribute('aria-pressed')==='false');
    if(await page.locator('#trainingResultDialog').isVisible())await page.locator('#trainingResultClose').click();
   };
-  async function reveal(label){if((await page.locator('#planDialog').getAttribute('data-view'))==='overview')await page.locator('#planSave').click();const input=page.locator('#planEditor').getByLabel(label,{exact:true});const key=await input.evaluate(e=>e.closest('[data-settings-group]').dataset.settingsGroup);await page.locator('#planPageNav [data-settings-page='+key+']').click();await input.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});return input;}
+  const settingActions=require('./settings-actions.cjs')(page),reveal=settingActions.reveal;
   const settings=async values=>{
-   await page.locator('#customTimingOpen').click();await page.locator('#planSave').click();
+   await page.locator('#customTimingOpen').click();
    for(const [id,value]of Object.entries(values)){
-    if(id==='guideListenFirst'){await page.getByRole('tab',{name:'연습 내용',exact:true}).click();await page.getByRole('radio',{name:value==='on'?'먼저 듣고 따라 부르기':'바로 따라 부르기',exact:true}).check();}
-    else if(id==='guideRounds'){await (await reveal('이 구절 반복 횟수')).fill(value);}
-    else if(id==='guideNoteSeconds'){await (await reveal('한 음 길이 (초)')).fill(value);}
+    if(id==='guideListenFirst')await settingActions.choice(value==='on'?'먼저 듣고 따라 부르기':'바로 따라 부르기');
+    else if(id==='guideRounds')await settingActions.fill('이 구절 반복 횟수',value);
+    else if(id==='guideNoteSeconds')await settingActions.fill('한 음 길이 (초)',value);
    }
-   await page.locator('#planRun').click();await page.locator('#planRun').click();await page.locator('#planClose').click();await frames(page);
+   await settingActions.save();await frames(page);
   };
   await choose(page,'practice');
   await page.locator('#customTimingOpen').click();

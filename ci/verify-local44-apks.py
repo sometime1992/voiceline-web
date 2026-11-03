@@ -15,20 +15,20 @@ sdk_tools = Path(os.environ["ANDROID_HOME"]) / "build-tools/35.0.0"
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
 report = [
-    "VoiceLine Local67 - GitHub Actions debug APKs",
+    "VoiceLine Local68 - GitHub Actions debug APKs",
     "Commit: " + os.environ["GITHUB_SHA"],
     "Run: https://github.com/" + os.environ["GITHUB_REPOSITORY"]
     + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
     "Original Local44 source ZIP SHA-256: "
     "2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1",
-    "Local67 uses current summary, paged editing, draft review and final save. Page menus stay visible without returning to the top. Draft values and the last page survive review/back/rotation, and only final confirmation updates normal preferences or routines. Portrait, landscape, large fonts and software keyboards are checked. Listening-phase keyboard suppression and the pinned CI signing key are retained.",
+    "Local68 uses fullscreen, focused one/two-setting pages with direct item menus. Numeric steppers and quick values avoid opening the keyboard by default; optional direct input adapts to the visual viewport. Long note/beat lists and routine outlines are paged. Only final confirmation stores changes. Tests require no editor body scrolling at 100/120/150% font sizes in portrait, landscape and compact IME viewports.",
     "CI45 APK: separate application and separate storage; keeps earlier PC/CI installations and recordings intact.",
     "Do not uninstall an existing app to resolve a signature mismatch.",
     "CI45 signing uses an explicit cached key. Once pinned, a missing or different key blocks future builds.",
     "",
 ]
 variants = [
-    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local67-ci", "VoiceLine-Local67-CI.apk"),
+    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local68-ci", "VoiceLine-Local68-CI.apk"),
 ]
 certificates = []
 for variant, app_id, version, filename in variants:
@@ -37,7 +37,7 @@ for variant, app_id, version, filename in variants:
     apk = outputs[0]
     badging = subprocess.check_output([str(sdk_tools / "aapt"), "dump", "badging", str(apk)], text=True)
     assert "package: name='" + app_id + "'" in badging, badging
-    assert "versionCode='82'" in badging, badging
+    assert "versionCode='83'" in badging, badging
     assert "versionName='" + version + "'" in badging, badging
     assert "sdkVersion:'26'" in badging, badging
     assert "targetSdkVersion:'36'" in badging, badging
@@ -72,7 +72,7 @@ for variant, app_id, version, filename in variants:
     report.extend([
         filename,
         "  Application ID: " + app_id,
-        "  Version: " + version + " (82)",
+        "  Version: " + version + " (83)",
         "  Application and effective launcher label: VoiceLine",
         "  SHA-256: " + hashlib.sha256(target.read_bytes()).hexdigest(),
         "  Signing certificate SHA-256: " + digest.group(1),
@@ -82,7 +82,7 @@ for variant, app_id, version, filename in variants:
     ])
     (dist / 'APK_LABEL_VERIFIED.json').write_text(json.dumps({
         'source_commit': os.environ['GITHUB_SHA'], 'package': app_id,
-        'version_name': version, 'version_code': 82, 'application_labels': app_labels,
+        'version_name': version, 'version_code': 83, 'application_labels': app_labels,
         'launcher_labels': launcher_labels, 'effective_launcher_label': 'VoiceLine',
         'apk_sha256': hashlib.sha256(target.read_bytes()).hexdigest(),
         'certificate_sha256': digest.group(1), 'offline_assets_verified': count,

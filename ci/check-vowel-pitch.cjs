@@ -4,10 +4,9 @@ module.exports=async function(page,choose,geometry,graphPixels,frames,output){
  await page.setViewportSize({width:390,height:844});await choose(page,'practice');
  await page.locator('#guideKind').selectOption('vowels');await page.locator('#guidePattern').selectOption('vowelFive');
  assert.match(await page.locator('#guidePhaseHint').textContent(),/ア|아/);
- await page.locator('#customTimingOpen').click();await page.locator('#planSave').click();await page.getByLabel('기준음',{exact:true}).selectOption('60');await page.getByRole('radio',{name:'바로 따라 부르기',exact:true}).check();
- await page.getByRole('tab',{name:'시간·반복'}).click();
- for(const [label,n]of [['한 음 길이 (초)',.6],['발성 전 들이쉬기 (초)',.3],['모음 사이·회차 끝 쉬기 (초)',.4],['다섯 모음 세트 수',1]]){const input=page.locator('#planEditor').getByLabel(label,{exact:true});await input.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await input.fill(String(n));}
- await page.locator('#planRun').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'review');await page.locator('#planRun').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'saved');await page.locator('#planClose').click();await page.locator('#mainButton').click();await page.waitForFunction(()=>window.__vowelPitchCourse&&window.__micRequest);
+ const actions=require('./settings-actions.cjs')(page);await page.locator('#customTimingOpen').click();await actions.select('기준음',60);await actions.choice('바로 따라 부르기');
+ for(const [label,n]of [['한 음 길이 (초)',.6],['발성 전 들이쉬기 (초)',.3],['모음 사이·회차 끝 쉬기 (초)',.4],['다섯 모음 세트 수',1]])await actions.fill(label,n);
+ await actions.save();await page.locator('#mainButton').click();await page.waitForFunction(()=>window.__vowelPitchCourse&&window.__micRequest);
  const request=await page.evaluate(()=>{
   const request=window.__micRequest;window.__vowelsSeen=[];
   const send=()=>{if(window.__micRequest!==request)return;const p=window.VoiceLineGuideTraining.position(window.__vowelPitchCourse,performance.now());

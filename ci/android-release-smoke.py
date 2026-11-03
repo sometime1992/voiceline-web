@@ -87,13 +87,33 @@ def assert_settings_readable(landscape=False, selected='모음 · 아에이오�
     document=tree()
     label=settings_rect('연습 종류',document=document)
     field=settings_rect(selected,document=document)
-    save=settings_rect('저장','planRun',document)
+    pattern=settings_rect('아에이오우 · 5음 음계 왕복',document=document)
+    confirm=settings_rect('변경 확인','planRun',document)
     close=settings_rect('연습 설정 닫기','planClose',document)
-    navigation=settings_rect('연습 내용','-tab',document)
-    assert label[1]>=navigation[3] and label[1]>=close[3] and field[3]<=save[1],(label,field,save,close,navigation)
-    assert field[1]>=label[3]-4,(label,field)
+    assert label[1]>=close[3] and field[3]<=confirm[1] and pattern[3]<=confirm[1],(label,field,pattern,confirm,close)
     name='settings-landscape-geometry.json' if landscape else 'settings-portrait-geometry.json'
-    (qa/name).write_text(json.dumps({'status':'passed','field':field,'label':label,'actions':save,'page_navigation':navigation,'landscape':landscape},indent=2))
+    (qa/name).write_text(json.dumps({'status':'passed','field':field,'pattern':pattern,'label':label,'actions':confirm,'header':close,'landscape':landscape},indent=2))
+
+def tap_settings_item(name):
+    # Match the actual menu button; a section can have the same visible title.
+    for attempt in range(35):
+        document=tree()
+        for n in document.iter('node'):
+            a=n.attrib
+            if a.get('resource-id','').split('/')[-1].startswith('settings-menu-') and any((name+' 설정') in a.get(k,'') for k in ('text','content-desc')):
+                values=[int(v) for v in re.findall(r'\d+',a.get('bounds',''))]
+                if len(values)==4 and values[2]>values[0] and values[3]>values[1]:
+                    adb('shell','input','tap',str((values[0]+values[2])//2),str((values[1]+values[3])//2))
+                    time.sleep(.5)
+                    return
+        forward=next((n for n in document.iter('node') if n.attrib.get('resource-id','').endswith('planNext') and n.attrib.get('enabled')=='true'),None)
+        backward=next((n for n in document.iter('node') if n.attrib.get('resource-id','').endswith('planPrev') and n.attrib.get('enabled')=='true'),None)
+        node=forward if forward is not None else backward
+        if node is None:break
+        v=[int(v) for v in re.findall(r'\d+',node.attrib.get('bounds',''))]
+        adb('shell','input','tap',str((v[0]+v[2])//2),str((v[1]+v[3])//2))
+        time.sleep(.3)
+    raise AssertionError('Settings menu item not found: '+name)
 
 def choose_vowel_settings():
     # Click the select in the current modal rather than the similar underlying control.
@@ -148,9 +168,9 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local66-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local67-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local66-ci' in old_package
+    assert 'versionName=2.0.0-local67-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
     wait_visible('VoiceLine', timeout=60)
@@ -159,9 +179,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local67-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local68-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local67-ci' in installed and 'versionCode=82' in installed
+    assert 'versionName=2.0.0-local68-ci' in installed and 'versionCode=83' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -171,8 +191,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local66-ci (81)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local67-ci (82)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local67-ci (82)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local68-ci (83)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -203,27 +223,27 @@ try:
     assert adb('shell', 'pidof', package).strip()
     checks.append('Offline privacy policy opens and Android16 back closes it without leaving the app')
     choose('나의 루틴')
-    assert visible('나의 루틴') and visible('루틴 시작')
+    assert visible('현재 설정') and visible('새 루틴')
     screenshot('routine-editor-android16.png', False)
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(.5)
-    assert not visible('나의 루틴')
+    assert not visible('새 루틴')
     checks.append('Saved-routine editor opens and Android16 back closes it')
     choose('음정 연습')
     screenshot('02-practice-portrait.png')
     tap('연습 설정', 'customTimingOpen')
-    wait_visible('일반 연습에 적용')
+    wait_visible('현재 설정')
     screenshot('settings-summary-android16.png', False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.5')
     time.sleep(1)
     wait_visible('VoiceLine')
-    if not visible('일반 연습에 적용'):
-        # A system font-scale change recreates the Activity. Re-select the
-        # practice mode rather than accidentally checking piano settings.
+    if not visible('현재 설정'):
         choose('음정 연습')
         tap('연습 설정', 'customTimingOpen')
-    wait_visible('일반 연습에 적용')
+    wait_visible('현재 설정')
     tap('수정', 'planSave')
+    wait_visible('수정할 항목')
+    tap_settings_item('연습 선택')
     wait_visible('연습 종류')
     choose_vowel_settings()
     assert_settings_readable()
@@ -231,27 +251,44 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '1')
     time.sleep(1)
     wait_visible('연습 종류')
-    wait_visible('저장')
     assert_settings_readable(landscape=True)
     screenshot('settings-landscape-font150-android16.png', False)
-    tap('시간·반복')
-    wait_visible('음 길이 방식')
-    tap('소리')
-    wait_visible('가이드 소리')
-    tap('저장', 'planRun')
-    wait_visible('이 설정을 최종 저장할까요?')
+    tap('항목','planBack')
+    tap_settings_item('음 길이')
+    wait_visible('한 음 길이 직접 입력')
+    ime=adb('shell','dumpsys','input_method')
+    assert not re.search(r'\bmInputShown=true\b',ime)
+    screenshot('settings-stepper-font150-android16.png', False)
+    adb('shell','wm','user-rotation','lock','0')
+    time.sleep(.6)
+    tap('한 음 길이 직접 입력')
+    time.sleep(.8)
+    document=tree()
+    edit=next((n for n in document.iter('node') if n.attrib.get('class')=='android.widget.EditText' and n.attrib.get('focused')=='true'),None)
+    assert edit is not None,'Direct numeric input did not focus an EditText'
+    rect=[int(v) for v in re.findall(r'\d+',edit.attrib['bounds'])]
+    confirm=settings_rect('변경 확인','planRun',document)
+    close=settings_rect('연습 설정 닫기','planClose',document)
+    assert rect[1]>=close[3] and rect[3]<=confirm[1],(rect,close,confirm)
+    screenshot('settings-keyboard-font150-android16.png',False)
+    adb('shell','input','keyevent','123')
+    for _ in range(8):adb('shell','input','keyevent','67')
+    adb('shell','input','text','0.5')
+    adb('shell','input','keyevent','66')
+    time.sleep(.5)
+    tap('변경 확인', 'planRun')
+    wait_visible('저장할까요?')
     wait_visible('최종 저장')
     screenshot('settings-review-font150-android16.png', False)
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(.5)
-    wait_visible('가이드 소리')
-    tap('저장', 'planRun')
+    wait_visible('한 음 길이 직접 입력')
+    tap('변경 확인', 'planRun')
     wait_visible('최종 저장')
     tap('최종 저장', 'planRun')
     wait_visible('저장 완료')
     screenshot('settings-saved-font150-android16.png', False)
     tap('연습 설정 닫기', 'planClose')
-    adb('shell', 'wm', 'user-rotation', 'lock', '0')
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0')
     time.sleep(1)
     assert adb('shell', 'pidof', package).strip()
@@ -259,9 +296,10 @@ try:
     tap('연습 설정', 'customTimingOpen')
     wait_visible('현재 설정')
     wait_visible('아에이오우 · 5음 음계 왕복')
+    wait_visible('0.5초/음')
     adb('shell', 'input', 'keyevent', '4')
     time.sleep(.5)
-    checks.append('Current summary, paged editing, fixed page menus, review/back/final save and persisted vowel settings work in portrait and landscape at Android system font scale 150%')
+    checks.append('Fullscreen focused settings: 150% portrait/landscape controls above actions, default stepper without keyboard, optional numeric IME geometry, review/back/final save and reopened 0.5-second vowel settings')
     choose('발성 강약 조절')
     screenshot('03-dynamics-portrait.png')
     choose('호흡·워밍업')
@@ -285,7 +323,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local66 to Local67 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local67 to Local68 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))
