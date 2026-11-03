@@ -1,0 +1,117 @@
+name: VoiceLine Local73 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local73-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local73-ci
+      SOURCE_RUN_ID: '41622961139'
+      SOURCE_COMMIT: 3830d4f330bb340dbf09eecf9e49338fe39b5b3d
+    steps:
+      - name: Verify complete build and Android results before publishing
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
+          gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$GITHUB_SHA" > publication-compare.json
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local73-Store-Media --dir verified-media
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          run=json.loads(Path('source-run.json').read_text())
+          assert run['head_sha']==os.environ['SOURCE_COMMIT']
+          assert run['status']=='completed' and run['conclusion']=='success'
+          comparison=json.loads(Path('publication-compare.json').read_text())
+          assert comparison['status'] in ('ahead','identical')
+          assert not any(f['filename'].startswith('android-local44/') for f in comparison['files']), 'App changed since verification'
+          jobs=json.loads(Path('source-jobs.json').read_text())['jobs']
+          steps=next(j['steps'] for j in jobs if j['name']=='apk')
+          required=['Verify public studio homepage, privacy and support','Test recording, dynamics calibration, training and adaptive layout','Check every keyboard size and live graph in Chromium','Build separately installable CI APK','Verify signatures, package IDs, version and every offline asset','Check unsigned release AAB and Android lint','Verify release-review bundle assets','Validate production bundle and prepare emulator review APK','Android 16 production smoke test and store screenshots','Verify store media dimensions']
+          for name in required:
+              assert next(s for s in steps if s['name']==name)['conclusion']=='success',name
+          qa=Path('verified-media/android-smoke')
+          assert json.loads((qa/'ANDROID16_SMOKE.json').read_text())['status']=='passed'
+          update=json.loads((qa/'CI_INSTALL_NAME.json').read_text())
+          assert update['status']=='passed'
+          assert update['before_version']=='2.0.0-local72-ci (87)'
+          assert update['after_version']=='2.0.0-local73-ci (88)'
+          assert update['update_installed_without_uninstall'] and update['private_test_file_preserved']
+          PY
+      - name: Download and verify the exact tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local73-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          dist=Path('dist')
+          apk=dist/'VoiceLine-Local73-CI.apk'
+          verified=json.loads((dist/'APK_LABEL_VERIFIED.json').read_text())
+          assert verified['source_commit']==os.environ['SOURCE_COMMIT']
+          assert verified['version_name']=='2.0.0-local73-ci' and verified['version_code']==88
+          assert verified['package']=='com.voiceline.app.local18.ci45'
+          assert verified['certificate_sha256']=='e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==verified['apk_sha256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          assert os.environ['SOURCE_COMMIT'] in (dist/'BUILD_INFO.txt').read_text()
+          package=dist/'VoiceLine-Local73-CI.zip'
+          with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as archive:
+              entry=zipfile.ZipInfo(apk.name,date_time=(2026,11,3,0,0,0))
+              entry.compress_type=zipfile.ZIP_DEFLATED
+              archive.writestr(entry,apk.read_bytes())
+          (dist/'SHA256SUMS.txt').write_text('\n'.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name for p in [apk,package])+'\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## VoiceLine Local73 · 가로·세로 스크롤 설정
+
+          - 세로·가로 모두 루틴 구성의 전체 단계를 한 페이지에서 스크롤
+          - 현재 설정·전체 설정·변경 확인도 이전·다음 페이지 없이 스크롤
+          - 팝업 제목·닫기·하단 버튼은 고정해 언제든 적용·확인 가능
+          - 단계 관리 버튼을 펼쳐도 다른 단계가 다음 페이지로 밀리지 않음
+          - 단계 이동·삭제와 상세 적용 후 보던 목록 위치를 유지
+          - 기존 반투명 팝업 디자인과 일반 연습·녹음·채점 기능 유지
+          - 기능·화면·Android16·업데이트 설치 검증 후 동일 APK 배포
+          - 버전 2.0.0-local73-ci (88), 기존 CI 인증서·패키지 유지
+
+          앱 소스: https://github.com/sometime1992/voiceline-web/commit/3830d4f330bb340dbf09eecf9e49338fe39b5b3d
+          검증: https://github.com/sometime1992/voiceline-web/actions/runs/41622961139
+
+          APK 다운로드가 막히면 ZIP을 풀어 안의 동일 APK를 설치하세요. 기존 CI 앱 위에 업데이트 설치합니다. 실제 S24 Ultra 실기기 검사는 수행하지 않았습니다.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local73 가로·세로 스크롤 설정 APK' --notes-file release-notes.md
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local73-CI.apk dist/VoiceLine-Local73-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --prerelease --title 'VoiceLine Local73 가로·세로 스크롤 설정 APK' --notes-file release-notes.md dist/VoiceLine-Local73-CI.apk dist/VoiceLine-Local73-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local73-CI.apk VoiceLine-Local73-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
+      - name: Keep the verified public download files
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local73-Public-Downloads
+          path: dist/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
