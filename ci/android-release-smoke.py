@@ -108,19 +108,30 @@ def scroll_settings_to(label):
             bottom=settings_rect('변경 확인','planRun',document)[1]
             return r[1]>=top and r[3]<=bottom
         except AssertionError:return False
-    document=tree()
-    if in_view(document):return
-    close=settings_rect('연습 설정 닫기','planClose',document)
-    confirm=settings_rect('변경 확인','planRun',document)
-    x=str((close[0]+close[2])//2)
-    for _ in range(5):adb('shell','input','swipe',x,str(close[3]+35),x,str(confirm[1]-35),'200')
-    for _ in range(18):
+    for attempt in range(28):
         document=tree()
         if in_view(document):return
-        close=settings_rect('연습 설정 닫기','planClose',document)
-        confirm=settings_rect('변경 확인','planRun',document)
-        left,right=close[0],close[2]
-        adb('shell','input','swipe',str((left+right)//2),str(confirm[1]-35),str((left+right)//2),str(close[3]+35),'350')
+        area=next(n for n in document.iter('node') if n.attrib.get('resource-id','').endswith('planScroll'))
+        bounds=[int(v) for v in re.findall(r'\d+',area.attrib['bounds'])]
+        columns=set()
+        for n in document.iter('node'):
+            if n.attrib.get('text','').endswith('설정 영역'):
+                r=[int(v) for v in re.findall(r'\d+',n.attrib.get('bounds',''))]
+                if len(r)==4 and r[2]>r[0]:columns.add((r[0],r[2]))
+        columns=sorted(columns)
+        # Swipe in an observed card gutter, never over a native select or slider.
+        gaps=[(left[1]+right[0])//2 for left,right in zip(columns,columns[1:]) if right[0]-left[1]>=6]
+        x=gaps[0] if gaps else bounds[0]+max(60,(bounds[2]-bounds[0])//6)
+        target=[n for n in document.iter('node') if n.attrib.get('text')==label or n.attrib.get('content-desc')==label]
+        r=[int(v) for v in re.findall(r'\d+',target[-1].attrib.get('bounds',''))] if target else []
+        # Offscreen WebView nodes are clipped to the window edge, so their
+        # bounds still identify which direction leads back to the control.
+        toward_top=len(r)==4 and r[1]<bounds[1] or not r and attempt<4
+        middle=(bounds[1]+bounds[3])//2
+        distance=min(250,max(60,(bounds[3]-bounds[1])//2))
+        start=middle-distance//2 if toward_top else middle+distance//2
+        finish=middle+distance//2 if toward_top else middle-distance//2
+        adb('shell','input','swipe',str(x),str(start),str(x),str(finish),'450')
         time.sleep(.3)
     raise AssertionError('Single-page settings control not reachable: '+label)
 
