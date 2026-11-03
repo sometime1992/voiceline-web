@@ -64,6 +64,7 @@ def tap(label, identifier=None, partial=False):
             candidates += [n for n in document.iter('node') if n not in candidates and
                            n.attrib.get('clickable') == 'true' and
                            any(label in n.attrib.get(key, '') for key in ('text', 'content-desc'))]
+        candidates.sort(key=lambda n: 0 if identifier and n.attrib.get('resource-id','').endswith(identifier) else 1)
         for node in candidates:
             values = list(map(int, re.findall(r'\d+', node.attrib.get('bounds', ''))))
             if len(values) == 4 and values[2] > values[0] and values[3] > values[1]:
@@ -176,9 +177,9 @@ def wait_visible(label, timeout=25):
 
 def verify_ci_update_name():
     ci_package = 'com.voiceline.app.local18.ci45'
-    adb('install', '-r', str(root / 'release-review/previous-Local68-CI.apk'))
+    adb('install', '-r', str(root / 'release-review/previous-Local69-CI.apk'))
     old_package = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local68-ci' in old_package
+    assert 'versionName=2.0.0-local69-ci' in old_package
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
     wait_visible('VoiceLine', timeout=60)
@@ -187,9 +188,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local69-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local70-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local69-ci' in installed and 'versionCode=84' in installed
+    assert 'versionName=2.0.0-local70-ci' in installed and 'versionCode=85' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -199,8 +200,8 @@ def verify_ci_update_name():
     screenshot('ci-after-update-app-info.png', False)
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
-        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local68-ci (83)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local69-ci (84)',
+        'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local69-ci (84)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local70-ci (85)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -236,6 +237,15 @@ try:
     tap('새 루틴','planNew')
     tap('단계 추가',partial=True)
     tap('추가할 연습','planAddMode')
+    screenshot('routine-add-picker-android16.png',False)
+    for attempt in range(6):
+        document=tree()
+        try:
+            settings_rect('호흡·워밍업',document=document)
+            break
+        except AssertionError:
+            adb('shell','input','swipe','540','1450','540','650','350')
+            time.sleep(.3)
     tap('호흡·워밍업',partial=True)
     tap('추가','planAdd')
     wait_visible('들이쉬기 직접 입력')
@@ -349,7 +359,7 @@ try:
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local68 to Local69 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local69 to Local70 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))
