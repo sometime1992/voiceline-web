@@ -1,0 +1,100 @@
+name: VoiceLine Local77 exact APK Android recheck
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/recheck-local77-android.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_RUN_ID: '41761668949'
+      SOURCE_COMMIT: 3501baddd62fb74ca2b1a0e8e0dbf991fe6d1c6d
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Reuse the exact verified APK and release review files
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local77-APKs --dir dist
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local77-Release-Readiness --dir .
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local77-Store-Media --dir previous-media
+          gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$GITHUB_SHA" > native-source-compare.json
+          python3 - <<'PY'
+          import hashlib, json, os, shutil, zipfile
+          from pathlib import Path
+          comparison=json.loads(Path('native-source-compare.json').read_text())
+          assert comparison['status'] in ('ahead','identical')
+          assert not any(f['filename'].startswith('android-local44/') for f in comparison['files'])
+          info=json.loads(Path('dist/APK_LABEL_VERIFIED.json').read_text())
+          assert info['source_commit']==os.environ['SOURCE_COMMIT']
+          assert info['version_name']=='2.0.0-local77-ci' and info['version_code']==92
+          assert info['certificate_sha256']=='e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          apk=Path('dist/VoiceLine-Local77-CI.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==info['apk_sha256']=='1b79448b9e5910bd7758411b1409dcc22bfd79bc582d130dec232f7381a5bdf9'
+          assert json.loads(Path('release-review/APP_BUNDLE_INFO.json').read_text())['sourceCommit']==os.environ['SOURCE_COMMIT']
+          for file in [apk,Path('release-review/release-runtime-review.apk')]:
+              with zipfile.ZipFile(file) as archive:
+                  assert archive.testzip() is None
+                  for source in Path('android-local44/app/src/main/assets').rglob('*'):
+                      if source.is_file():
+                          assert archive.read('assets/'+source.relative_to('android-local44/app/src/main/assets').as_posix())==source.read_bytes()
+          assert Path('release-review/previous-Local76-CI.apk').is_file()
+          Path('store-media').mkdir(exist_ok=True)
+          for name in ['feature-graphic-1024x500.png','icon-512.png']:
+              shutil.copyfile(Path('previous-media/store-media')/name,Path('store-media')/name)
+          PY
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 16 exact APK smoke and update recheck
+        timeout-minutes: 14
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: python3 scripts/recheck-android-hierarchy.py
+      - name: Verify exact APK Android results and store media
+        run: |
+          python3 ci/verify-store-media.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          qa=Path('android-smoke')
+          assert json.loads((qa/'ANDROID16_SMOKE.json').read_text())['status']=='passed'
+          update=json.loads((qa/'CI_INSTALL_NAME.json').read_text())
+          assert update['status']=='passed'
+          assert update['before_version']=='2.0.0-local76-ci (91)'
+          assert update['after_version']=='2.0.0-local77-ci (92)'
+          assert update['update_installed_without_uninstall'] and update['private_test_file_preserved']
+          PY
+      - name: Keep fresh Android verification results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local77-Native-Verified
+          path: |
+            android-smoke/
+            store-media/
+          if-no-files-found: error
+          retention-days: 7
