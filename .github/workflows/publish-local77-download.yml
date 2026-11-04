@@ -1,0 +1,143 @@
+# Publish the exact APK from the complete verified Local77 source snapshot.
+name: VoiceLine Local77 direct downloads
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local77-download.yml]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: voiceline-local77-ci
+      SOURCE_RUN_ID: '41761668949'
+      SOURCE_COMMIT: 3501baddd62fb74ca2b1a0e8e0dbf991fe6d1c6d
+      NATIVE_RUN_ID: '41763991370'
+      NATIVE_COMMIT: 8cb15e702368d67f2ecdab73b8c0a2058576fab9
+    steps:
+      - name: Verify build, rendered piano and exact APK Android recheck before publishing
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID" > source-run.json
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN_ID/jobs" > source-jobs.json
+          gh api "repos/$GH_REPO/actions/runs/$NATIVE_RUN_ID" > native-run.json
+          gh api "repos/$GH_REPO/actions/runs/$NATIVE_RUN_ID/jobs" > native-jobs.json
+          gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$NATIVE_COMMIT" > native-compare.json
+          gh api "repos/$GH_REPO/compare/$SOURCE_COMMIT...$GITHUB_SHA" > publication-compare.json
+          gh run download "$NATIVE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local77-Native-Verified --dir verified-media
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local77-Layout-Report --dir verified-layout
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          read=lambda name:json.loads(Path(name).read_text())
+          run=read('source-run.json')
+          assert run['head_sha']==os.environ['SOURCE_COMMIT'] and run['status']=='completed'
+          assert run['conclusion'] in ('success','failure')
+          steps=next(j['steps'] for j in read('source-jobs.json')['jobs'] if j['name']=='apk')
+          failures=[s['name'] for s in steps if s['conclusion']=='failure']
+          assert failures in ([],['Android 16 production smoke test and store screenshots'])
+          required=['Verify public studio homepage, privacy and support','Test recording, dynamics calibration, training and adaptive layout','Check every keyboard size and live graph in Chromium','Build separately installable CI APK','Verify signatures, package IDs, version and every offline asset','Check unsigned release AAB and Android lint','Verify release-review bundle assets','Validate production bundle and prepare emulator review APK']
+          for name in required:
+              assert next(s for s in steps if s['name']==name)['conclusion']=='success',name
+          native=read('native-run.json')
+          assert native['head_sha']==os.environ['NATIVE_COMMIT'] and native['status']=='completed' and native['conclusion']=='success'
+          native_steps=next(j['steps'] for j in read('native-jobs.json')['jobs'] if j['name']=='android')
+          for name in ['Reuse the exact verified APK and release review files','Android 16 exact APK smoke and update recheck','Verify exact APK Android results and store media']:
+              assert next(s for s in native_steps if s['name']==name)['conclusion']=='success',name
+          for file in ['native-compare.json','publication-compare.json']:
+              comparison=read(file)
+              assert comparison['status'] in ('ahead','identical')
+              assert not any(f['filename'].startswith('android-local44/') for f in comparison['files']), 'App changed since APK verification'
+          audio=read('verified-layout/reference-audio.json')
+          assert audio['status']=='passed' and len(audio['references'])==7
+          for ref in audio['references']:
+              assert abs(ref['cents'])<30 and ref['late_rms']>ref['early_rms']*.005
+              assert ref['after_rms']<1e-8 and not ref['nonfinite']
+          assert audio['direct']['graded_window_rms']<1e-8
+          qa=Path('verified-media/android-smoke')
+          assert json.loads((qa/'ANDROID16_SMOKE.json').read_text())['status']=='passed'
+          update=json.loads((qa/'CI_INSTALL_NAME.json').read_text())
+          assert update['status']=='passed'
+          assert update['before_version']=='2.0.0-local76-ci (91)'
+          assert update['after_version']=='2.0.0-local77-ci (92)'
+          assert update['update_installed_without_uninstall'] and update['private_test_file_preserved']
+          PY
+      - name: Download and verify the exact tested APK
+        run: |
+          gh run download "$SOURCE_RUN_ID" --repo "$GH_REPO" --name VoiceLine-Local77-APKs --dir dist
+          python3 - <<'PY'
+          import hashlib, json, os, zipfile
+          from pathlib import Path
+          dist=Path('dist')
+          apk=dist/'VoiceLine-Local77-CI.apk'
+          verified=json.loads((dist/'APK_LABEL_VERIFIED.json').read_text())
+          assert verified['source_commit']==os.environ['SOURCE_COMMIT']
+          assert verified['version_name']=='2.0.0-local77-ci' and verified['version_code']==92
+          assert verified['package']=='com.voiceline.app.local18.ci45'
+          assert verified['certificate_sha256']=='e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==verified['apk_sha256']
+          with zipfile.ZipFile(apk) as archive:
+              assert archive.testzip() is None
+          assert os.environ['SOURCE_COMMIT'] in (dist/'BUILD_INFO.txt').read_text()
+          package=dist/'VoiceLine-Local77-CI.zip'
+          with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as archive:
+              entry=zipfile.ZipInfo(apk.name,date_time=(2026,11,4,0,0,0))
+              entry.compress_type=zipfile.ZIP_DEFLATED
+              archive.writestr(entry,apk.read_bytes())
+          (dist/'SHA256SUMS.txt').write_text('\n'.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name for p in [apk,package])+'\n')
+          PY
+      - name: Create public test download links
+        run: |
+          cat > release-notes.md <<'NOTES'
+          ## VoiceLine Local77 · 피아노 기준음 통일 및 울림 개선
+
+          - 모든 음높이 기준음·가이드·미리 듣기를 실제 피아노 음원으로 통일
+          - 저장된 허밍·모음 톤 설정도 피아노로 정리
+          - 기준음 음원을 먼저 준비한 뒤 마이크·연습 시작, 전자음 대체 경로 제거
+          - 기본 기준음·미리 듣기는 1.5초, 자연스러운 울림과 끝부분 감쇠 적용
+          - 바로 따라 부르기의 기준음은 연습 속도에 맞춰 최대 0.7초로 연장
+          - 기준음이 나오는 구간은 발성 채점에서 제외
+          - 긴 연속 이동도 피아노 음원으로 안내
+          - 로딩 중 닫기·중단·백그라운드 전환 후 뒤늦은 소리 재생 방지
+          - 실제 음원 7개의 음높이·재생 길이·끝부분 및 채점 구간 무음 검증
+          - 버전 2.0.0-local77-ci (92), 기존 CI 인증서·패키지 유지
+
+          앱 소스: https://github.com/sometime1992/voiceline-web/commit/3501baddd62fb74ca2b1a0e8e0dbf991fe6d1c6d
+          기능·화면 검사: https://github.com/sometime1992/voiceline-web/actions/runs/41761668949
+          동일 APK Android 재검증: https://github.com/sometime1992/voiceline-web/actions/runs/41763991370
+
+          최초 Android 화면 읽기 도구의 오류 후, 앱을 다시 빌드하지 않고 동일 APK로 Android 검증을 다시 진행했습니다.
+
+          APK 다운로드가 막히면 ZIP을 풀어 안의 동일 APK를 설치하세요. 기존 CI 앱 위에 업데이트 설치합니다. 실제 S24 Ultra 실기기 검사는 수행하지 않았습니다.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --title 'VoiceLine Local77 피아노 기준음 개선 APK' --notes-file release-notes.md
+            gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber dist/VoiceLine-Local77-CI.apk dist/VoiceLine-Local77-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          else
+            gh release create "$RELEASE_TAG" --repo "$GH_REPO" --target "$GITHUB_SHA" --prerelease --title 'VoiceLine Local77 피아노 기준음 개선 APK' --notes-file release-notes.md dist/VoiceLine-Local77-CI.apk dist/VoiceLine-Local77-CI.zip dist/BUILD_INFO.txt dist/APK_LABEL_VERIFIED.json dist/SHA256SUMS.txt
+          fi
+      - name: Verify public downloads without authentication
+        run: |
+          mkdir -p "$RUNNER_TEMP/public-download-check"
+          for filename in VoiceLine-Local77-CI.apk VoiceLine-Local77-CI.zip; do
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --output "$RUNNER_TEMP/public-download-check/$filename" "https://github.com/$GH_REPO/releases/download/$RELEASE_TAG/$filename"
+          done
+          cd "$RUNNER_TEMP/public-download-check"
+          sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
+      - name: Keep the verified public download files
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local77-Public-Downloads
+          path: dist/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
