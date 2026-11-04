@@ -76,7 +76,7 @@ test('Custom ear notes retain the exact selected order across persistence and in
 });
 test('Each guide repetition uses its selected root shift without mutating another step or its saved settings',()=>{
  const first={...guide.PRACTICE_DEFAULTS,pattern:'triad',root:48,shift:1,sound:'hum',volume:37,tolerance:75,listenFirst:false},second={...first,root:60,shift:-1};
- for(const [round,root]of [[1,48],[2,49],[3,50]]){const session=guide.create(plans.guideRound(first,round),0);assert.equal(session.root,root);assert.equal(session.settings.sound,'hum');assert.equal(session.settings.volume,37);assert.equal(session.settings.listenFirst,false);assert.equal(session.tolerance,75);assert.equal(session.rounds,1);}
+ for(const [round,root]of [[1,48],[2,49],[3,50]]){const session=guide.create(plans.guideRound(first,round),0);assert.equal(session.root,root);assert.equal(session.settings.sound,'piano');assert.equal(session.settings.volume,37);assert.equal(session.settings.listenFirst,false);assert.equal(session.tolerance,75);assert.equal(session.rounds,1);}
  assert.equal(guide.create(plans.guideRound(second,2),0).root,59);assert.equal(first.root,48);assert.equal(second.root,60);
  assert.equal(guide.plan({...first,pattern:'arpeggio',root:82,rounds:2}).limited,true);
 });

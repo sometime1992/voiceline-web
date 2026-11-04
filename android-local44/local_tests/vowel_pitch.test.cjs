@@ -67,8 +67,8 @@ test('Legacy vowel preferences and routines migrate once without touching record
 });
 test('Vowel reference audio uses fixed note frequencies and has no pitch ramp',()=>{
  const events=[],sources=[],param=()=>({setValueAtTime(){},linearRampToValueAtTime(){},cancelScheduledValues(){},setTargetAtTime(){}});
- const ac={currentTime:0,createGain:()=>({gain:param(),connect(){},disconnect(){}}),createOscillator(){const node={frequency:{setValueAtTime(v,t){events.push(['fixed',v,t]);},exponentialRampToValueAtTime(){events.push(['ramp']);}},connect(){},disconnect(){},start(){},stop(){}};sources.push(node);return node;}};
- const timers={setInterval:()=>1,clearInterval(){}},s=make({sound:'hum'}),player=guide.createPlayer(ac,{},()=>null,timers);player.start(s,0);
+ const ac={currentTime:0,createGain:()=>({gain:param(),connect(){},disconnect(){}}),createBufferSource(){const node={playbackRate:{setValueAtTime(v,t){events.push(['fixed',v,t]);},exponentialRampToValueAtTime(){events.push(['ramp']);}},connect(){},disconnect(){},start(){},stop(){}};sources.push(node);return node;}};
+ const timers={setInterval:()=>1,clearInterval(){}},s=make({sound:'hum'}),player=guide.createPlayer(ac,{},midi=>({buffer:{},anchor:48}),timers);player.start(s,0);
  for(let t=0;t<(s.start+s.duration)/1000;t+=.02){ac.currentTime=t;player.pump();}
- assert.equal(events.some(e=>e[0]==='ramp'),false);assert.equal(sources.length,5*9*3);assert.ok(events.every(e=>e[1]>0));player.stop();
+ assert.equal(events.some(e=>e[0]==='ramp'),false);assert.equal(sources.length,5*9);assert.ok(events.every(e=>e[1]>0));player.stop();
 });

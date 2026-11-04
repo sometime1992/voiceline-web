@@ -7,16 +7,16 @@ const vm=require('node:vm');
 const vendor=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/www/vendor/tone-piano.js'),'utf8');
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(options={}){
- const instances=[],timers=new Map(),events=[];let serial=0;
+ const instances=[],timers=new Map(),events=[],notes=[];let serial=0;
  class Piano {
   constructor(){if(options.throwFirst&&!instances.length){instances.push({});throw Error("audio initialization failed");}this.strings={value:0};this._strings={_strings:[{output:{attack:.01}}]};this.promise=new Promise((resolve,reject)=>{this.resolve=resolve;this.reject=reject});instances.push(this)}
-  load(){return this.promise}connect(){}toDestination(){}disconnect(){this.disconnected=true}dispose(){this.disposed=true}stopAll(){}keyDown(){}keyUp(){}
+  load(){return this.promise}connect(){}toDestination(){}disconnect(){this.disconnected=true}dispose(){this.disposed=true}stopAll(){}keyDown(item){notes.push(['down',item]);}keyUp(item){notes.push(['up',item]);}
  }
  const window={dispatchEvent:e=>events.push(e.detail)};
  const ctx={window,Map,Promise,performance:{now:()=>0},yo:Piano,ut:()=>({state:'running',rawContext:{}}),nn:async()=>{},Yu:()=>0,
   setTimeout(fn){timers.set(++serial,fn);return serial},clearTimeout:id=>timers.delete(id),CustomEvent:class{constructor(_,args){this.detail=args.detail}},console:{warn(){},error(){}}};
  vm.runInNewContext(vendor.slice(vendor.indexOf('var VL_loadState='),vendor.lastIndexOf('})();')),ctx);
- return {engine:window.VoiceLineToneEngine,instances,timers,events};
+ return {engine:window.VoiceLineToneEngine,instances,timers,events,notes};
 }
 test('Local34 piano load errors expose a retryable error state; a fresh load can succeed',async()=>{
  const f=fixture();assert.equal(f.engine.status,'loading');f.instances[0].reject(Error('decode failed'));await turn();
@@ -33,4 +33,10 @@ test('Local34 piano load deadline cannot leave the UI loading forever or activat
 test('Local34 a synchronous piano initialization failure still permits a fresh retry',async()=>{
  const f=fixture({throwFirst:true});await turn();assert.equal(f.engine.status,'error');
  const retry=f.engine.load();assert.equal(f.instances.length,2);f.instances[1].resolve();assert.equal(await retry,true);assert.equal(f.engine.status,'ready');
+});
+
+test('Compatibility piano references sustain 1.5 seconds and canceled loading cannot play late notes',async()=>{
+ const f=fixture();f.instances[0].resolve();await turn();await f.engine.reference(60);
+ assert.deepEqual(f.notes.map(([kind,item])=>[kind,item.midi,item.time]),[['down',60,0],['up',60,1.5]]);
+ const cold=fixture(),pending=cold.engine.reference(69);cold.engine.stopAll();cold.instances[0].resolve();await pending;assert.equal(cold.notes.length,0);
 });

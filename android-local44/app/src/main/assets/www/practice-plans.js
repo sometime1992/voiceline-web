@@ -14,7 +14,7 @@
   const direction=root+12>94?-1:1;
   return Array.from({length:count},(_,i)=>root+(offsets?offsets[i%offsets.length]:direction*[0,2,4,7,5,9,12][(i*3+1)%7]));
  }
- function guideRound(settings={},round=1){return {...settings,root:Number(settings.root)+(Math.max(1,Math.round(round))-1)*([-1,0,1].includes(Number(settings.shift))?Number(settings.shift):0),rounds:1};}
+ function guideRound(settings={},round=1){return {...settings,sound:'piano',root:Number(settings.root)+(Math.max(1,Math.round(round))-1)*([-1,0,1].includes(Number(settings.shift))?Number(settings.shift):0),rounds:1};}
  function timing(mode,value={}){
   if(!value||typeof value!=='object')value={};
   const defaults={...DEFAULTS,seconds:({piano:0,pitch:0,record:0,metronome:0,sustainVoice:8,dynamicVoice:12,vibrato:12,rest:5})[mode]??30};
@@ -37,6 +37,7 @@
   if(t.seconds===0)t.seconds=30;
   let params={};try{params=JSON.parse(JSON.stringify(value.params||{}));}catch(_){}
   if(!params||Array.isArray(params)||typeof params!=='object')params={};
+  if(params.guide&&typeof params.guide==='object')params.guide.sound='piano';
   return {id:typeof value.id==='string'?value.id.slice(0,80):id(),mode,timing:t,params};
  }
  function routine(value={}){

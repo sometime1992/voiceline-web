@@ -1560,31 +1560,44 @@ function updateExercise(t){
   exerciseRoundLabel(e)+' · '+(idx+1)+' / '+e.steps.length+'음');
  syncKeyColors();
 }
-function cancelReferenceNotes(){for(const voice of app.referenceVoices||[]){try{voice.source.stop();voice.source.disconnect();voice.gain.disconnect();}catch(_){}}app.referenceVoices?.clear();}
-function playReference(m,seconds=null){
- if(seconds===null&&window.VoiceLineToneEngine?.ready&&window.VoiceLineToneEngine.status!=='error'){
-   window.VoiceLineToneEngine.reference(m).catch(err=>console.warn('Reference note',err));
-   return;
- }
+function cancelReferenceNotes(){
+ app.referenceGeneration=(app.referenceGeneration||0)+1;
+ for(const voice of app.referenceVoices||[]){try{voice.source.stop();voice.source.disconnect();voice.gain.disconnect();}catch(_){}}
+ app.referenceVoices?.clear();
+}
+function referenceSample(midi){
+ const anchor=nearestAcousticMidi(midi),buffer=acoustic.buffers.get(anchor);
+ return buffer?{buffer,anchor,gain:Math.min(.12,calibratedPianoGain(anchor)*.66)}:null;
+}
+async function prepareReferencePiano(mode){
+ let notes=[];
+ if(mode==='practice'||mode==='guideVoice'){
+  const plan=window.VoiceLineGuideTraining.plan(guideOptions());if(!plan.settings.volume)return true;
+  notes=plan.roots.flatMap(root=>plan.smooth?Array.from({length:Math.abs(plan.pattern.steps[1])+1},(_,i)=>root+Math.sign(plan.pattern.steps[1])*i):plan.pattern.steps.map(offset=>root+offset));
+ }else if(mode==='earVoice')notes=window.VoiceLinePracticePlans.earSequence(app.trainingSettings);
+ else if(['sustainVoice','dynamicVoice','vibrato'].includes(mode))notes=[mode==='vibrato'?app.vibratoRoot:app.trainingSettings.root];
+ if(!notes.length)return true;
+ const ac=ensureSynth();if(!ac)return false;if(ac.state!=='running')await ac.resume();
+ const anchors=[...new Set(notes.map(nearestAcousticMidi))];
+ const buffers=await Promise.all(anchors.map(loadAcousticSample));
+ if(buffers.some(buffer=>!buffer)){notify('피아노 기준음 음원을 불러오지 못했습니다. 앱을 다시 열어 주세요.');return false;}
+ return true;
+}
+async function playReference(m,seconds=null){
+ const generation=app.referenceGeneration||0,requestedAt=performance.now(),anchor=nearestAcousticMidi(m);
  const ac=ensureSynth();if(!ac)return;
- const t=ac.currentTime,g=ac.createGain(),length=Number.isFinite(seconds)?clamp(seconds,.1,120):.36;
- const track=source=>{const entry={source,gain:g};(app.referenceVoices??=new Set()).add(entry);source.onended=()=>{source.disconnect();g.disconnect();app.referenceVoices.delete(entry);};};
- const anchor=nearestAcousticMidi(m),sample=acoustic.buffers.get(anchor);
- if(sample){
-   const s=ac.createBufferSource();
-   s.buffer=sample;s.playbackRate.setValueAtTime(Math.pow(2,(m-anchor)/12),t);
-   g.gain.setValueAtTime(0,t);
-   g.gain.linearRampToValueAtTime(SOFT_PIANO.peakGain*0.66,t+SOFT_PIANO.attack);
-   g.gain.setValueAtTime(SOFT_PIANO.peakGain*0.5,t+Math.max(.04,length-.08));g.gain.linearRampToValueAtTime(0,t+length);
-   s.connect(g);g.connect(app.synthMaster);track(s);s.start(t);s.stop(t+length+.01);
- }else{
-   loadAcousticSample(anchor);
-   // Fallback for an unavailable sample only.
-   const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(frequency(m),t);
-   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.038,t+0.026);
-   g.gain.setValueAtTime(.038,t+Math.max(.03,length-.05));g.gain.linearRampToValueAtTime(0,t+length);
-   o.connect(g);g.connect(app.synthMaster);track(o);o.start(t);o.stop(t+length+.01);
- }
+ try{
+  if(!acoustic.buffers.has(anchor)&&!await loadAcousticSample(anchor))throw Error('Missing piano reference');
+  if(generation!==(app.referenceGeneration||0)||app.backgrounded||document.hidden)return;
+  if(ac.state!=='running')await ac.resume();
+  if(generation!==(app.referenceGeneration||0)||app.backgrounded||document.hidden)return;
+  const piano=window.VoiceLineReferencePiano;
+  // A delayed decode must not push sound into an already-started response.
+  const length=seconds===null?piano.DEFAULT_SECONDS:Math.max(0,seconds-(performance.now()-requestedAt)/1000);
+  if(length<.03)return;
+  const voice=piano.play(ac,app.synthMaster,referenceSample,{midi:m,length,onended:()=>app.referenceVoices?.delete(voice)});
+  if(voice)(app.referenceVoices??=new Set()).add(voice);
+ }catch(error){console.warn('Piano reference',error);notify('피아노 기준음을 재생하지 못했습니다. 앱을 다시 열어 주세요.');}
 }
 function finishExercise(completed){
  const e=app.exercise;if(!e)return;
@@ -2276,7 +2289,7 @@ function updateGuidePlan(){
   ' · '+(p.smooth?'연속 왕복 '+p.phraseMs/1000+'초':'한 음 '+(p.noteMs/1000).toFixed(1)+'초')+
   ' · '+(p.infinite?'같은 음역으로 계속 반복':'총 '+Math.ceil((p.duration+(p.settings.listenFirst?p.settings.prepareSeconds:p.settings.breathSeconds)*1000)/1000)+'초')+
   (p.pattern.vowels?' · 아 → 에 → 이 → 오 → 우 = 1세트':'')+(p.limited?' · 음역 경계에서 '+(p.pattern.vowels?p.sets+'세트':p.rounds+'회')+'로 조정':'')+(p.settings.volume===0?' · 기준음 소리 꺼짐':'');
- $('guideMethodInfo').textContent=p.settings.listenFirst?'한 구절 듣기 → 3·2·1 → 따라 부르기. 듣기와 준비는 채점하지 않습니다.':'3·2·1 → 바로 따라 부르기. 음계·도약의 짧은 기준음이 재생되는 구간은 채점하지 않습니다. 이어폰 사용을 권장합니다.';
+ $('guideMethodInfo').textContent=p.settings.listenFirst?'한 구절 듣기 → 3·2·1 → 따라 부르기. 듣기와 준비는 채점하지 않습니다.':'3·2·1 → 바로 따라 부르기. 피아노 기준음이 재생되는 구간은 채점하지 않습니다. 이어폰 사용을 권장합니다.';
  if(p.pattern.vowels)$('guideMethodInfo').textContent+=' 한 모음으로 음계 전체를 왕복한 뒤 다음 모음으로 넘어갑니다. 발음 자체와 소리 크기는 판정하지 않습니다.';
  const roundsLabel=$('guideRounds').closest?.('label');if(roundsLabel?.firstChild)roundsLabel.firstChild.textContent=p.pattern.vowels?'세트 수 (아에이오우 = 1세트)':'반복 횟수';
  for(const option of $('guideRounds').options||[])option.textContent=Number(option.value)===0?'계속 반복':option.value+(p.pattern.vowels?'세트':'회');
@@ -2298,18 +2311,9 @@ function startGuideSound(session,t){
  const api=window.VoiceLineGuideTraining,ac=ensureSynth();
  if(!api||!ac||ac.state!=='running'){notify('가이드 소리를 시작하지 못했습니다. 훈련 시작을 다시 눌러 주세요.');return false;}
  try{
-  if(session.settings.sound==='piano'){
-   const anchors=new Set(session.roots.flatMap(root=>session.pattern.steps.map(offset=>nearestAcousticMidi(root+offset))));
-   // Decoding does not delay the response timeline. A soft synthesized piano
-   // tone remains available if a bundled sample cannot be decoded.
-   for(const anchor of anchors)void loadAcousticSample(anchor);
-  }
-  session.guidePlayer=api.createPlayer(ac,app.synthLimiter||ac.destination,midi=>{
-   const anchor=nearestAcousticMidi(midi),buffer=acoustic.buffers.get(anchor);
-   return buffer?{buffer,anchor,gain:Math.min(.12,calibratedPianoGain(anchor)*.66)}:null;
-  },window,()=>{if(app.training===session){finishTraining(false);notify('가이드 오디오가 중단되었습니다. 다시 시작해 주세요.');}});
+  session.guidePlayer=api.createPlayer(ac,app.synthLimiter||ac.destination,referenceSample,window,()=>{if(app.training===session){finishTraining(false);notify('피아노 가이드 오디오가 중단되었습니다. 다시 시작해 주세요.');}});
   session.guidePlayer.start(session,t);return true;
- }catch(error){session.guidePlayer?.stop();console.warn('Guide audio',error);notify('가이드 소리를 시작하지 못했습니다.');return false;}
+ }catch(error){session.guidePlayer?.stop();console.warn('Guide audio',error);notify('피아노 가이드 소리를 시작하지 못했습니다.');return false;}
 }
 function updateGuideTraining(a,t){
  const api=window.VoiceLineGuideTraining;api.advance(a,t);const p=api.position(a,t);
@@ -2795,7 +2799,7 @@ $('mainButton').addEventListener('click',async()=>{
     if(app.mode==='practice'||app.mode==='guideVoice')ensureSynth();
     // Warmup cues use WebAudio unlocked from this tap.
     if(app.mode==='warmupVoice'||app.mode==='dynamicVoice'||!window.VoiceLineToneEngine)ensureSynth();
-    if(app.mode==='warmupVoice'||await startMic())startTraining(performance.now());
+    if(await prepareReferencePiano(app.mode)&&(app.mode==='warmupVoice'||await startMic()))startTraining(performance.now());
    }
   }else if(app.mode==='record'){
    if(app.record){await stopRecording();stopMic();$('stopButton').hidden=true;}
@@ -2806,7 +2810,7 @@ $('mainButton').addEventListener('click',async()=>{
    }
   }else if(app.mode==='vibrato'){
    if(app.vibratoStart){await finishVibrato();stopMic();}
-   else if(await startMic())startVibratoSession(performance.now());
+   else if(await prepareReferencePiano('vibrato')&&await startMic())startVibratoSession(performance.now());
   }else{
    if(app.mic){await stopActivity();b.textContent='마이크 켜기';$('stopButton').hidden=true;}
    else if(await startMic()){if(app.mode==='piano'){app.mode='pitch';$('modeChip').textContent='음정 측정하기';setTitle('음정 측정하기');modeControls();syncPitchGraphOverlay(true);setMessage(MODES.pitch[1]);}b.textContent='마이크 끄기';$('stopButton').hidden=false;}
@@ -2935,7 +2939,7 @@ const MODE_GUIDES={
  guideVoice:{intro:'가이드를 듣고 음을 오르내리는 음역 슬라이드입니다. 음계·도약과 기존의 단계별 왕복·연속 슬라이드를 한 패턴 목록에 통합했습니다.',
   steps:['패턴은 음계·도약 10종, 3·5·7·12반음 단계별 왕복 4종, 같은 범위의 연속 슬라이드 4종으로 총 18종입니다. 연습 설정에서 시작음과 1~5회 반복을 정합니다.',
    '음계·단계별은 50~120 BPM에 맞추거나 한 음을 2·3·4초 유지하도록 정할 수 있습니다. 연속 패턴은 6초 이동 후 6초 되돌아오는 12초 왕복이며, 높은 시작음에서는 감지 가능한 범위 안에서 아래로 왕복합니다.',
-   '피아노·허밍 톤·모음 톤과 전용 음량을 선택합니다. 일반 패턴의 피아노는 포함 음원을 사용하며, 연속 패턴은 음이 끊기지 않도록 선택한 소리의 합성 지속음을 사용합니다.',
+   '기준음과 미리 듣기는 피아노로 재생합니다. 가이드 음량을 조절하고 듣기 버튼으로 확인할 수 있습니다. 긴 연속 이동에서는 피아노가 다시 울리며 목표 음높이를 따라갑니다.',
    '훈련 시작 후 ① 가이드 듣기로 한 구절을 듣습니다. 이어지는 ② 준비에서 큰 숫자 3·2·1을 보고, ③ 지금 시작!이 나오면 왼쪽 첫 음 시작선부터 같은 구절을 부릅니다. 준비는 3초이며 채점하지 않습니다. 따라 부를 때 가이드 소리는 나오지 않습니다.',
    '민트색 선은 목표 음정, 보라색 선과 점은 내 목소리입니다. 연속 패턴은 기울어진 목표선을 따라 음을 끊지 않고 연결하세요. 차이 +cent는 높게, −cent는 낮게 부른 것입니다.',
    '한 회차를 마치면 잠깐 쉬고 다시 가이드를 듣습니다. 같은 음역 반복 또는 반음씩 올리기·내리기를 선택합니다. 감지 가능한 C2~A♯6 안에 들어오도록 시작음을 조정하고 음역 경계에서 반복을 끝냅니다.'],
@@ -3527,13 +3531,17 @@ if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(updatePrac
 
 let settingsPreviewPlayer=null,settingsPreviewGeneration=0,settingsPreviewTimer=null;
 function stopSettingsPreview(){settingsPreviewGeneration++;settingsPreviewPlayer?.stop();settingsPreviewPlayer=null;clearTimeout(settingsPreviewTimer);settingsPreviewTimer=null;}
-async function previewSettingsSound({midi=48,sound='piano',volume=70}={}){
+async function previewSettingsSound({midi=48,volume=70}={}){
  stopSettingsPreview();if(!volume){notify('음량이 0%입니다.');return;}const generation=settingsPreviewGeneration,ac=ensureSynth();if(!ac)return;
- try{if(ac.state!=='running')await ac.resume();if(generation!==settingsPreviewGeneration||app.training||app.mic||app.backgrounded||document.hidden)return;
- const g=window.VoiceLineGuideTraining,now=performance.now(),session=g.create({pattern:'hold',root:midi,rounds:1,noteSeconds:.8,prepareSeconds:0,breathSeconds:0,restSeconds:0,listenFirst:true,sound,volume},now);
- if(sound==='piano'){await loadAcousticSample(nearestAcousticMidi(midi));if(generation!==settingsPreviewGeneration)return;}
- settingsPreviewPlayer=g.createPlayer(ac,app.synthLimiter||ac.destination,note=>{const anchor=nearestAcousticMidi(note),buffer=acoustic.buffers.get(anchor);return buffer?{buffer,anchor,gain:Math.min(.12,calibratedPianoGain(anchor)*.66)}:null;});settingsPreviewPlayer.start(session,now);settingsPreviewTimer=setTimeout(stopSettingsPreview,1200);
- }catch(_){notify('소리를 재생하지 못했습니다. 미디어 음량을 확인해 주세요.');}
+ try{
+  if(ac.state!=='running')await ac.resume();
+  if(!await loadAcousticSample(nearestAcousticMidi(midi)))throw Error('Missing piano preview');
+  if(generation!==settingsPreviewGeneration||app.training||app.mic||app.backgrounded||document.hidden)return;
+  const piano=window.VoiceLineReferencePiano,seconds=piano.DEFAULT_SECONDS;
+  const voice=piano.play(ac,app.synthLimiter||ac.destination,referenceSample,{midi,length:seconds,volume});
+  settingsPreviewPlayer={stop(){try{voice?.gain.gain.cancelScheduledValues(ac.currentTime);voice?.gain.gain.setTargetAtTime(0,ac.currentTime,.006);voice?.source.stop(ac.currentTime+.025);}catch(_){}}};
+  settingsPreviewTimer=setTimeout(stopSettingsPreview,(seconds+.2)*1000);
+ }catch(_){notify('피아노 기준음을 재생하지 못했습니다. 앱을 다시 열어 주세요.');}
 }
 function unlockPlanAudio(){ensureSynth();window.VoiceLineToneEngine?.unlock?.().catch(error=>console.warn('Piano unlock',error));}
 function planCapture(){return {training:{...JSON.parse(JSON.stringify(app.trainingSettings)),warmup:normalizeWarmup(app.trainingSettings.warmup)},guide:{...guideOptions()},vibratoRoot:app.vibratoRoot,metronome:app.metronome?JSON.parse(JSON.stringify(app.metronome.settings)):null,base:app.base,pianoVolume:app.pianoVolume,micSensitivity:app.micSensitivity};}
@@ -3582,6 +3590,7 @@ async function runPlanStep(step,token,state,single=false){
  app.busy=true;
  try{
   if(mode==='metronome'){await app.metronome.toggle();if(!ui.owns(token)){app.metronome.stop();return false;}ui.arm(mode,performance.now(),step.timing.seconds);return app.metronome.running;}
+  if(!await prepareReferencePiano(mode)||!ui.owns(token)||app.backgrounded||document.hidden)return false;
   if(mode!=='warmupVoice'&&!await startMic())return false;
   if(!ui.owns(token)){stopMic();return false;}
   const now=performance.now();

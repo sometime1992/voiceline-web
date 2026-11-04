@@ -47,7 +47,7 @@ test('Direct reference-note intervals contribute no false voice coverage',()=>{
  const s=session(),first=s.start;
  for(let t=first;t<=first+240;t+=40)guide.receive(s,t,60);
  assert.equal(s.voicedMs,0);assert.equal(s.goodMs,0);
- guide.receive(s,first+320,60);assert.ok(s.voicedMs>0&&s.voicedMs<=40);
+ guide.receive(s,first+s.attackMs-40,60);guide.receive(s,first+s.attackMs+40,60);assert.ok(s.voicedMs>0&&s.voicedMs<=40);
 });
 test('Silence and one skipped note cannot become successful practice',()=>{
  for(const options of [{skip:()=>true},{skip:p=>p.index===2},{wrong:2}]){

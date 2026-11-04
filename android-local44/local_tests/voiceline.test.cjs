@@ -258,8 +258,12 @@ test('history store awaits IndexedDB commit instead of request success',()=>{
 });
 
 // Local21: exercise pattern library and automatic repeat regression tests.
+function referenceFixture(onNote=()=>{}){return {
+ acoustic:{buffers:{has:()=>true}},nearestAcousticMidi:m=>m,ensureSynth:()=>({state:'running'}),performance:{now:()=>0},
+ document:{hidden:false,createElement:()=>({})},window:{VoiceLineReferencePiano:{DEFAULT_SECONDS:1.5,play(ac,destination,sample,item){onNote(item.midi);return null;}}}
+};}
 test('practice has 13 distinct patterns and never requests an unavailable piano note',()=>{
- const section=snippet('const EXERCISE_PATTERNS=','function playReference(m,seconds=null){','\n({EXERCISE_PATTERNS,exerciseSteps})');
+ const section=snippet('const EXERCISE_PATTERNS=','function cancelReferenceNotes(){','\n({EXERCISE_PATTERNS,exerciseSteps})');
  const app={exercisePattern:'scale',exerciseRoot:60};
  const {EXERCISE_PATTERNS,exerciseSteps}=runInContext(section,{app,Math});
  const keys=Object.keys(EXERCISE_PATTERNS);
@@ -286,7 +290,7 @@ test('practice repeat count advances rounds, locks controls, ends and stores sco
   localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},
   $:id=>controls[id],
   setMessage:s=>events.push('message:'+s),progress:(n,s)=>events.push(['progress',n,s]),
-  window:{VoiceLineToneEngine:{ready:true,status:'ready',reference(n){events.push(['note',n]);return Promise.resolve();}}},name:n=>'n'+n,koname:n=>'kn'+n,noteLabel:n=>'n'+n+' · kn'+n,
+  ...referenceFixture(n=>events.push(['note',n])),name:n=>'n'+n,koname:n=>'kn'+n,noteLabel:n=>'n'+n+' · kn'+n,
   addEvent:(name,detail,kind)=>events.push(['saved',name,detail,kind]),
   syncKeyColors:()=>{},drawKeys:()=>{},clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),
   stopMic:()=>{app.mic=false;events.push('mic stopped')},
@@ -323,7 +327,7 @@ test('unlimited repeat ends only when user stops and stores fully completed roun
  elems.mainButton={textContent:''};elems.stopButton={hidden:false};
  const app={exercisePattern:'fifth',exerciseRoot:65,exerciseSpeed:1200,exerciseRepeats:0,mic:true,base:48};
  const api=runInContext(section,{app,Math,Number,
-  $:x=>elems[x],setMessage:()=>{},progress:()=>{},window:{VoiceLineToneEngine:{ready:true,status:'ready',reference:()=>Promise.resolve()}},
+  $:x=>elems[x],setMessage:()=>{},progress:()=>{},...referenceFixture(),
   name:x=>String(x),koname:x=>String(x),noteLabel:x=>'n'+x,clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),drawKeys:()=>{},
   syncKeyColors:()=>{},addEvent:(...args)=>records.push(args),stopMic:()=>{throw Error('infinite repeat should not auto-stop')}
  });

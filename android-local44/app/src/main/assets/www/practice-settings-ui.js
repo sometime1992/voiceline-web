@@ -138,7 +138,7 @@
   }
   into=groups.audio.body;
   if(mode==='practice'){
-   select('sound','가이드 소리',Object.entries(guide.SOUNDS),g);volume('volume','가이드 음량 (%)',g,v=>bridge.previewSound?.({midi:g.root,sound:g.sound,volume:v}));
+   into.append(el('p','기준음 · 피아노','settings-help'));volume('volume','가이드 음량 (%)',g,v=>bridge.previewSound?.({midi:g.root,sound:'piano',volume:v}));
    if(!guide.PATTERNS[g.pattern].smooth)select('tolerance','음정 허용 범위',[[35,'정밀하게 · ±35cent'],[50,'기본 · ±50cent'],[75,'여유롭게 · ±75cent']],g,'목표 음정에서 허용하는 높이 차이입니다.');else into.append(el('p','연속 이동의 허용 범위는 ±110cent입니다.','settings-help'));
   }else if(mode==='metronome'){select('sound','클릭 소리',[['click','클릭'],['wood','우드'],['bell','벨']],m);volume('volume','메트로놈 음량 (%)',m);check('muted','메트로놈 음소거',m);}
   else if(mode==='warmupVoice')check('cues','단계 전환 안내음',w);

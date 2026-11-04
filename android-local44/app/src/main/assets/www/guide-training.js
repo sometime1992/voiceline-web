@@ -1,9 +1,9 @@
 'use strict';
 /* Phrase listening and response use one timeline. Only response time is scored. */
 (function(root,factory){
- const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;
+ const api=factory(typeof module==='object'&&module.exports?require('./reference-piano.js'):root.VoiceLineReferencePiano);if(typeof module==='object'&&module.exports)module.exports=api;
  else root.VoiceLineGuideTraining=api;
-})(typeof window!=='undefined'?window:globalThis,function(){
+})(typeof window!=='undefined'?window:globalThis,function(piano){
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const VOWELS=Object.freeze(['아','에','이','오','우']);
  const PATTERNS=Object.freeze({
@@ -33,7 +33,7 @@
   smooth12:{label:'연속 슬라이드 · 12반음',span:12,smooth:true,steps:[0,12,0],tip:'한 옥타브를 연속으로 왕복합니다. 편안한 음역에서 시작하세요.'}
  });
  for(const p of Object.values(PATTERNS)){Object.freeze(p.steps);Object.freeze(p);}
- const SOUNDS=Object.freeze({piano:'피아노',hum:'부드러운 허밍 톤',vowel:'밝은 모음 톤'});
+ const SOUNDS=Object.freeze({piano:'피아노'});
  const DEFAULTS=Object.freeze({pattern:'five',root:48,bpm:80,noteSeconds:0,rounds:3,shift:1,sound:'piano',volume:70,tolerance:50,listenFirst:true,prepareSeconds:1.8,breathSeconds:3,restSeconds:3,smoothSeconds:12});
  const PRACTICE_DEFAULTS=Object.freeze({...DEFAULTS,noteSeconds:1.8,rounds:2,shift:0,tolerance:35,listenFirst:false});
  const LEGACY_PATTERNS=Object.freeze({scale:'five',triad:'triad',sustain:'hold',down:'down',scaleUp:'octaveUp',pentatonic:'pentatonic',chromatic:'chromatic',majorThird:'thirds',fifth:'fifth',octave:'octave',arpeggio:'arpeggio',minor:'minor',returnToRoot:'return'});
@@ -50,7 +50,7 @@
    rounds:value.rounds===0||value.rounds==='0'?0:number(value.rounds,DEFAULTS.rounds,1,99),
    shift:value.rounds===0||value.rounds==='0'?0:[-1,0,1].includes(Number(value.shift))?Number(value.shift):DEFAULTS.shift,
    listenFirst:value.listenFirst!==false,
-   sound:Object.hasOwn(SOUNDS,value.sound)?value.sound:DEFAULTS.sound,
+   sound:'piano',
    volume:number(value.volume,DEFAULTS.volume,0,100),tolerance:[35,50,75].includes(Number(value.tolerance))?Number(value.tolerance):DEFAULTS.tolerance};
  }
  function migratePractice(unified,legacyPractice,legacyGuide,legacyTraining){
@@ -87,7 +87,7 @@
   }
   const phraseMs=smooth?settings.smoothSeconds*1000:pattern.steps.length*noteMs;
   const cycleMs=phraseMs+(settings.listenFirst?phraseMs+settings.breathSeconds*1000:0)+settings.restSeconds*1000;
-  const attackMs=!settings.listenFirst&&!smooth?Math.min(280,noteMs*.35):100;
+  const attackMs=!settings.listenFirst&&!smooth&&settings.volume>0?Math.min(noteMs*.65,piano.cueSeconds(noteMs)*1000+80):100;
   const responsePerRound=smooth?phraseMs-attackMs:pattern.steps.length*(noteMs-attackMs);
   return {settings,pattern,smooth,direction,infinite,phrasesPerSet,sets:infinite?1:roots.length/phrasesPerSet,attackMs,responsePerRound,tolerance:smooth?110:settings.tolerance,noteMs,phraseMs,cycleMs,handoffMs:settings.breathSeconds*1000,roots,rounds:roots.length,
    duration:infinite?Infinity:cycleMs*roots.length,limited:!infinite&&roots.length<settings.rounds*phrasesPerSet,
@@ -195,7 +195,7 @@
    ac.removeEventListener?.('statechange',stateChange);
    for(const voice of voices){
     try{voice.gain.gain.cancelScheduledValues(ac.currentTime);voice.gain.gain.setTargetAtTime(.00001,ac.currentTime,.006);
-     for(const source of voice.sources)source.stop(ac.currentTime+.025);}catch(_){}
+     voice.source.stop(ac.currentTime+.025);}catch(_){}
    }
    voices.clear();
   }
@@ -203,48 +203,32 @@
    if(!stopped&&ac.state&&ac.state!=='running'){stop();onInterrupted();}
   }
   function note(item){
-   const t=Math.max(ac.currentTime,item.at),length=item.length,vol=item.volume/100;
-   if(!vol)return;
-   const gain=ac.createGain(),sources=[],voice={gain,sources};voices.add(voice);
-   gain.connect(destination);
-   const found=item.sound==='piano'&&!item.smooth?sample(item.midi):null;
-   if(found?.buffer){
-    const source=ac.createBufferSource();source.buffer=found.buffer;
-    source.playbackRate.setValueAtTime(Math.pow(2,(item.midi-found.anchor)/12),t);source.connect(gain);sources.push(source);
-   }else{
-    const harmonics=item.sound==='hum'?[1,.23,.07]:item.sound==='vowel'?[1,.5,.35,.16]:[1,.3,.12];
-    harmonics.forEach((amplitude,i)=>{
-     const source=ac.createOscillator(),partial=ac.createGain();source.type='sine';
-     const hz=m=>440*Math.pow(2,(m-69)/12)*(i+1);
-     if(item.smooth){
-      const end=item.at+item.duration,middle=item.at+item.duration/2;
-      const current=item.midi+(item.peakMidi-item.midi)*triangle((t-item.at)/item.duration);
-      source.frequency.setValueAtTime(hz(current),t);
-      if(t<middle)source.frequency.exponentialRampToValueAtTime(hz(item.peakMidi),middle);
-      source.frequency.exponentialRampToValueAtTime(hz(item.midi),end);
-     }else source.frequency.setValueAtTime(hz(item.midi),t);
-     partial.gain.value=amplitude;
-     source.connect(partial);partial.connect(gain);source._guidePartial=partial;sources.push(source);
-    });
-   }
-   const peak=(found?.gain||.075)*vol;
-   gain.gain.setValueAtTime(.00001,t);gain.gain.linearRampToValueAtTime(peak,t+.035);
-   gain.gain.setValueAtTime(item.sound==='piano'?peak*.55:peak,t+Math.max(.04,length-.07));
-   gain.gain.linearRampToValueAtTime(.00001,t+length);
-   let remaining=sources.length;
-   for(const source of sources){
-    source.onended=()=>{source.disconnect();source._guidePartial?.disconnect();if(!--remaining){gain.disconnect();voices.delete(voice);}};
-    source.start(t);source.stop(t+length+.01);
-   }
+   const at=Math.max(ac.currentTime,item.at),length=item.length;
+   const curve=item.curve?.filter(p=>p.at>at);
+   const midi=item.midiAt?item.midiAt(at):item.midi;
+   let voice;voice=piano.play(ac,destination,sample,{midi,at,length,volume:item.volume,curve,onended:()=>voices.delete(voice)});
+   if(voice)voices.add(voice);
   }
   function eventsFor(s,round){
-   const base=origin+round*s.cycleMs/1000,root=s.roots[s.infinite?0:round];
+   const base=origin+round*s.cycleMs/1000,root=s.roots[s.infinite?0:round],volume=s.settings.volume;
+   const available=round===0?s.settings.breathSeconds:s.settings.restSeconds;
+   const primer=!s.settings.listenFirst&&available>=.5?[{at:base-Math.min(available,1.65),midi:root,length:Math.min(piano.DEFAULT_SECONDS,available-.08),volume}]:[];
    if(s.smooth){
-    if(!s.settings.listenFirst)return [{at:base-.25,midi:root,length:.18,sound:s.settings.sound,volume:s.settings.volume}];
-    return [{at:base,midi:root,peakMidi:root+s.pattern.steps[1],smooth:true,duration:s.phraseMs/1000,length:s.phraseMs/1000,sound:s.settings.sound,volume:s.settings.volume}];
+    if(!s.settings.listenFirst)return primer;
+    const duration=s.phraseMs/1000,middle=base+duration/2,end=base+duration;
+    const midiAt=at=>root+s.pattern.steps[1]*triangle((at-base)/duration),events=[];
+    // Re-strike the acoustic piano along the continuous pitch curve so long
+    // slides retain a piano body instead of becoming an oscillator or silence.
+    for(let at=base;at<end-.0001;at+=piano.RESTRIKE_SECONDS){
+     const until=Math.min(end,at+piano.RESTRIKE_SECONDS),curve=[];
+     if(at<middle&&until>middle)curve.push({at:middle,midi:midiAt(middle)});
+     curve.push({at:until,midi:midiAt(until)});
+     events.push({at,midi:midiAt(at),midiAt,length:until-at,curve,volume});
+    }
+    return events;
    }
-   return s.pattern.steps.map((offset,i)=>({at:base+i*s.noteMs/1000,midi:root+offset,
-    length:s.settings.listenFirst?s.noteMs*.9/1000:Math.min(.18,s.noteMs*.25/1000),sound:s.settings.sound,volume:s.settings.volume}));
+   return [...primer,...s.pattern.steps.map((offset,i)=>({at:base+i*s.noteMs/1000,midi:root+offset,
+    length:s.settings.listenFirst?s.noteMs*.95/1000:piano.cueSeconds(s.noteMs),volume}))];
   }
   function pump(){
    if(stopped)return;

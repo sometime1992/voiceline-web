@@ -86,6 +86,7 @@ async function checkVolumeRange(page,id,valueId){
    window.VoiceLineNative={start(request){window.__micRequest=request;setTimeout(()=>window.VoiceLineNativeAudio.onState('started','',request,44100),window.__micDelay||0);},stop(request){if(window.__micRequest===request)window.__micRequest=null;}};
   });
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForSelector('#keyboard .white-key');
+  await require('./check-reference-audio.cjs')(page,output);
   for(const viewport of viewports){
    await page.setViewportSize(viewport);await frames(page);let baseline;
    for(const mode of modes){

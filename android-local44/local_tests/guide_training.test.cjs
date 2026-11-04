@@ -106,9 +106,9 @@ function audio(){
  return {ac,timers,sources,intervals};
 }
 test('Audio scheduling plays only the demonstration, never the response, at the selected tempo',()=>{
- const h=audio(),s=session({sound:'hum',rounds:2,shift:1}),player=guide.createPlayer(h.ac,{},()=>null,h.timers);
+ const h=audio(),s=session({sound:'hum',rounds:2,shift:1}),player=guide.createPlayer(h.ac,{},midi=>({buffer:{},anchor:midi}),h.timers);
  player.start(s,0);assert.equal(h.sources.length,0);
- h.ac.currentTime=s.start/1000-.1;player.pump();assert.equal(h.sources.length,3);
+ h.ac.currentTime=s.start/1000-.1;player.pump();assert.equal(h.sources.length,1);
  assert.equal(h.sources[0].started,s.start/1000);
  const starts=[];
  for(let t=s.start/1000;t<(s.start+s.duration)/1000;t+=.05){h.ac.currentTime=t;player.pump();}
@@ -124,14 +124,12 @@ test('Guide piano uses the actual decoded sample with transposition and bounded 
  assert.ok(Math.abs(h.sources[0].playbackRate.events[0][0]-Math.pow(2,1/12))<1e-9);
  player.stop();
 });
-test('All guide timbres remain playable offline when a piano sample is unavailable',()=>{
- for(const sound of Object.keys(guide.SOUNDS)){
-  const h=audio(),s=session({sound}),player=guide.createPlayer(h.ac,{},()=>null,h.timers);
-  player.start(s,0);h.ac.currentTime=s.start/1000-.1;player.pump();
-  assert.ok(h.sources.length>=3);assert.equal(h.sources[0].frequency.events[0][0],440*Math.pow(2,(60-69)/12));
-  player.stop();assert.equal(player.activeVoices,0);assert.ok(h.sources.every(source=>source.stopped<=h.ac.currentTime+.026));
-  const count=h.sources.length;h.ac.currentTime+=100;player.pump();assert.equal(h.sources.length,count);assert.equal(h.intervals.size,0);
- }
+test('An unavailable piano sample reports interruption instead of substituting an electronic tone',()=>{
+ const h=audio();let errors=0;
+ const player=guide.createPlayer(h.ac,{},()=>null,h.timers,()=>errors++);
+ player.start(session(),0);h.ac.currentTime=2;player.pump();
+ assert.equal(errors,1);assert.equal(h.sources.length,0);assert.equal(player.activeVoices,0);assert.equal(h.intervals.size,0);
+ h.ac.currentTime=20;player.pump();assert.equal(errors,1);
 });
 test('Muted guide creates no audio nodes; delayed scheduling skips expired notes',()=>{
  const muted=audio(),s=session({volume:0}),p=guide.createPlayer(muted.ac,{},()=>null,muted.timers);
@@ -310,26 +308,28 @@ test('Continuous movement excludes the first attack once and grades across later
  assert.equal(s.responseMs,11900);assert.equal(s.goodMs,3000);
  assert.equal(s.bins[0][0].expected,2900);assert.equal(s.bins[0][1].expected,3000);
 });
-test('Continuous guide audio ramps through the same pitches and remains silent during response',()=>{
- for(const sound of Object.keys(guide.SOUNDS))for(const root of [60,84]){
-  const h=audio(),s=session({pattern:'smooth12',root,sound,rounds:2,shift:0});let sampleReads=0;
-  const p=guide.createPlayer(h.ac,{},()=>{sampleReads++;return null;},h.timers);p.start(s,0);
-  h.ac.currentTime=s.start/1000-.1;p.pump();assert.equal(sampleReads,0);
-  const events=h.sources[0].frequency.events,hz=m=>440*Math.pow(2,(m-69)/12);
-  assert.deepEqual(events,[[hz(root),s.start/1000],[hz(root+s.pattern.steps[1]),s.start/1000+6],[hz(root),s.start/1000+12]]);
-  const firstCount=h.sources.length;h.ac.currentTime=(s.start+s.phraseMs+s.handoffMs+500)/1000;p.pump();
-  assert.equal(h.sources.length,firstCount,'the user response must remain unaccompanied');
-  h.ac.currentTime=(s.start+s.cycleMs)/1000-.1;p.pump();assert.equal(h.sources.length,firstCount*2);
+test('Continuous demonstrations use acoustic piano strikes at the current curve pitch and remain silent during response',()=>{
+ for(const root of [60,84]){
+  const h=audio(),s=session({pattern:'smooth12',root,rounds:2,shift:0});
+  const p=guide.createPlayer(h.ac,{},midi=>({buffer:{},anchor:root}),h.timers);p.start(s,0);
+  for(let t=s.start/1000-.1;t<(s.start+s.phraseMs)/1000;t+=.05){h.ac.currentTime=t;p.pump();}
+  assert.equal(h.sources.length,8,'a fresh piano strike every 1.5 seconds across twelve seconds');
+  for(const source of h.sources){
+   assert.ok(source.buffer);const events=source.playbackRate.events;
+   const elapsed=source.started-s.start/1000,expected=root+s.pattern.steps[1]*(elapsed<6?elapsed/6:2-elapsed/6);
+   assert.ok(Math.abs(events[0][0]-Math.pow(2,(expected-root)/12))<1e-8);
+   assert.ok(source.stopped<=s.start/1000+12.011,'no source extends into the response');
+  }
+  const count=h.sources.length;h.ac.currentTime=(s.start+s.phraseMs+s.handoffMs+500)/1000;p.pump();assert.equal(h.sources.length,count);
   p.stop();assert.equal(h.intervals.size,0);assert.equal(p.activeVoices,0);
  }
 });
-test('Late continuous audio starts at the current curve position and never schedules a past peak',()=>{
- const h=audio(),s=session({pattern:'smooth12',root:60,sound:'hum'}),p=guide.createPlayer(h.ac,{},()=>null,h.timers);
+test('A delayed continuous piano strike begins at the current curve pitch and skips expired strikes',()=>{
+ const h=audio(),s=session({pattern:'smooth12',root:60}),p=guide.createPlayer(h.ac,{},()=>({buffer:{},anchor:60}),h.timers);
  p.start(s,0);h.ac.currentTime=s.start/1000+8;p.pump();
- const events=h.sources[0].frequency.events,hz=m=>440*Math.pow(2,(m-69)/12);
- assert.ok(Math.abs(events[0][0]-hz(68))<1e-8);assert.equal(events[0][1],h.ac.currentTime);
- assert.equal(events.length,2);assert.equal(events[1][1],s.start/1000+12);assert.ok(Math.abs(events[1][0]-hz(60))<1e-8);
- p.stop();
+ assert.equal(h.sources.length,1);const events=h.sources[0].playbackRate.events;
+ assert.ok(Math.abs(events[0][0]-Math.pow(2,8/12))<1e-8);assert.equal(events[0][1],h.ac.currentTime);
+ assert.ok(events.slice(1).every(e=>e[1]>h.ac.currentTime));p.stop();
 });
 test('Continuous graph draws a sloping target instead of discrete note bars',()=>{
  const s=session({pattern:'smooth7'}),ops=[],ctx=new Proxy({}, {get(target,key){return target[key]??((...args)=>ops.push([key,...args]));},set(target,key,value){target[key]=value;return true;}});
@@ -352,7 +352,7 @@ test('Old slide settings migrate once; valid existing guide choices always take 
   assert.equal(restored.pattern,style+span);assert.equal(restored.root,84);assert.equal(restored.rounds,1);assert.equal(restored.shift,0);
   assert.equal(restored.noteSeconds,style==='step'?4:0);
   const previous={pattern:'triad',root:55,bpm:90,noteSeconds:2,rounds:2,shift:-1,sound:'vowel',volume:50,tolerance:75};
-  assert.deepEqual(guide.restore(previous,legacy),{...previous,listenFirst:true,prepareSeconds:1.8,breathSeconds:3,restSeconds:3,smoothSeconds:12});
+  assert.deepEqual(guide.restore(previous,legacy),{...previous,sound:'piano',listenFirst:true,prepareSeconds:1.8,breathSeconds:3,restSeconds:3,smoothSeconds:12});
  }
  assert.equal(guide.restore(null,{glideSpan:7,root:60}).pattern,'step3');
  assert.equal(guide.restore({pattern:'bad'},{glideSpan:5,glideStyle:'step'}).pattern,'step5');

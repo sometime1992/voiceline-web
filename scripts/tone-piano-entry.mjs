@@ -141,12 +141,12 @@ const engine={
    pendingReleases.clear();
    if(available)piano.stopAll();
  },
- async reference(midi){
+ async reference(midi,seconds=1.5){
    await Promise.all([this.load(),activateFromGesture()]);
    if(!available)return;
    const start=Tone.now();
    piano.keyDown({midi,velocity:.30,time:start});
-   piano.keyUp({midi,time:start+.23});
+   piano.keyUp({midi,time:start+Math.min(120,Math.max(.1,Number(seconds)||1.5))});
  },
 };
 window.VoiceLineToneEngine=engine;
