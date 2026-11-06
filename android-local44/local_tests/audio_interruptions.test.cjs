@@ -21,6 +21,10 @@ before(()=>{
     first.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_GAIN);check(stopped.get()==1&&manager.requests==1,"gain automatically restarted");
     check(guard.request(),"explicit restart failed");AudioFocusRequest next=manager.last;first.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS);check(stopped.get()==1,"old focus callback stopped new session");
     next.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK);check(stopped.get()==2,"notification duck did not pause");
+    check(guard.request(),"new explicit request failed");android.os.Handler.hold=true;
+    manager.last.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS);
+    check(!guard.request(),"new session started before the old interruption was delivered");
+    android.os.Handler.hold=false;android.os.Handler.drain();check(stopped.get()==3,"queued interruption missing");
     manager.result=AudioManager.AUDIOFOCUS_REQUEST_FAILED;check(!guard.request(),"denied focus allowed audio");
     guard.foreground(false);int requests=manager.requests;check(!guard.request()&&manager.requests==requests,"background requested focus");
     guard.foreground(true);check(manager.requests==requests,"resume requested focus without tap");guard.dispose();check(!guard.request(),"disposed guard accepted request");

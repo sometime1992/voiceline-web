@@ -15,7 +15,7 @@ public final class AudioSessionGuard {
     private final Handler main = new Handler(Looper.getMainLooper());
     private AudioFocusRequest focus;
     private long generation;
-    private boolean foreground = true, disposed;
+    private boolean foreground = true, disposed, interruptionPending;
 
     public AudioSessionGuard(AudioManager manager, Interruption interruption) {
         this.manager = manager;
@@ -23,7 +23,7 @@ public final class AudioSessionGuard {
     }
 
     @JavascriptInterface public synchronized boolean request() {
-        if (disposed || !foreground || manager == null) return false;
+        if (disposed || interruptionPending || !foreground || manager == null) return false;
         if (focus != null) return true;
         final long token = ++generation;
         AudioFocusRequest next = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -60,7 +60,11 @@ public final class AudioSessionGuard {
     private synchronized void interrupt(long token, String reason) {
         if (disposed || focus == null || token != generation) return;
         release();
-        main.post(() -> { if (!disposed) interruption.stop(reason); });
+        interruptionPending = true;
+        main.post(() -> {
+            try { if (!disposed) interruption.stop(reason); }
+            finally { synchronized (AudioSessionGuard.this) { interruptionPending = false; } }
+        });
     }
 
     public synchronized void interrupt(String reason) { interrupt(generation, reason); }
