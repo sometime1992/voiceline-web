@@ -540,3 +540,6 @@
 .app,.app *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .app input,.app textarea,.app [contenteditable="true"]{-webkit-user-select:text;user-select:text}
 .app img,.app svg{-webkit-user-drag:none}
+
+/* Offline license texts follow system font size and wrap in the existing help dialog. */
+.license-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6;font-size:.82rem}

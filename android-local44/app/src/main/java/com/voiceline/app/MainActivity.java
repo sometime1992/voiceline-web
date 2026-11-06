@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
     private PermissionRequest pendingAudioRequest;
     private WebViewAssetLoader assetLoader;
     private NativeMicBridge nativeMic;
+    private AudioSessionGuard audioSession;
     private RecordingDocuments recordingDocuments;
     private android.window.OnBackInvokedCallback backCallback;
 
@@ -53,6 +54,11 @@ public class MainActivity extends Activity {
             .build();
         web = new PracticeWebView(this);
         web.setBackgroundColor(Color.rgb(16, 15, 27));
+        audioSession=new AudioSessionGuard(getSystemService(android.media.AudioManager.class),reason->{
+            if(nativeMic!=null)nativeMic.interruptFromActivity();
+            if(web!=null&&!isDestroyed())web.evaluateJavascript(
+                "window.VoiceLineLifecycle&&window.VoiceLineLifecycle.onInterrupted("+org.json.JSONObject.quote(reason)+")",null);
+        });
         NativeMicBridge.DocumentActions actions=new NativeMicBridge.DocumentActions(){
             public void open(String operation,String source,String name,String mime,String job){recordingDocuments.open(operation,source,name,mime,job);}
             public String begin(String job,String mime,long bytes){return recordingDocuments.begin(job,mime,bytes);}
@@ -60,10 +66,14 @@ public class MainActivity extends Activity {
             public String complete(String job){return recordingDocuments.complete(job);}
             public void abort(String job){recordingDocuments.abort(job);}
         };
-        nativeMic = new NativeMicBridge(this, web,actions);
+        nativeMic = new NativeMicBridge(this, web,actions,new NativeMicBridge.AudioSession(){
+            public boolean request(){return audioSession.request();}
+            public void interrupted(String reason){audioSession.interrupt(reason);}
+        });
         recordingDocuments=new RecordingDocuments(this,nativeMic.recordings(),(job,status,detail)->nativeMic.documentResult(job,status,detail));
         web.addJavascriptInterface(nativeMic, "VoiceLineNative");
         web.addJavascriptInterface(new PublicAppLinks(), "VoiceLinePublicLinks");
+        web.addJavascriptInterface(audioSession,"VoiceLineAudioSession");
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16, 15, 27));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -235,8 +245,10 @@ public class MainActivity extends Activity {
         super.onSaveInstanceState(state);
     }
     @Override protected void onPause() {
-        // A transient dialog/focus change is not a new recording session.
-        // Only an actual background transition (onStop) finalizes capture.
+        // The permission prompt belongs to the pending start, not an interruption.
+        // Calls and other activities must stop even if onStop never follows.
+        if(audioSession!=null&&!(nativeMic!=null&&nativeMic.isPermissionPending())&&pendingAudioRequest==null)
+            audioSession.foreground(false);
         super.onPause();
     }
     private void pauseCapture() {
@@ -245,11 +257,13 @@ public class MainActivity extends Activity {
         if (nativeMic != null) nativeMic.stopFromActivity();
     }
     @Override protected void onStop() {
+        if(audioSession!=null)audioSession.foreground(false);
         pauseCapture();
         super.onStop();
     }
     @Override protected void onResume() {
         super.onResume();
+        if(audioSession!=null)audioSession.foreground(true);
         if (nativeMic != null) nativeMic.resumeFromActivity();
         if (web != null) web.evaluateJavascript(
             "window.VoiceLineLifecycle&&window.VoiceLineLifecycle.onResume()", null);
@@ -260,9 +274,10 @@ public class MainActivity extends Activity {
             backCallback = null;
         }
         if(recordingDocuments!=null)recordingDocuments.dispose();
+        if(audioSession!=null)audioSession.dispose();
         if (nativeMic != null) nativeMic.dispose();
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}
-        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.loadUrl("about:blank");web.destroy();web = null;}
+        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.removeJavascriptInterface("VoiceLineAudioSession");web.loadUrl("about:blank");web.destroy();web = null;}
         super.onDestroy();
     }
 }

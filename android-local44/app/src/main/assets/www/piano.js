@@ -638,6 +638,7 @@ function ensureSynth(){
  }catch(e){console.warn('Piano audio unavailable',e);notify('오디오 장치를 시작할 수 없습니다.');return null;}
 }
 function soundOn(m,pressure=0.7){
+ if(!requestAppAudio())return;
  if(app.playing.has(m))return;
  if(window.VoiceLineToneEngine?.ready&&window.VoiceLineToneEngine.status!=='error'){
    app.playing.set(m,{type:'tone'});
@@ -919,6 +920,8 @@ window.VoiceLineNativeAudio = {
      micStatus('● 마이크 켜짐 (Android)');
      if(!app.frame)app.frame=requestAnimationFrame(tick);
      completeNativeStart(true);
+   }else if(state==='interrupted'){
+     window.VoiceLineLifecycle.onInterrupted(detail);return;
    }else if(state==='denied'||state==='error'||state==='cancelled'){
      completeNativeStart(false);
      if(state==='cancelled'){void stopActivity('background').finally(resetMainAction);return;}
@@ -1012,6 +1015,7 @@ async function startMic(){
  if(app.mic)return true;
  if(app.micStartPromise)return app.micStartPromise;
  if(app.backgrounded||document.hidden||app.lifeStopping)return false;
+ if(!requestAppAudio())return false;
  const token=++app.micGeneration;
  const cancelled=new Promise(resolve=>{app.micCancelResolve=resolve;});
  const task=Promise.race([window.VoiceLineNative?.start?startNativeMic(token):startWebMic(token),cancelled]);
@@ -1816,6 +1820,7 @@ function makeTrainingCue(ac,hz,when,dynamic,volume,nodes){
  return item;
 }
 async function previewDynamicCue(override){
+ if(!requestAppAudio())return;
  const volume=Number.isFinite(override)?clamp(override,0,100):dynamicCueVolume();if(!volume){notify('안내음 크기를 먼저 선택하세요.');return;}
  if(app.training||app.mic||app.backgrounded||document.hidden)return;
  const ac=ensureSynth();if(!ac)return;
@@ -2674,7 +2679,7 @@ async function stopActivity(reason='user'){
     if(!wasRecording&&app.sessionSamples>8&&(app.mode==='pitch'||app.mode==='piano'))
      await addEvent('음정 측정',noteLabel(app.sessionLow)+' ~ '+noteLabel(app.sessionHigh)+' · '+duration+'초'+(reason==='error'?' · 입력 중단':''),'pitch');
    }
-  }finally{stopMic();}
+  }finally{stopMic();releaseAppAudioWhenIdle();}
  })();
  app.stopPromise=task;
  try{return await task;}finally{if(app.stopPromise===task)app.stopPromise=null;}
@@ -2781,6 +2786,7 @@ $('mainButton').addEventListener('click',async()=>{
  if(app.busy||app.stopPromise||app.recordSaving||app.lifeStopping)return;
  if(window.VoiceLinePlansUI?.active){await stopActivity();resetMainAction();return;}
  if(window.VoiceLinePlansUI&&!app.training&&!app.vibratoStart&&!app.record&&!app.metronome?.running&&app.mode!=='piano'){unlockPlanAudio();await window.VoiceLinePlansUI.startSingle(app.mode);return;}
+ if(!app.training&&!app.mic&&!app.record&&!app.vibratoStart&&!app.metronome?.running&&!requestAppAudio())return;
  app.busy=true;const b=$('mainButton');b.disabled=true;
  try{
   if(app.mode==='metronome'){
@@ -3002,11 +3008,21 @@ function showHelp(){
   ['측정 가능한 음역','음정 측정과 훈련 목표는 '+noteLabel(PITCH_RANGE.minMidi)+' ~ '+noteLabel(PITCH_RANGE.maxMidi)+' 범위를 사용합니다. 높은 시작음의 패턴과 슬라이드는 아래쪽으로 전환할 수 있습니다.'],
   ['나의 기록과 개인정보','녹음 파일과 모든 보컬 훈련·음정 측정 기록은 기기 내부에만 보관합니다. 나의 기록은 녹음·연습 탭으로 나뉩니다. 녹음 탭에서 전체 재생·구간 이동·삭제와 저장 실패한 녹음 다시 저장을 할 수 있습니다. 앱 중단으로 복구한 녹음은 마지막으로 저장된 구간까지 포함합니다. 앱 삭제나 데이터 초기화 시 함께 삭제됩니다.'],
   ['피아노 음원 및 저작권','피아노 연주 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT). 그랜드 피아노 녹음: Salamander Grand Piano / Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 음원과 라이브러리는 APK에 포함되어 오프라인에서도 연주할 수 있습니다.'],
+  ['통화와 오디오 중단','통화·다른 앱의 오디오 사용·마이크 연결 장치 변경으로 입력이 중단되면 연습과 채점을 멈추고 진행 중인 녹음을 저장합니다. 사용자가 마이크 권한을 허용하는 창은 시작 과정으로 처리합니다. 중단 원인이 사라져도 자동으로 다시 시작하지 않으며 시작 버튼을 눌러 재개합니다.'],
   ['마이크와 피아노 소리','피아노와 메트로놈 소리가 마이크에 들어가면 음정·박자 판정에 영향을 줄 수 있습니다. 이어폰을 권장합니다. 마이크를 끄거나 앱을 벗어나면 활동을 종료하고 녹음을 저장합니다. 음정 측정에는 기기 입력 지연과 주변 소음의 영향이 있을 수 있습니다.'],
   ['주의','목이 아프거나 어지러우면 중단하세요. 측정은 참고용이며 의료적 진단이 아닙니다.']
  );
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
+ const licenses=plain(b,'button','privacy-policy-help','오픈소스 라이선스 보기');licenses.id='helpLicensesOpen';licenses.type='button';licenses.onclick=showOpenSourceLicenses;
  const privacy=plain(b,'button','privacy-policy-help','개인정보처리방침 보기');privacy.id='helpPrivacyOpen';privacy.type='button';privacy.onclick=showPrivacyPolicy;
+ modalOpen('infoDialog');
+}
+function showOpenSourceLicenses(){
+ $('infoTitle').textContent='오픈소스 라이선스';const b=$('infoBody');b.replaceChildren();
+ const back=plain(b,'button','privacy-policy-help','사용법으로 돌아가기');back.type='button';back.onclick=showHelp;
+ for(const notice of window.VoiceLineThirdPartyNotices||[]){
+  plain(b,'h3','',notice.name+' · '+notice.license);plain(b,'p','',notice.source);plain(b,'pre','license-text',notice.text);
+ }
  modalOpen('infoDialog');
 }
 // Use an app-designed confirmation instead of window.confirm(). Android WebView
@@ -3319,6 +3335,7 @@ function closeActiveAudio(){
  if(app.openAudioTimer){cancelAnimationFrame(app.openAudioTimer);app.openAudioTimer=0;}
 }
 async function playLocal(r,button,row){
+ if(!requestAppAudio())return;
  if(app.openAudioRecordId===r.id&&app.openAudio){
   const audio=app.openAudio;
   try{if(audio.paused)await audio.play();else audio.pause();}
@@ -3372,6 +3389,41 @@ async function playLocal(r,button,row){
  }catch(e){if(app.playbackGeneration===generation){console.error(e);button.textContent='전체 재생';notify('녹음을 재생할 수 없습니다.');closeActiveAudio();}}
  finally{button.disabled=false;}
 }
+let audioFocusTimer=0;
+function requestAppAudio(){
+ if(!window.VoiceLineAudioSession?.request)return true;
+ if(app.backgrounded||document.hidden||app.lifeStopping||app.audioInterruptionPromise)return false;
+ try{
+  if(window.VoiceLineAudioSession.request()){releaseAppAudioWhenIdle();return true;}
+ }catch(error){console.warn('Audio focus unavailable',error);}
+ setMessage('통화나 다른 앱의 오디오 사용이 끝난 뒤 다시 시작해 주세요.');
+ notify('오디오를 사용할 수 없습니다. 다른 앱의 사용을 마친 뒤 다시 시작해 주세요.');return false;
+}
+function releaseAppAudioWhenIdle(){
+ if(!window.VoiceLineAudioSession?.release)return;
+ clearTimeout(audioFocusTimer);
+ audioFocusTimer=setTimeout(()=>{
+  audioFocusTimer=0;
+  const active=app.mic||app.micStartPromise||app.busy||app.record||app.recordSaving||app.training||app.exercise||app.vibratoStart
+   ||app.metronome?.running||app.metronome?.starting||window.VoiceLinePlansUI?.active
+   ||app.playing.size||app.referenceVoices?.size||settingsPreviewPlayer||settingsPreviewTimer
+   ||app.openAudio&&!app.openAudio.paused;
+  if(active&&!app.backgrounded){releaseAppAudioWhenIdle();return;}
+  try{window.VoiceLineAudioSession.release();}catch(_){}
+ },450);
+}
+function stopForAudioInterruption(reason){
+ if(app.audioInterruptionPromise)return app.audioInterruptionPromise;
+ allKeysOff();closeActiveAudio();stopSettingsPreview();cancelReferenceNotes();
+ const task=stopActivity('interrupted').catch(error=>console.error('Interrupted recording save',error)).finally(()=>{
+  resetMainAction();clearNote();
+  setMessage(String(reason||'오디오 입력이 중단되었습니다.')+' 시작 버튼을 눌러 다시 시작하세요.');
+  notify(String(reason||'오디오 입력이 중단되었습니다.'));
+  if(app.audioInterruptionPromise===task)app.audioInterruptionPromise=null;
+  releaseAppAudioWhenIdle();
+ });
+ app.audioInterruptionPromise=task;return task;
+}
 async function safeStopOnBackground(){
  app.backgrounded=true;closeActiveAudio();
  if(app.lifeStopping)return;
@@ -3380,6 +3432,7 @@ async function safeStopOnBackground(){
  finally{app.lifeStopping=false;}
 }
 window.VoiceLineLifecycle={
+ onInterrupted(reason){return stopForAudioInterruption(reason);},
  onPause(){allKeysOff();void safeStopOnBackground();},
  onResume(){app.backgrounded=false;updateMicToggle();},
  onResize(){queueResponsiveLayout();},
@@ -3532,6 +3585,7 @@ if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(updatePrac
 let settingsPreviewPlayer=null,settingsPreviewGeneration=0,settingsPreviewTimer=null;
 function stopSettingsPreview(){settingsPreviewGeneration++;settingsPreviewPlayer?.stop();settingsPreviewPlayer=null;clearTimeout(settingsPreviewTimer);settingsPreviewTimer=null;}
 async function previewSettingsSound({midi=48,volume=70}={}){
+ if(!requestAppAudio())return;
  stopSettingsPreview();if(!volume){notify('음량이 0%입니다.');return;}const generation=settingsPreviewGeneration,ac=ensureSynth();if(!ac)return;
  try{
   if(ac.state!=='running')await ac.resume();
@@ -3543,7 +3597,7 @@ async function previewSettingsSound({midi=48,volume=70}={}){
   settingsPreviewTimer=setTimeout(stopSettingsPreview,(seconds+.2)*1000);
  }catch(_){notify('피아노 기준음을 재생하지 못했습니다. 앱을 다시 열어 주세요.');}
 }
-function unlockPlanAudio(){ensureSynth();window.VoiceLineToneEngine?.unlock?.().catch(error=>console.warn('Piano unlock',error));}
+function unlockPlanAudio(){if(!requestAppAudio())return false;ensureSynth();window.VoiceLineToneEngine?.unlock?.().catch(error=>console.warn('Piano unlock',error));return true;}
 function planCapture(){return {training:{...JSON.parse(JSON.stringify(app.trainingSettings)),warmup:normalizeWarmup(app.trainingSettings.warmup)},guide:{...guideOptions()},vibratoRoot:app.vibratoRoot,metronome:app.metronome?JSON.parse(JSON.stringify(app.metronome.settings)):null,base:app.base,pianoVolume:app.pianoVolume,micSensitivity:app.micSensitivity};}
 function planLegacyTiming(mode){
  if(mode==='practice'){const g=guideOptions();return {rounds:g.rounds,rest:g.restSeconds};}
@@ -3571,6 +3625,7 @@ function applyPlanOptions(mode,timing,params,persist=false){
  modeControls();syncKeyColors();renderTrainingOverlay(performance.now(),true);
 }
 async function runPlanStep(step,token,state,single=false){
+ if(!requestAppAudio())return false;
  const ui=window.VoiceLinePlansUI;if(!ui?.owns(token)||app.backgrounded||document.hidden||app.lifeStopping)return false;
  const mode=step.mode==='rest'?'piano':step.mode;
  await switchMode(mode,true);if(!ui.owns(token))return false;

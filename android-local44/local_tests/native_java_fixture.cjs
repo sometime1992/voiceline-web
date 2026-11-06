@@ -1,5 +1,6 @@
 'use strict';
 module.exports={
+  ...require('./native_audio_fixture.cjs'),
   'android/Manifest.java':'package android; public class Manifest { public static class permission {public static final String RECORD_AUDIO="audio";} }',
   'android/content/pm/PackageManager.java':'package android.content.pm; public class PackageManager { public static final int PERMISSION_GRANTED=0; }',
   'android/app/Activity.java':`package android.app; public class Activity {public boolean allowed;public int prompts;private final java.io.File files=new java.io.File(System.getProperty("java.io.tmpdir"),"voiceline-bridge-"+System.nanoTime());public java.io.File getFilesDir(){return files;} public int checkSelfPermission(String permission){return allowed?0:-1;}public void requestPermissions(String[] permissions,int code){prompts++;}public boolean isFinishing(){return false;}public boolean isDestroyed(){return false;}}`,
@@ -13,7 +14,7 @@ module.exports={
   'org/json/JSONObject.java':String.raw`package org.json; public class JSONObject {public static String quote(String text){return "\""+text.replace("\\","\\\\").replace("\"","\\\"")+"\"";}}`,
   'android/media/AudioFormat.java':'package android.media; public class AudioFormat {public static final int CHANNEL_IN_MONO=1,ENCODING_PCM_16BIT=2;}',
   'android/media/MediaRecorder.java':'package android.media; public class MediaRecorder {public static class AudioSource {public static final int VOICE_RECOGNITION=6;}}',
-  'android/media/AudioRecord.java':`package android.media; public class AudioRecord {
+  'android/media/AudioRecord.java':`package android.media; public class AudioRecord implements AudioRouting {
    public static final int STATE_INITIALIZED=1,RECORDSTATE_RECORDING=3,READ_BLOCKING=0,ERROR_INVALID_OPERATION=-3;
    public static int created;public static AudioRecord last;private volatile boolean running;
    public static final java.util.concurrent.BlockingQueue<short[]> chunks=new java.util.concurrent.LinkedBlockingQueue<>();
@@ -26,6 +27,16 @@ module.exports={
     if(entered!=null){entered.countDown();releaseRead.await();entered=null;}
     System.arraycopy(chunk,0,pcm,offset,chunk.length);return chunk.length;
    }catch(InterruptedException ignored){}}return ERROR_INVALID_OPERATION;}
+   public AudioDeviceInfo device=new AudioDeviceInfo(1);public AudioRecordingConfiguration configuration;
+   public AudioManager.AudioRecordingCallback recordingCallback;public AudioRouting.OnRoutingChangedListener routingCallback;public java.util.concurrent.Executor executor;
+   public int registrations,unregistrations;public int getAudioSessionId(){return 7;}
+   public AudioDeviceInfo getRoutedDevice(){return device;}public AudioRecordingConfiguration getActiveRecordingConfiguration(){return configuration;}
+   public void addOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener listener,android.os.Handler handler){routingCallback=listener;}
+   public void removeOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener listener){if(routingCallback==listener)routingCallback=null;}
+   public void registerAudioRecordingCallback(java.util.concurrent.Executor executor,AudioManager.AudioRecordingCallback callback){if(android.os.Build.VERSION.SDK_INT<29)throw new AssertionError("API29 callback on old Android");this.executor=executor;recordingCallback=callback;registrations++;}
+   public void unregisterAudioRecordingCallback(AudioManager.AudioRecordingCallback callback){if(recordingCallback==callback)recordingCallback=null;unregistrations++;}
+   public void mute(){configuration=new AudioRecordingConfiguration(7,true);AudioManager.AudioRecordingCallback callback=recordingCallback;if(callback!=null)executor.execute(()->callback.onRecordingConfigChanged(java.util.List.of(configuration)));}
+   public void route(int id){device=id==0?null:new AudioDeviceInfo(id);if(routingCallback!=null)routingCallback.onRoutingChanged(this);}
    public void stop(){running=false;}public void release(){running=false;}
   }`,
   'com/voiceline/app/BridgeTest.java':`package com.voiceline.app;

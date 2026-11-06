@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const js=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/www/piano.js'),'utf8');
 const part=(from,to)=>{const a=js.indexOf(from),b=js.indexOf(to,a);assert.ok(a>=0&&b>a,from);return js.slice(a,b)};
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
-const run=(code,context={})=>vm.runInNewContext(code,{window:{},Blob,Uint8Array,Float32Array,ArrayBuffer,DataView,Map,Set,Math,Number,Date,Promise,JSON,console,atob,...context});
+const run=(code,context={})=>vm.runInNewContext(code,{window:{},Blob,Uint8Array,Float32Array,ArrayBuffer,DataView,Map,Set,Math,Number,Date,Promise,JSON,console,atob,requestAppAudio:()=>true,releaseAppAudioWhenIdle(){},...context});
 function nativeHarness(){
  const app={mode:'record',mic:true,nativeMic:true,nativeSampleRate:16000,nativeRequestId:'7',nativeClockStart:0,sessionStart:0,lastAnalyze:-Infinity,record:null};
  const recordings=new Map(),drafts=new Map(),calls=[],timers=new Map(),nodes=new Map();let clock=5000,serial=0,gate=null,fail=false;

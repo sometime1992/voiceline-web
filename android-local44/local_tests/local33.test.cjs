@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const js=fs.readFileSync(path.join(root,'app/src/main/assets/www/piano.js'),'utf8');
 const chunk=(from,to)=>{const a=js.indexOf(from),b=js.indexOf(to,a);assert.ok(a>=0&&b>a,from);return js.slice(a,b)};
-const run=(code,context={})=>{const window=context.window||{};window.VoiceLineRecordingTools=require('../app/src/main/assets/www/recording-tools.js');return vm.runInNewContext(code,{Blob,Uint8Array,ArrayBuffer,DataView,Float32Array,Map,Math,Number,Date,Promise,console,setTimeout,clearTimeout,updateRecordingStorage:async()=>{},...context,window});};
+const run=(code,context={})=>{const window=context.window||{};window.VoiceLineRecordingTools=require('../app/src/main/assets/www/recording-tools.js');return vm.runInNewContext(code,{Blob,Uint8Array,ArrayBuffer,DataView,Float32Array,Map,Math,Number,Date,Promise,console,setTimeout,clearTimeout,requestAppAudio:()=>true,releaseAppAudioWhenIdle(){},updateRecordingStorage:async()=>{},...context,window});};
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);return {promise,resolve}};
 class Node {

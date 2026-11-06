@@ -51,7 +51,7 @@ test('Reference preload covers custom ear notes instead of just the visible keyb
  assert.equal(await h.prepareReferencePiano('earVoice'),true);assert.deepEqual(h.loaded,[36,93]);
 });
 test('A canceled routine cannot request the microphone after a slow reference preload',async()=>{
- let own=true,resolve,mic=0;const ctx={app:{},document:{hidden:false},window:{VoiceLinePlansUI:{owns:()=>own}},
+ let own=true,resolve,mic=0;const ctx={requestAppAudio:()=>true,app:{},document:{hidden:false},window:{VoiceLinePlansUI:{owns:()=>own}},
   switchMode:async()=>{},applyPlanOptions(){},$:()=>({querySelectorAll:()=>[]}),prepareReferencePiano:()=>new Promise(done=>resolve=done),startMic:async()=>{mic++;return true;},updateMicToggle(){},JSON};
  const run=vm.runInNewContext(source.slice(source.indexOf('async function runPlanStep('),source.indexOf('app.metronome=window.VoiceLineMetronome'))+'\nrunPlanStep',ctx);
  const pending=run({mode:'earVoice',params:{},timing:{}},1,{},true);await turn();own=false;resolve(true);
@@ -59,7 +59,7 @@ test('A canceled routine cannot request the microphone after a slow reference pr
 });
 test('A delayed preview starts its full piano listening time after decoding and closing cancels it',async()=>{
  for(const cancel of [false,true]){
-  let now=0,resolve,created,started,timer;const ctx={app:{},document:{hidden:false},performance:{now:()=>now},ensureSynth:()=>({state:'running'}),nearestAcousticMidi:m=>m,
+  let now=0,resolve,created,started,timer;const ctx={requestAppAudio:()=>true,app:{},document:{hidden:false},performance:{now:()=>now},ensureSynth:()=>({state:'running'}),nearestAcousticMidi:m=>m,
    loadAcousticSample:()=>new Promise(done=>resolve=done),referenceSample(){},notify(){},clearTimeout(){},setTimeout(fn,ms){timer=ms;return 1;},
    window:{VoiceLineReferencePiano:{DEFAULT_SECONDS:1.5,play(ac,destination,sample,settings){created={settings,t:now};started=now;return null;}}}};
   const api=vm.runInNewContext(source.slice(source.indexOf('let settingsPreviewPlayer='),source.indexOf('function unlockPlanAudio()'))+'\n({previewSettingsSound,stopSettingsPreview})',ctx);

@@ -5,7 +5,12 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
+import android.media.AudioManager;
+import android.media.AudioRecordingConfiguration;
+import android.media.AudioDeviceInfo;
+import android.media.AudioRouting;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
@@ -29,6 +34,11 @@ public final class NativeMicBridge {
         void abort(String job);
     }
     private final DocumentActions documents;
+    public interface AudioSession {
+        boolean request();
+        void interrupted(String reason);
+    }
+    private final AudioSession audioSession;
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile boolean capturing;
     private volatile Capture active;
@@ -41,7 +51,10 @@ public final class NativeMicBridge {
         final int rate;
         final Object lock = new Object();
         final AtomicInteger queued = new AtomicInteger();
-        volatile boolean finish, cancelled;
+        volatile boolean finish, cancelled, interrupted;
+        AudioManager.AudioRecordingCallback recordingCallback;
+        AudioRouting.OnRoutingChangedListener routingCallback;
+        int deviceId;
         volatile NativeWavStore.Writer writer;
         long frames;
         Capture(AudioRecord input,String id,int rate) {this.input=input;this.id=id;this.rate=rate;}
@@ -50,7 +63,10 @@ public final class NativeMicBridge {
         this(activity,web,null);
     }
     public NativeMicBridge(Activity activity,WebView web,DocumentActions documents) {
-        this.activity=activity;this.web=web;this.documents=documents;this.files=new NativeWavStore(activity.getFilesDir());
+        this(activity,web,documents,null);
+    }
+    public NativeMicBridge(Activity activity,WebView web,DocumentActions documents,AudioSession audioSession) {
+        this.activity=activity;this.web=web;this.documents=documents;this.audioSession=audioSession;this.files=new NativeWavStore(activity.getFilesDir());
     }
     public NativeWavStore recordings() { return files; }
     @JavascriptInterface public boolean supportsFileRecording() { return true; }
@@ -143,6 +159,7 @@ public final class NativeMicBridge {
         }
         AudioRecord input=null;
         try {
+            if(audioSession!=null&&!audioSession.request())throw new IllegalStateException("통화나 다른 앱의 오디오 사용이 끝난 뒤 다시 시작해 주세요.");
             int rate=44100;
             int min=AudioRecord.getMinBufferSize(rate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);
             if(min<=0) {rate=16000;min=AudioRecord.getMinBufferSize(rate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);}
@@ -150,14 +167,52 @@ public final class NativeMicBridge {
             int chunkSize=rate>=32000?2048:1024;
             input=new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,rate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT,Math.max(min,rate*4));
             if(input.getState()!=AudioRecord.STATE_INITIALIZED)throw new IllegalStateException("오디오 입력 장치 초기화 실패");
-            input.startRecording();if(input.getRecordingState()!=AudioRecord.RECORDSTATE_RECORDING)throw new IllegalStateException("마이크 녹음 시작 실패");
             Capture s=new Capture(input,id,rate);active=s;capturing=true;
+            watchInput(s);
+            input.startRecording();if(input.getRecordingState()!=AudioRecord.RECORDSTATE_RECORDING)throw new IllegalStateException("마이크 녹음 시작 실패");
+            AudioDeviceInfo device=input.getRoutedDevice();s.deviceId=device==null?0:device.getId();
             dispatch("started","네이티브 마이크 연결 성공 · "+rate+"Hz",id,rate);
             Thread thread=new Thread(()->captureLoop(s,chunkSize),"VoiceLineMicrophone");thread.setDaemon(true);thread.start();
+            if(Build.VERSION.SDK_INT>=29)checkInput(s,input.getActiveRecordingConfiguration());
         } catch(Exception e) {
+            Capture s=active;if(s!=null&&s.input==input)unwatchInput(s);
             if(input!=null) {try{input.stop();}catch(Exception ignored){}try{input.release();}catch(Exception ignored){}}
             cancelRequest(false);Log.e("VoiceLineMic","Cannot start native input",e);dispatch("error",e.getClass().getSimpleName()+": "+e.getMessage(),id,0);
         }
+    }
+    private void watchInput(Capture s) {
+        s.routingCallback=router->{
+            if(active!=s||s.finish||s.cancelled)return;
+            AudioDeviceInfo device=s.input.getRoutedDevice();int next=device==null?0:device.getId();
+            if(s.deviceId!=0&&next!=s.deviceId)inputInterrupted(s,"마이크 연결 장치가 변경되었습니다. 다시 시작해 주세요.");
+            else if(next!=0)s.deviceId=next;
+        };
+        s.input.addOnRoutingChangedListener(s.routingCallback,main);
+        if(Build.VERSION.SDK_INT>=29) {
+            s.recordingCallback=new AudioManager.AudioRecordingCallback(){
+                @Override public void onRecordingConfigChanged(java.util.List<AudioRecordingConfiguration> configurations) {
+                    if(active!=s||s.finish||s.cancelled)return;
+                    for(AudioRecordingConfiguration config:configurations)
+                        if(config.getClientAudioSessionId()==s.input.getAudioSessionId())checkInput(s,config);
+                }
+            };
+            s.input.registerAudioRecordingCallback(command->main.post(command),s.recordingCallback);
+        }
+    }
+    private void checkInput(Capture s,AudioRecordingConfiguration config) {
+        if(Build.VERSION.SDK_INT>=29&&active==s&&!s.finish&&!s.cancelled&&config!=null&&config.isClientSilenced())
+            inputInterrupted(s,"통화 또는 다른 앱의 마이크 사용으로 입력이 중단되었습니다.");
+    }
+    private void inputInterrupted(Capture s,String reason) {
+        if(active!=s||s.finish||s.cancelled||s.interrupted)return;
+        s.interrupted=true;
+        if(audioSession!=null)audioSession.interrupted(reason);
+        else {cancelRequest(false);dispatch("interrupted",reason,s.id,0);}
+    }
+    private void unwatchInput(Capture s) {
+        if(s.routingCallback!=null)try{s.input.removeOnRoutingChangedListener(s.routingCallback);}catch(RuntimeException ignored){}
+        if(Build.VERSION.SDK_INT>=29&&s.recordingCallback!=null)try{s.input.unregisterAudioRecordingCallback(s.recordingCallback);}catch(RuntimeException ignored){}
+        s.routingCallback=null;s.recordingCallback=null;
     }
     private void captureLoop(Capture s,int chunkSize) {
         short[] pcm=new short[chunkSize];String failure="";String recordingId=null;
@@ -166,6 +221,7 @@ public final class NativeMicBridge {
             while(!s.cancelled) {
                 int read;
                 try{read=s.input.read(pcm,0,pcm.length,AudioRecord.READ_BLOCKING);}catch(Exception e){read=AudioRecord.ERROR_INVALID_OPERATION;}
+                if(s.interrupted)break; // System-muted input is never written or graded as the user's voice.
                 if(read<=0) {if(s.finish||s.cancelled)break;if(++errors>=4)throw new IllegalStateException("마이크 오디오 읽기 실패 ("+read+")");continue;}
                 errors=0;byte[] bytes=new byte[read*2];
                 for(int i=0;i<read;i++) {bytes[2*i]=(byte)(pcm[i]&255);bytes[2*i+1]=(byte)((pcm[i]>>8)&255);}
@@ -179,7 +235,7 @@ public final class NativeMicBridge {
                 if(s.queued.get()<3&&!s.cancelled) {
                     s.queued.incrementAndGet();String encoded=Base64.encodeToString(bytes,Base64.NO_WRAP);
                     main.post(()->{
-                        if(s.cancelled||disposed||activity.isFinishing()||activity.isDestroyed()){s.queued.decrementAndGet();return;}
+                        if(s.cancelled||s.interrupted||disposed||activity.isFinishing()||activity.isDestroyed()){s.queued.decrementAndGet();return;}
                         try {
                             web.evaluateJavascript("window.VoiceLineNativeAudio&&window.VoiceLineNativeAudio.onAudioChunk("+JSONObject.quote(encoded)+","+s.rate+","+JSONObject.quote(s.id)+","+frameStart+")",
                                 ignored->s.queued.decrementAndGet());
@@ -190,6 +246,7 @@ public final class NativeMicBridge {
             }
         } catch(Exception e) {failure=String.valueOf(e.getMessage());Log.e("VoiceLineMic","Capture failed",e);}
         finally {
+            unwatchInput(s);
             try{s.input.stop();}catch(Exception ignored){}
             try{s.input.release();}catch(Exception ignored){}
             synchronized(s.lock) {
@@ -232,6 +289,10 @@ public final class NativeMicBridge {
     }
     public void stopFromActivity() {
         if(Looper.myLooper()==Looper.getMainLooper()) {foreground=false;cancelRequest(true);}else main.post(this::stopFromActivity);
+    }
+    public void interruptFromActivity() {
+        Capture s=active;if(s!=null)s.interrupted=true;
+        cancelRequest(false);
     }
     public void resumeFromActivity() {foreground=true;}
     public void dispose() {disposed=true;foreground=false;cancelRequest(false);}
