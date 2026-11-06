@@ -17,7 +17,7 @@ test('explicit app actions call the matching native destination without opening 
 });
 test('browser fallback opens the app-specific policy, selected support and company homepage',()=>{
  const f=fixture();for(const kind of ['privacy','support','home'])f.open(kind);
- assert.deepEqual(f.opened.map(args=>args[0]),['https://mindup-studio.pages.dev/apps/voiceline/privacy.html','https://mindup-studio.pages.dev/support.html?app=voiceline','https://mindup-studio.pages.dev/']);
+ assert.deepEqual(f.opened.map(args=>args[0]),['https://mindup-studio.pages.dev/apps/voiceline/privacy.html','https://mindup-studio.pages.dev/support.html?app=voiceline#contact','https://mindup-studio.pages.dev/']);
  assert.ok(f.opened.every(args=>args[1]==='_blank'&&args[2]==='noopener,noreferrer'));
 });
 test('missing policy and unavailable browser do not crash or open arbitrary destinations',()=>{

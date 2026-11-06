@@ -14,7 +14,7 @@ with zipfile.ZipFile(bundle) as archive:
     assert archive.testzip() is None
     dex=b''.join(archive.read(name) for name in archive.namelist()
                  if name.startswith('base/dex/') and name.endswith('.dex'))
-    for url in ['https://mindup-studio.pages.dev/','https://mindup-studio.pages.dev/apps/voiceline/privacy.html','https://mindup-studio.pages.dev/support.html?app=voiceline']:
+    for url in ['https://mindup-studio.pages.dev/','https://mindup-studio.pages.dev/apps/voiceline/privacy.html','https://mindup-studio.pages.dev/support.html?app=voiceline#contact']:
         assert url.encode() in dex, 'Native public destination missing: '+url
     assert 'base/manifest/AndroidManifest.xml' in archive.namelist()
     assert 'BundleConfig.pb' in archive.namelist()
@@ -26,10 +26,10 @@ with zipfile.ZipFile(bundle) as archive:
             count += 1
 report = root / 'release-review'
 report.mkdir(exist_ok=True)
-target = report / 'VoiceLine-Local78-UNSIGNED-REVIEW.aab'
+target = report / 'VoiceLine-Local79-UNSIGNED-REVIEW.aab'
 shutil.copyfile(bundle, target)
 text = '\n'.join([
-    'VoiceLine Local78 release build review - NOT READY FOR PLAY UPLOAD',
+    'VoiceLine Local79 release build review - NOT READY FOR PLAY UPLOAD',
     'Commit: ' + os.environ['GITHUB_SHA'],
     'Release application ID: com.voiceline.app',
     'Target SDK: 36; minimum SDK: 26',

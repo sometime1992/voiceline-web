@@ -2,10 +2,14 @@
 
 - 공개 URL: https://mindup-studio.pages.dev/apps/voiceline/privacy.html
 - 앱 내부 진입: 메뉴 → 개인정보처리방침, 또는 사용법 → 개인정보처리방침 보기
-- 현재 문의 경로: https://github.com/sometime1992/voiceline-web/issues/new
+- 고객지원: https://mindup-studio.pages.dev/support.html?app=voiceline#contact
+- 문의 이메일: grand4870@gmail.com
+- 개발자 홈페이지: https://mindup-studio.pages.dev/
 
-문안의 원본은 `android-local44/app/src/main/assets/www/privacy-policy.json`입니다. `node ci/build-privacy-policy.cjs`를 실행하면 앱에서 쓰는 JavaScript와 공개 페이지용 `privacy.html`이 함께 생성됩니다. CI는 원본과 생성 파일이 일치하는지 확인합니다.
+문의는 고객지원 웹페이지에서 VoiceLine을 선택하고 이메일 앱에서 작성·전송합니다. 홈페이지에서는 메일을 자동 전송하거나 문의를 접수하지 않습니다. GitHub는 고객 문의 경로로 안내하지 않습니다.
 
-방침을 바꿀 때는 Android 앱 문안과 공개 Site를 함께 갱신하고, 공개 페이지가 로그인 없이 열리는지 확인하세요. 현재 Site 프로젝트 ID는 `appgprj_6ae6bc18cb8c819192e18a5babab9b9c`입니다. 새 Site를 만들지 말고 같은 프로젝트를 업데이트합니다.
+앱 문안의 원본은 `android-local44/app/src/main/assets/www/privacy-policy.json`입니다. `node ci/build-privacy-policy.cjs`를 실행하면 앱에서 쓰는 JavaScript와 `privacy.html`이 함께 생성됩니다. CI는 원본과 생성 파일이 일치하는지 확인합니다.
 
-마인드업 스튜디오 고객지원에서 VoiceLine을 선택해 이메일 문의를 작성합니다. 스토어 지원 이메일은 기존 홈페이지에서 공개해 사용하던 grand4870@gmail.com이며, 개발자 홈페이지는 https://mindup-studio.pages.dev/ 입니다.
+공개 홈페이지는 별도 `sometime1992/mindup-studio` 저장소의 Cloudflare Pages 배포입니다. 같은 문안을 `voiceline-source/privacy-policy/privacy-policy.json`에 반영하고 `python3 build.py`와 `python3 validate.py`로 검증합니다. 방침 본문을 빌드 코드에서 다른 문의 문구로 덮어쓰지 않습니다. 앱과 홈페이지를 함께 갱신한 후 공개 URL과 VoiceLine 문의 선택·이메일 수신 주소를 확인합니다.
+
+Play Console의 앱별 개인정보처리방침·고객지원·이메일 값은 별도 항목입니다. 앱이나 홈페이지를 고쳐도 콘솔 입력값이 자동으로 변경되지는 않습니다.

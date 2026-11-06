@@ -27,7 +27,7 @@
 | --- | --- | --- |
 | 개발자 표시명·계정 정보 | 표시명은 마인드업 스튜디오 | 실제 계정 정보는 소유자가 콘솔에서 확인 |
 | 개발자 웹사이트 | 회사 홈페이지 | https://mindup-studio.pages.dev/ |
-| 고객지원 웹사이트 | VoiceLine 문의 선택 | https://mindup-studio.pages.dev/support.html?app=voiceline |
+| 고객지원 웹사이트 | VoiceLine 문의 선택 | https://mindup-studio.pages.dev/support.html?app=voiceline#contact |
 | 지원 이메일 | 기존 공개 문의 주소 확인 | grand4870@gmail.com 입력 |
 | 개인정보처리방침 URL | 공개 페이지 확인 완료 | https://mindup-studio.pages.dev/apps/voiceline/privacy.html 입력 |
 | 앱 패키지 이름 | 최종 AAB 대조 필요 | 업로드한 패키지는 이후 변경할 수 없으므로 기존 콘솔 앱과 먼저 대조 |

@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private static final String PUBLIC_PRIVACY_URL = "https://mindup-studio.pages.dev/apps/voiceline/privacy.html";
-    private static final String PUBLIC_SUPPORT_URL = "https://mindup-studio.pages.dev/support.html?app=voiceline";
+    private static final String PUBLIC_SUPPORT_URL = "https://mindup-studio.pages.dev/support.html?app=voiceline#contact";
     private static final String PUBLIC_HOME_URL = "https://mindup-studio.pages.dev/";
     private WebView web;
     private PermissionRequest pendingAudioRequest;
