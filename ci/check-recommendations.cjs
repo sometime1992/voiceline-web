@@ -9,6 +9,13 @@ module.exports=async function checkRecommendations(page,choose,output){
  for(const mode of modes){
   await choose(page,mode);await page.locator('#customTimingOpen').click();const before=await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()}));
   await page.locator('#planRecommend').click();assert.equal(await page.locator('.recommendation-card').count(),3);assert.equal(await page.locator('#planRun').isVisible(),false);
+  assert.equal(await page.locator('.recommendation-list').getAttribute('data-recommend-mode'),mode);assert.equal(await page.locator('#recommendationRoot').count(),['warmupVoice','metronome'].includes(mode)?0:1);
+  const preview=await page.locator('.recommendation-card').evaluateAll(cards=>cards.map(c=>({goal:c.querySelector('.recommendation-goal').textContent,rows:Object.fromEntries([...c.querySelectorAll('.recommendation-field')].map(r=>[r.querySelector('dt').textContent,r.querySelector('dd').textContent]))})));
+  if(mode==='sustainVoice')assert.deepEqual(preview.map(p=>p.rows['한 번 유지 시간']),['4초','6초','8초']);
+  if(mode==='warmupVoice'){assert.deepEqual(preview.map(p=>p.rows['허밍']),['3초','4초','5초']);for(const p of preview)assert.doesNotMatch(p.goal+' '+JSON.stringify(p.rows),/음계|청음|아르페지오|기준음/);}
+  if(mode==='metronome'){assert.deepEqual(preview.map(p=>p.rows['템포']),['60 BPM','72 BPM','84 BPM']);assert.deepEqual(preview.map(p=>p.rows['한 박의 분할']),['1회','2회','4회']);for(const p of preview)assert.doesNotMatch(p.goal+' '+JSON.stringify(p.rows),/허밍|발성|음계|기준음/);}
+  if(mode==='earVoice')assert.deepEqual(preview.map(p=>p.rows['청음 방법']),['같은 음 반복','장조 상행','3화음 왕복']);
+  if(mode==='dynamicVoice')assert.deepEqual(preview.map(p=>p.rows['강약 패턴']),['일정하게 유지','커졌다 작아지기','커졌다 작아지기']);
   assert.deepEqual(await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()})),before,'browsing recommendations changed '+mode);
   for(const size of [{width:360,height:640},{width:640,height:320}]){
    await page.setViewportSize(size);await page.evaluate(()=>document.documentElement.style.fontSize='24px');await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
@@ -21,6 +28,10 @@ module.exports=async function checkRecommendations(page,choose,output){
  }
  await choose(page,'practice');await page.locator('#customTimingOpen').click();await page.locator('#planRecommend').click();await page.locator('#recommendationRoot').selectOption('60');await page.locator('[data-recommend-level=intermediate]').click();await page.locator('#planRun').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'review');await page.locator('#planRun').click();
  assert.deepEqual(await page.evaluate(()=>{const g=JSON.parse(localStorage.getItem('voiceline-unified-practice-v1'));return [g.pattern,g.root,g.tolerance,g.rounds]}),['five',60,50,3]);await page.locator('#planClose').click();checks.push('chosen comfortable root and intermediate preset persist only after final save');
+ async function saveModePreset(mode,level){await choose(page,mode);await page.locator('#customTimingOpen').click();await page.locator('#planRecommend').click();await page.locator('[data-recommend-level='+level+']').click();await page.locator('#planRun').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'review');await page.locator('#planRun').click();await page.locator('#planClose').click();}
+ await saveModePreset('sustainVoice','intermediate');assert.equal(await page.evaluate(()=>window.__routineBridge.captureAll().training.sustainSeconds),6);
+ await saveModePreset('warmupVoice','advanced');assert.deepEqual(await page.evaluate(()=>{const t=window.__routineBridge.captureAll().training;return [t.rounds,t.warmup.inhale,t.warmup.exhale,t.warmup.hum,t.warmup.rest,t.sustainSeconds]}),[4,4,6,5,5,6]);
+ const beforeMetro=await page.evaluate(()=>window.__routineBridge.captureAll());await saveModePreset('metronome','intermediate');const afterMetro=await page.evaluate(()=>window.__routineBridge.captureAll());assert.deepEqual([afterMetro.metronome.bpm,afterMetro.metronome.subdivision],[72,2]);assert.deepEqual(afterMetro.training,beforeMetro.training);assert.deepEqual(afterMetro.guide,beforeMetro.guide);checks.push('feature-specific sustain, warmup and metronome settings save exactly; unrelated training and guide settings survive');
  for(const level of ['beginner','intermediate','advanced']){
   const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('voiceline-plans-v1')||'{}').routines||[]);
   await page.evaluate(()=>window.VoiceLinePlansUI.openRoutines());await page.locator('#planRecommend').click();await page.locator('[data-recommend-level='+level+']').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'routine');

@@ -88,23 +88,27 @@
   $('planLibrary').hidden=true;const form=getDraftForm();if(!form)return;form.dataset.stepId=editingMode?'single':activeStepId;mountDisplay(form);if(editorView==='menu')form.pager.showMenu(false);else form.pager.showPage(form.pager.state().key,false);fitCurrent();updateActions();
  }
  function renderRecommendations(){
-  const rec=root.VoiceLineRecommendations;$('planLibrary').hidden=true;
+  const rec=root.VoiceLineRecommendations,context=rec.context(editingMode);$('planLibrary').hidden=true;
   const box=el('div',undefined,'settings-editor recommendation-list');
+  box.dataset.recommendMode=editingMode||'routine';
   box.pager={state:()=>({title:'추천',count:1,index:0,previous:false,next:false}),fit(){}};
-  box.append(el('p',editingMode?'단계를 고른 뒤 설정을 확인·수정하고 저장하세요.':'추천 루틴을 복사해 순서와 설정을 확인한 뒤 저장하세요.','recommendation-intro'));
-  const field=el('label','편안한 시작음','recommendation-root');
-  const select=el('select');select.id='recommendationRoot';select.setAttribute('aria-label','추천 연습의 편안한 시작음');
-  for(let midi=36;midi<=80;midi++){const option=el('option',bridge.noteLabel(midi));option.value=String(midi);select.append(option);}select.value=String(recommendationRoot);
-  select.onchange=()=>{recommendationRoot=Number(select.value);renderRecommendations();$('recommendationRoot').focus({preventScroll:true});};field.append(select);box.append(field);
-  box.append(el('p',rec.NOTE,'recommendation-note'));
+  box.append(el('p',editingMode?context.intro:'추천 루틴을 복사해 순서와 설정을 확인한 뒤 저장하세요.','recommendation-intro'));
+  if(context.rootKind!=='none'){
+   const field=el('label',context.rootLabel,'recommendation-root');
+   const select=el('select');select.id='recommendationRoot';select.setAttribute('aria-label',context.rootLabel);
+   const keyboard=context.rootKind==='keyboard';for(let midi=keyboard?24:36;midi<=(keyboard?84:context.rootMax||80);midi+=keyboard?12:1){const option=el('option',bridge.noteLabel(midi));option.value=String(midi);select.append(option);}select.value=String(recommendationRoot);
+   select.onchange=()=>{recommendationRoot=Number(select.value);renderRecommendations();$('recommendationRoot').focus({preventScroll:true});};field.append(select);box.append(field);
+  }
+  if(!editingMode)box.append(el('p',rec.NOTE,'recommendation-note'));
   for(const [level,meta]of Object.entries(rec.LEVELS)){
-   const value=editingMode?rec.preset(editingMode,level,bridge.captureAll(),recommendationRoot):rec.routine(level,recommendationRoot,bridge.captureAll());
-   const description=editingMode?root.VoiceLinePracticeSettings.describe(editingMode,value.timing,value.params,false,bridge.noteLabel):root.VoiceLinePracticeSettings.routine(value,bridge.noteLabel);
-   const card=el('section',undefined,'recommendation-card');card.dataset.level=level;card.append(el('h3',meta.label),el('p',meta.goal,'recommendation-goal'),el('p',description.totalText,'recommendation-duration'));
-   if(editingMode)card.append(el('p',description.compact),el('p',description.audio));
+   const info=editingMode?rec.card(editingMode,level,bridge.captureAll(),recommendationRoot,bridge.noteLabel):null;
+   const value=info?info.value:rec.routine(level,recommendationRoot,bridge.captureAll());
+   const description=info?info.description:root.VoiceLinePracticeSettings.routine(value,bridge.noteLabel);
+   const card=el('section',undefined,'recommendation-card');card.dataset.level=level;card.dataset.recommendMode=editingMode||'routine';card.append(el('h3',meta.label),el('p',info?info.goal:meta.goal,'recommendation-goal'),el('p',description.totalText,'recommendation-duration'));
+   if(info){const fields=el('dl',undefined,'recommendation-fields');for(const row of info.rows){const item=el('div',undefined,'recommendation-field');item.append(el('dt',row.label),el('dd',row.value));fields.append(item);}card.append(fields,el('p',description.audio));}
    else{const details=el('details'),summary=el('summary','연습 순서와 설정 보기'),list=el('ol');for(const [i,s]of value.steps.entries()){const d=description.steps[i];list.append(el('li',api.MODES[s.mode]+' · '+d.compact+' · '+d.totalText));}details.append(summary,list);card.append(details);}
    if(editingMode==='practice'){const g=value.params.guide,p=root.VoiceLineGuideTraining.plan(g),notes=p.roots.flatMap(r=>p.pattern.steps.map(n=>r+n));card.append(el('p','사용 음역 '+bridge.noteLabel(Math.min(...notes))+' ~ '+bridge.noteLabel(Math.max(...notes))));}
-   card.append(el('p',editingMode==='vibrato'&&level==='beginner'?'흔들림을 억지로 만들지 않고 자연스러운 비브라토를 관찰하는 짧은 설정입니다.':meta.note,'recommendation-note'));
+   card.append(el('p',info?info.note:meta.note,'recommendation-note'));
    const use=el('button',editingMode?'설정 확인·수정':'루틴 구성 확인');use.type='button';use.dataset.recommendLevel=level;use.setAttribute('aria-label',meta.label+(editingMode?' 추천 설정 선택':' 추천 루틴 선택'));
    use.onclick=()=>{
     if(editingMode){draft={timing:copy(value.timing),params:copy(value.params)};singleForm=null;hasChanges=true;changeView('edit');status(meta.label+' 추천값입니다. 기준음과 설정을 확인한 뒤 변경 확인 → 최종 저장하세요.');}
@@ -117,7 +121,7 @@
  }
  function openRecommendations(){
   if(!root.VoiceLineRecommendations||locked())return;
-  recommendationReturn=editorView;const current=bridge.captureAll();recommendationRoot=root.VoiceLineRecommendations.selectedRoot(editingMode==='practice'?current.guide.root:editingMode==='vibrato'?current.vibratoRoot:current.training.root);
+  recommendationReturn=editorView;recommendationRoot=root.VoiceLineRecommendations.initialRoot(editingMode,bridge.captureAll());
   editorView='recommend';renderRecommendations();
  }
  function showRoutine(anchor=outlineAnchor){
@@ -148,7 +152,7 @@
  function scheduleFit(){if(layoutFrame)return;layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;fitCurrent();});}
  function updateActions(){
   if(!displayBox)return;const state=displayBox.pager.state(),focus=['edit','menu'].includes(editorView),routine=editorView==='routine';$('planDialog').dataset.view=editorView;
-  const titles={overview:'현재 설정',saved:'저장 완료',menu:'수정할 항목',routine:'루틴 구성',review:'저장할까요?',details:'전체 설정',recommend:editingMode?'추천 설정':'추천 루틴'};$('planTitle').textContent=editorView==='edit'?state.title:titles[editorView]||'연습 설정';$('planStage').textContent=state.count>1?(state.index+1)+'/'+state.count:'';$('planStage').hidden=state.count<=1;
+  const titles={overview:'현재 설정',saved:'저장 완료',menu:'수정할 항목',routine:'루틴 구성',review:'저장할까요?',details:'전체 설정',recommend:editingMode?api.MODES[editingMode]+' 추천':'추천 루틴'};$('planTitle').textContent=editorView==='edit'?state.title:titles[editorView]||'연습 설정';$('planStage').textContent=state.count>1?(state.index+1)+'/'+state.count:'';$('planStage').hidden=state.count<=1;
   const all=['overview','saved','review'].includes(editorView);$('planBack').dataset.kind=all?'all':'back';$('planBack').innerHTML=all?'전체':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>';$('planBack').setAttribute('aria-label',all?'전체 설정 보기':editorView==='edit'&&!editingMode?'루틴 구성으로 돌아가기':'이전 설정 화면으로 돌아가기');
   $('planSave').hidden=focus||routine||editorView==='recommend';$('planRecommend').hidden=!['overview','saved'].includes(editorView);$('planRecommend').textContent=editingMode?'추천 설정':'추천 루틴';$('planSave').textContent=editorView==='review'?'다시 수정':editorView==='details'?'돌아가기':hasChanges?'수정 계속':'수정';
   const routineEdit=!editingMode&&editorView==='edit';$('planRun').hidden=editorView==='recommend'||routineEdit&&activeStepId==='add';$('planRun').textContent=routineEdit?'적용 완료':focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;

@@ -97,6 +97,10 @@
 #planDialog .recommendation-card button{width:100%;margin-top:8px;border-color:#5fe6cf80;color:#b3f5e8}
 #planDialog .recommendation-duration{color:#9bf1df;font-weight:700}
 #planDialog .recommendation-note{color:var(--muted)}
+#planDialog .recommendation-fields{margin:8px 0;min-width:0}
+#planDialog .recommendation-field{display:grid;grid-template-columns:minmax(80px,.45fr) minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.8125rem;line-height:1.5}
+#planDialog .recommendation-field dt{color:var(--muted);overflow-wrap:anywhere}
+#planDialog .recommendation-field dd{margin:0;text-align:right;overflow-wrap:anywhere}
 #planDialog .recommendation-list summary{padding:8px 0;font-size:.875rem;cursor:pointer;min-height:44px;box-sizing:border-box}
 #planDialog .recommendation-list ol{padding-left:22px;font-size:.8125rem;line-height:1.65}
 #planDialog .recommendation-list li{margin:5px 0}

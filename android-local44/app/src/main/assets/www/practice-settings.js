@@ -11,7 +11,7 @@
  function patterns(kind){return Object.entries(root.VoiceLineGuideTraining.PATTERNS).filter(([id])=>patternKind(id)===kind).map(([id,p])=>[id,p.label]);}
  const textSeconds=n=>round(n)+'초';
  function formatTime(n){if(!Number.isFinite(n))return '직접 중단';n=round(Math.max(0,n));if(n<60)return textSeconds(n);const min=Math.floor(n/60),sec=round(n-min*60);return min+'분'+(sec?' '+sec+'초':'');}
- function noteLabel(m){const names=['도','도♯','레','레♯','미','파','파♯','솔','솔♯','라','라♯','시'],letters=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];m=Math.round(m);return letters[(m%12+12)%12]+(Math.floor(m/12)-1)+' · '+(Math.floor(m/12)-2)+'옥 '+names[(m%12+12)%12];}
+ function noteLabel(m){const names=['도','도♯','레','레♯','미','파','파♯','솔','솔♯','라','라♯','시'],letters=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];m=Math.round(m);return letters[(m%12+12)%12]+(Math.floor(m/12)-1)+' · '+(Math.floor(m/12)-3)+'옥 '+names[(m%12+12)%12];}
  function prepare(mode,value={},withinRoutine=false){
   const p=copy(value),plans=root.VoiceLinePracticePlans,g=root.VoiceLineGuideTraining;
   p.training={root:48,earCount:4,earPattern:'legacy',dynamicPattern:'steps',dynamicCues:true,dynamicCueVolume:70,...p.training};

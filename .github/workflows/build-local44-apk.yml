@@ -1,4 +1,4 @@
-name: VoiceLine Local81 APK
+name: VoiceLine Local82 APK
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local81-Test-Report
+          name: VoiceLine-Local82-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -74,7 +74,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local81-Layout-Report
+          name: VoiceLine-Local82-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -112,7 +112,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local81-APKs
+          name: VoiceLine-Local82-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -155,7 +155,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local81-Store-Media
+          name: VoiceLine-Local82-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -165,7 +165,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local81-Release-Readiness
+          name: VoiceLine-Local82-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*
