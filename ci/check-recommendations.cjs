@@ -1,0 +1,33 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+module.exports=async function checkRecommendations(page,choose,output){
+ const checks=[],modes=['piano','practice','sustainVoice','earVoice','dynamicVoice','vibrato','warmupVoice','metronome'];
+ await choose(page,'piano');await page.evaluate(()=>document.documentElement.style.fontSize='');
+ for(const mode of modes){
+  await choose(page,mode);await page.locator('#customTimingOpen').click();const before=await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()}));
+  await page.locator('#planRecommend').click();assert.equal(await page.locator('.recommendation-card').count(),3);assert.equal(await page.locator('#planRun').isVisible(),false);
+  assert.deepEqual(await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()})),before,'browsing recommendations changed '+mode);
+  for(const size of [{width:360,height:640},{width:640,height:320}]){
+   await page.setViewportSize(size);await page.evaluate(()=>document.documentElement.style.fontSize='24px');
+   const g=await page.locator('.plan-modal').evaluate(e=>({x:e.getBoundingClientRect().x,right:e.getBoundingClientRect().right,top:e.getBoundingClientRect().top,bottom:e.getBoundingClientRect().bottom,scroll:document.querySelector('#planScroll').scrollWidth,width:document.querySelector('#planScroll').clientWidth}));
+   assert.ok(g.x>=0&&g.right<=size.width+1&&g.top>=0&&g.bottom<=size.height+1,mode+' gallery clipped');assert.ok(g.scroll<=g.width+1,mode+' horizontal gallery scroll');
+  }
+  await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});
+  await page.locator('[data-recommend-level=beginner]').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'edit');assert.deepEqual(await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()})),before,'draft selection changed '+mode);
+  await page.locator('#planClose').click();checks.push(mode+' three level presets, editable drafts, existing values preserved, portrait/landscape 150% layout');
+ }
+ await choose(page,'practice');await page.locator('#customTimingOpen').click();await page.locator('#planRecommend').click();await page.locator('#recommendationRoot').selectOption('60');await page.locator('[data-recommend-level=intermediate]').click();await page.locator('#planRun').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'review');await page.locator('#planRun').click();
+ assert.deepEqual(await page.evaluate(()=>{const g=JSON.parse(localStorage.getItem('voiceline-unified-practice-v1'));return [g.pattern,g.root,g.tolerance,g.rounds]}),['five',60,50,3]);await page.locator('#planClose').click();checks.push('chosen comfortable root and intermediate preset persist only after final save');
+ for(const level of ['beginner','intermediate','advanced']){
+  const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('voiceline-plans-v1')||'{}').routines||[]);
+  await page.evaluate(()=>window.VoiceLinePlansUI.openRoutines());await page.locator('#planRecommend').click();await page.locator('[data-recommend-level='+level+']').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'routine');
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('voiceline-plans-v1')||'{}').routines||[]),before,'recommendation selected before save overwrote routines');
+  await page.locator('#planRun').click();await page.locator('#planRun').click();const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('voiceline-plans-v1')).routines);assert.equal(after.length,before.length+1);assert.deepEqual(after.slice(0,-1),before);assert.ok(after.at(-1).steps.length>=9);
+  await page.locator('#planRecommend').click();await page.locator('.recommendation-sources summary').click();await page.evaluate(()=>{window.__trainingSources=[];window.VoiceLinePublicLinks={openTrainingSource:id=>window.__trainingSources.push(id)};});for(const source of ['Duke','Trinity','Berklee','NIH'])await page.locator('.recommendation-sources button').filter({hasText:source}).click();assert.deepEqual(await page.evaluate(()=>window.__trainingSources),['duke','trinity','berklee','nidcd']);
+  await page.screenshot({path:path.join(output,'recommendations-'+level+'.png')});await page.locator('#planClose').click();checks.push(level+' routine copied with new identity, existing routines preserved, sources open only on deliberate click');
+ }
+ await page.evaluate(()=>{const p=JSON.parse(localStorage.getItem('voiceline-plans-v1')||'{}');p.settings=p.settings||{};p.settings.vibrato={seconds:1,rounds:1,reference:0,breath:0,rest:0};p.settings.warmupVoice={rounds:1,prepare:0};localStorage.setItem('voiceline-plans-v1',JSON.stringify(p));const t=JSON.parse(localStorage.getItem('voiceline-training-v1')||'{}');Object.assign(t,{rounds:1,warmup:{inhale:1,exhale:1,hum:1,rest:0,cues:false}});localStorage.setItem('voiceline-training-v1',JSON.stringify(t));});
+ await page.reload();await page.waitForSelector('#keyboard .white-key');await choose(page,'vibrato');await page.locator('#mainButton').click();await page.locator('#trainingResultDialog').waitFor({state:'visible',timeout:5000});assert.equal(await page.locator('#trainingResultStatus').textContent(),'측정 부족');assert.match(await page.locator('#trainingResultReason').textContent(),/0개 \/ 최소 12개/);await page.screenshot({path:path.join(output,'vibrato-insufficient-result.png')});await page.locator('#trainingResultClose').click();checks.push('timed vibrato opens common result with measured and required quantities');
+ await choose(page,'warmupVoice');await page.locator('#mainButton').click();await page.locator('#trainingResultDialog').waitFor({state:'visible',timeout:6000});assert.equal(await page.locator('#trainingResultStatus').textContent(),'성공');assert.match(await page.locator('#trainingResultReason').textContent(),/실제 호흡량과 허밍의 정확도는 측정하지 않습니다/);await page.locator('#trainingResultClose').click();checks.push('completed warmup reports successful guidance, without claiming breath measurement');
+ fs.writeFileSync(path.join(output,'recommendations-and-results.json'),JSON.stringify({status:'passed',checks},null,2));console.log('PASS: '+checks.length+' recommendation and result integration checks');
+};

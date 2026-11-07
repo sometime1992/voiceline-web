@@ -1,10 +1,12 @@
 'use strict';
 (function(root){
  const api=root.VoiceLinePracticePlans;let storage;try{storage=root.localStorage;}catch(_){}
+ root.VoiceLineRecommendations?.initialize(storage);
  let bridge=null,state=api.load(storage),runner=null,clock=null,clockToken=0,single=false,draft=null,editingMode=null,original=null;
  const $=id=>document.getElementById(id),el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
  const modes=Object.keys(api.MODES),settingsModes=modes.filter(m=>!['rest','pitch','record'].includes(m));
  const copy=value=>JSON.parse(JSON.stringify(value));
+ let recommendationReturn='overview',recommendationRoot=48;
  let editorView='overview',savedDraft=null,hasChanges=false,singleForm=null,displayBox=null,metaForm=null,addForm=null,activeStepId=null,addMode='practice',outlineAnchor='routine-meta',outlineScrollTop=0,detailsOrigin='overview',reviewReturn={view:'edit',step:null},layoutFrame=0;const routineForms=new Map();
  function stored(){try{state=api.save(storage,state);return true;}catch(_){status('저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 저장해 주세요.');return false;}}
  function status(text){const node=$('planStatus');if(node){node.textContent=text;node.hidden=!text;}}
@@ -85,6 +87,39 @@
  function renderFocus(){
   $('planLibrary').hidden=true;const form=getDraftForm();if(!form)return;form.dataset.stepId=editingMode?'single':activeStepId;mountDisplay(form);if(editorView==='menu')form.pager.showMenu(false);else form.pager.showPage(form.pager.state().key,false);fitCurrent();updateActions();
  }
+ function renderRecommendations(){
+  const rec=root.VoiceLineRecommendations;$('planLibrary').hidden=true;
+  const box=el('div',undefined,'settings-editor recommendation-list');
+  box.pager={state:()=>({title:'추천',count:1,index:0,previous:false,next:false}),fit(){}};
+  box.append(el('p',editingMode?'단계를 고른 뒤 설정을 확인·수정하고 저장하세요.':'추천 루틴을 복사해 순서와 설정을 확인한 뒤 저장하세요.','recommendation-intro'));
+  const field=el('label','편안한 시작음','recommendation-root');
+  const select=el('select');select.id='recommendationRoot';select.setAttribute('aria-label','추천 연습의 편안한 시작음');
+  for(let midi=36;midi<=80;midi++){const option=el('option',bridge.noteLabel(midi));option.value=String(midi);select.append(option);}select.value=String(recommendationRoot);
+  select.onchange=()=>{recommendationRoot=Number(select.value);renderRecommendations();$('recommendationRoot').focus({preventScroll:true});};field.append(select);box.append(field);
+  box.append(el('p',rec.NOTE,'recommendation-note'));
+  for(const [level,meta]of Object.entries(rec.LEVELS)){
+   const value=editingMode?rec.preset(editingMode,level,bridge.captureAll(),recommendationRoot):rec.routine(level,recommendationRoot,bridge.captureAll());
+   const description=editingMode?root.VoiceLinePracticeSettings.describe(editingMode,value.timing,value.params,false,bridge.noteLabel):root.VoiceLinePracticeSettings.routine(value,bridge.noteLabel);
+   const card=el('section',undefined,'recommendation-card');card.dataset.level=level;card.append(el('h3',meta.label),el('p',meta.goal,'recommendation-goal'),el('p',description.totalText,'recommendation-duration'));
+   if(editingMode)card.append(el('p',description.compact),el('p',description.audio));
+   else{const details=el('details'),summary=el('summary','연습 순서와 설정 보기'),list=el('ol');for(const [i,s]of value.steps.entries()){const d=description.steps[i];list.append(el('li',api.MODES[s.mode]+' · '+d.compact+' · '+d.totalText));}details.append(summary,list);card.append(details);}
+   if(editingMode==='practice'){const g=value.params.guide,p=root.VoiceLineGuideTraining.plan(g),notes=p.roots.flatMap(r=>p.pattern.steps.map(n=>r+n));card.append(el('p','사용 음역 '+bridge.noteLabel(Math.min(...notes))+' ~ '+bridge.noteLabel(Math.max(...notes))));}
+   card.append(el('p',editingMode==='vibrato'&&level==='beginner'?'흔들림을 억지로 만들지 않고 자연스러운 비브라토를 관찰하는 짧은 설정입니다.':meta.note,'recommendation-note'));
+   const use=el('button',editingMode?'설정 확인·수정':'루틴 구성 확인');use.type='button';use.dataset.recommendLevel=level;use.setAttribute('aria-label',meta.label+(editingMode?' 추천 설정 선택':' 추천 루틴 선택'));
+   use.onclick=()=>{
+    if(editingMode){draft={timing:copy(value.timing),params:copy(value.params)};singleForm=null;hasChanges=true;changeView('edit');status(meta.label+' 추천값입니다. 기준음과 설정을 확인한 뒤 변경 확인 → 최종 저장하세요.');}
+    else{draft=copy(value);savedDraft=api.routine({id:draft.id,name:draft.name,steps:[]});singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=true;outlineScrollTop=0;showRoutine();status('새 추천 루틴 초안입니다. 변경 확인 → 최종 저장하면 내 루틴에 추가됩니다.');}
+   };card.append(use);box.append(card);
+  }
+  const sources=el('details',undefined,'recommendation-sources');sources.append(el('summary','추천 기준과 참고 자료'),el('p',rec.BASIS));
+  for(const source of rec.SOURCES){sources.append(el('p',source.principle));const button=el('button',source.title+' ↗');button.type='button';button.onclick=()=>{try{if(root.VoiceLinePublicLinks?.openTrainingSource)root.VoiceLinePublicLinks.openTrainingSource(source.id);else root.open(source.url,'_blank','noopener,noreferrer');}catch(_){bridge.notify('참고 자료를 열 수 없습니다.');}};sources.append(button);}box.append(sources);
+  mountDisplay(box);
+ }
+ function openRecommendations(){
+  if(!root.VoiceLineRecommendations||locked())return;
+  recommendationReturn=editorView;const current=bridge.captureAll();recommendationRoot=root.VoiceLineRecommendations.selectedRoot(editingMode==='practice'?current.guide.root:editingMode==='vibrato'?current.vibratoRoot:current.training.root);
+  editorView='recommend';renderRecommendations();
+ }
  function showRoutine(anchor=outlineAnchor){
   if(displayBox?.isConnected&&displayBox.classList.contains('settings-routine-outline'))outlineScrollTop=$('planScroll').scrollTop;outlineAnchor=anchor;
   activeStepId=null;editorView='routine';$('planLibrary').hidden=true;const entries=[];
@@ -113,10 +148,10 @@
  function scheduleFit(){if(layoutFrame)return;layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;fitCurrent();});}
  function updateActions(){
   if(!displayBox)return;const state=displayBox.pager.state(),focus=['edit','menu'].includes(editorView),routine=editorView==='routine';$('planDialog').dataset.view=editorView;
-  const titles={overview:'현재 설정',saved:'저장 완료',menu:'수정할 항목',routine:'루틴 구성',review:'저장할까요?',details:'전체 설정'};$('planTitle').textContent=editorView==='edit'?state.title:titles[editorView]||'연습 설정';$('planStage').textContent=state.count>1?(state.index+1)+'/'+state.count:'';$('planStage').hidden=state.count<=1;
+  const titles={overview:'현재 설정',saved:'저장 완료',menu:'수정할 항목',routine:'루틴 구성',review:'저장할까요?',details:'전체 설정',recommend:editingMode?'추천 설정':'추천 루틴'};$('planTitle').textContent=editorView==='edit'?state.title:titles[editorView]||'연습 설정';$('planStage').textContent=state.count>1?(state.index+1)+'/'+state.count:'';$('planStage').hidden=state.count<=1;
   const all=['overview','saved','review'].includes(editorView);$('planBack').dataset.kind=all?'all':'back';$('planBack').innerHTML=all?'전체':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>';$('planBack').setAttribute('aria-label',all?'전체 설정 보기':editorView==='edit'&&!editingMode?'루틴 구성으로 돌아가기':'이전 설정 화면으로 돌아가기');
-  $('planSave').hidden=focus||routine;$('planSave').textContent=editorView==='review'?'다시 수정':editorView==='details'?'돌아가기':hasChanges?'수정 계속':'수정';
-  const routineEdit=!editingMode&&editorView==='edit';$('planRun').hidden=routineEdit&&activeStepId==='add';$('planRun').textContent=routineEdit?'적용 완료':focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;
+  $('planSave').hidden=focus||routine||editorView==='recommend';$('planRecommend').hidden=!['overview','saved'].includes(editorView);$('planRecommend').textContent=editingMode?'추천 설정':'추천 루틴';$('planSave').textContent=editorView==='review'?'다시 수정':editorView==='details'?'돌아가기':hasChanges?'수정 계속':'수정';
+  const routineEdit=!editingMode&&editorView==='edit';$('planRun').hidden=editorView==='recommend'||routineEdit&&activeStepId==='add';$('planRun').textContent=routineEdit?'적용 완료':focus||routine?'변경 확인':editorView==='review'?'최종 저장':editorView==='details'?'돌아가기':'시작';$('planRun').disabled=!editingMode&&!focus&&!routine&&!['details','review'].includes(editorView)&&!savedDraft?.steps.length;
   const arrows=state.count>1;$('planPrev').hidden=$('planNext').hidden=!arrows;$('planPrev').disabled=!state.previous;$('planNext').disabled=!state.next;
   const hint=$('planActionHint');hint.textContent=routineEdit&&activeStepId!=='add'?'적용 후 루틴 구성으로 돌아갑니다':routine?'전체 설정 확인 후 저장':'';hint.hidden=!hint.textContent;
  }
@@ -126,6 +161,7 @@
  }
  function back(){
   if($('planDialog')?.hidden)return false;if(!$('planHelp').hidden){$('planHelp').hidden=true;return true;}
+  if(editorView==='recommend'){changeView(recommendationReturn);return true;}
   if(editorView==='details'){changeView(detailsOrigin);return true;}if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);return true;}if(editorView==='edit'){if(editingMode)changeView('overview');else showRoutine();return true;}
   if(editorView==='menu'){if(editingMode)changeView('overview');else showRoutine();return true;}if(editorView==='routine'){changeView('overview');return true;}return false;
  }
@@ -153,7 +189,7 @@
  function clear(){clearClock();if(original){bridge.restore(original);original=null;}const node=$('planBanner');if(node)node.hidden=true;if($('modeMessage'))$('modeMessage').hidden=false;}
  function cancel(){runner?.cancel();clear();}
  async function startPlan(plan,isSingle=false){
-  if(bridge.startBlocked())return false;await bridge.stop();single=isSingle;const baseline=bridge.captureAll();
+  if(bridge.startBlocked())return false;await bridge.stop();single=isSingle;const baseline=bridge.captureAll();bridge.startResults?.(plan,isSingle);
   try{const start=runner.start(plan);original=baseline;await start;return Boolean(runner.snapshot());}catch(error){clear();bridge.notify(error.message);return false;}
  }
  async function startSingle(mode){
@@ -181,9 +217,10 @@
  function patternChanged(pattern){if(!state.settings.dynamicVoice.customStages)return null;state.settings.dynamicVoice.stages=root.VoiceLineDynamics.getPattern(pattern).segments.map(s=>s.ms/1000);stored();return state.settings.dynamicVoice.stages.reduce((a,b)=>a+b,0);}
  function mount(callbacks){
   bridge=callbacks;const modal=el('div');modal.id='planDialog';modal.className='modal-backdrop plan-backdrop';modal.hidden=true;
-  modal.innerHTML='<section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planTitle"><header class="modal-heading"><button id="planBack" type="button">전체</button><div class="plan-heading-copy"><h2 id="planTitle">현재 설정</h2><span id="planStage" aria-live="polite"></span></div><button id="planClose" type="button" class="close-btn" aria-label="연습 설정 닫기">✕</button></header><div id="planScroll" class="plan-scroll"><div id="planLibrary" class="plan-library" hidden><select id="planList" aria-label="저장한 루틴"></select><button id="planNew" type="button">새 루틴</button><button id="planDelete" type="button">삭제</button></div><div id="planEditor"></div></div><p id="planStatus" class="plan-note" role="status" hidden></p><footer class="plan-footer"><p id="planActionHint" hidden></p><div class="plan-actions" role="group" aria-label="설정 페이지 이동 및 저장"><button id="planPrev" type="button" aria-label="이전 페이지">이전</button><button id="planSave" type="button">수정</button><button id="planRun" type="button">시작</button><button id="planNext" type="button" aria-label="다음 페이지">다음</button></div></footer><div id="planHelp" class="settings-help-layer" role="dialog" aria-modal="true" aria-labelledby="planHelpTitle" hidden><section><h3 id="planHelpTitle"></h3><p id="planHelpText"></p><button id="planHelpClose" type="button">닫기</button></section></div></section>';
+  modal.innerHTML='<section class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="planTitle"><header class="modal-heading"><button id="planBack" type="button">전체</button><div class="plan-heading-copy"><h2 id="planTitle">현재 설정</h2><span id="planStage" aria-live="polite"></span></div><button id="planClose" type="button" class="close-btn" aria-label="연습 설정 닫기">✕</button></header><div id="planScroll" class="plan-scroll"><div id="planLibrary" class="plan-library" hidden><select id="planList" aria-label="저장한 루틴"></select><button id="planNew" type="button">새 루틴</button><button id="planDelete" type="button">삭제</button></div><div id="planEditor"></div></div><p id="planStatus" class="plan-note" role="status" hidden></p><footer class="plan-footer"><p id="planActionHint" hidden></p><div class="plan-actions" role="group" aria-label="설정 페이지 이동 및 저장"><button id="planPrev" type="button" aria-label="이전 페이지">이전</button><button id="planRecommend" type="button">추천 설정</button><button id="planSave" type="button">수정</button><button id="planRun" type="button">시작</button><button id="planNext" type="button" aria-label="다음 페이지">다음</button></div></footer><div id="planHelp" class="settings-help-layer" role="dialog" aria-modal="true" aria-labelledby="planHelpTitle" hidden><section><h3 id="planHelpTitle"></h3><p id="planHelpText"></p><button id="planHelpClose" type="button">닫기</button></section></div></section>';
   document.body.append(modal);$('planClose').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg>';modal.addEventListener('settings-help',e=>help(e.detail.label,e.detail.text));$('planHelpClose').onclick=()=>{$('planHelp').hidden=true;};$('planHelp').onclick=e=>{if(e.target===$('planHelp'))$('planHelp').hidden=true;};
   $('planClose').onclick=()=>{bridge.stopPreview?.();$('planHelp').hidden=true;document.activeElement?.blur();bridge.modalClose('planDialog');};modal.onclick=e=>{if(e.target===modal)$('planClose').click();};
+  $('planRecommend').onclick=openRecommendations;
   $('planBack').onclick=()=>{if(['overview','saved','review'].includes(editorView)){detailsOrigin=editorView;changeView('details');}else back();};
   $('planPrev').onclick=()=>{bridge.stopPreview?.();document.activeElement?.blur();displayBox.pager.move(-1);fitCurrent();};$('planNext').onclick=()=>{bridge.stopPreview?.();document.activeElement?.blur();displayBox.pager.move(1);fitCurrent();};
   $('planSave').onclick=()=>{if(editorView==='review'){activeStepId=reviewReturn.step;changeView(reviewReturn.view);}else if(editorView==='details')back();else changeView(editingMode?'edit':'routine');};

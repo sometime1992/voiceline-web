@@ -387,6 +387,10 @@
 .training-result-status{display:block;font-size:clamp(21px,3.5vw,32px);font-weight:900;margin:7px 0 2px}
 .training-result-status.success{color:#79f1b4}.training-result-status.failure{color:#ffbf9d}
 .training-result-status.stopped{color:#c8bfd8}.training-result-status.guided{color:#8ce6fa}
+.training-result-modal{max-height:88dvh;overflow-y:auto}
+.training-result-steps{padding-left:22px;margin:12px 0;font-size:13px}
+.training-result-steps li{padding:9px 0;border-top:1px solid #7bd7c533}
+.training-result-step-rule{color:#bdb5cc}
 .training-result-close{display:block;margin:12px 0 0 auto;min-height:38px;padding:6px 23px;border-radius:10px;
  border:0;background:#5deacb;color:#102627;font-weight:900}
 @media(max-height:400px){

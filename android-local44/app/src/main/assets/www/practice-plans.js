@@ -80,6 +80,29 @@
   }catch(_){return false;}
  }
  function save(storage,value){const next=normalize(value);if(!storage)throw Error('설정을 저장할 수 없습니다.');storage.setItem('voiceline-plans-v1',JSON.stringify(next));return next;}
+ // Aggregate by step rather than keeping every repetition of an unlimited routine.
+ function createResultLog(name,single=false){
+  const entries=new Map(),totals={success:0,failure:0,guided:0,stopped:0};let count=0,last=null;
+  function add(result,index=0){
+   if(!Object.hasOwn(totals,result.kind))return;
+   count++;totals[result.kind]++;last=result;
+   if(!entries.has(index))entries.set(index,{title:(single?'':(index+1)+'단계 · ')+result.title,counts:{success:0,failure:0,guided:0,stopped:0},issues:new Map(),last:null});
+   const entry=entries.get(index);entry.counts[result.kind]++;entry.last=result;
+   if(result.kind!=='success')entry.issues.set(result.kind,{reason:result.reason,rule:result.rule});
+  }
+  const countsText=c=>[['success','성공'],['failure','미달성'],['guided','측정 부족'],['stopped','중단']].filter(([key])=>c[key]).map(([key,label])=>label+' '+c[key]+'회').join(' · ');
+  function summary(completed){
+   if(!count)return null;
+   if(single&&count===1)return {...last,...(!completed?{status:'중단',kind:'stopped',reason:'연습을 끝까지 완료하지 않았습니다. '+last.reason}:{})};
+   const kind=!completed?'stopped':totals.failure?'failure':totals.guided?'guided':'success';
+   return {title:name,mode:'practice',kind,status:({success:'성공',failure:'미달성',guided:'측정 부족',stopped:'중단'})[kind],
+    detail:count+'회 결과 · '+countsText(totals),
+    rule:'각 연습의 판정 기준을 모든 회차에서 충족하면 성공입니다. 호흡·워밍업은 안내 과정 완료를 기준으로 합니다.',
+    reason:!completed?'전체 연습을 마치기 전에 중단했습니다. 완료한 회차의 결과도 아래에서 확인할 수 있습니다.':totals.failure||totals.guided?'기준을 충족하지 못한 회차가 있습니다. 단계별 결과와 부족한 기준을 확인하세요.':'모든 연습 회차의 기준을 충족했습니다.',
+    steps:[...entries.values()].map(e=>({title:e.title,detail:countsText(e.counts),reason:e.issues.size?[...e.issues.values()].map(x=>x.reason).join(' / '):e.last.reason,rule:e.last.rule}))};
+  }
+  return {add,summary,get size(){return entries.size;}};
+ }
  // A cancellable serial runner. Each step owns exactly one completion callback;
  // callbacks from an earlier routine cannot advance a replacement routine.
  function createRunner({run,stop=async()=>{},onState=()=>{},onFinish=()=>{},onError=()=>{},setTimer=setTimeout,clearTimer=clearTimeout}={}){
@@ -106,5 +129,5 @@
   }
   return {start,cancel,complete,snapshot,owns:token=>Boolean(active)&&token===generation,get token(){return generation;}};
  }
- return {vowelGuide,migrateVowelPractice,MODES,ROUTINE_MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createRunner};
+ return {vowelGuide,migrateVowelPractice,MODES,ROUTINE_MODES,DEFAULTS,EAR_PATTERNS,earRootLimit,earSequence,guideRound,numeric,timing,step,routine,normalize,load,save,migrateDefaultRoot,createResultLog,createRunner};
 });

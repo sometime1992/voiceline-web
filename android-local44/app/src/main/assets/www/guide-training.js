@@ -7,6 +7,7 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const VOWELS=Object.freeze(['아','에','이','오','우']);
  const PATTERNS=Object.freeze({
+  three:{label:'3음 왕복 · 도레미',steps:[0,2,4,2,0],tip:'편안한 음역에서 도레미레도를 부드럽게 이어 부르세요.'},
   vowelFive:{label:'아에이오우 · 5음 음계 왕복',vowels:VOWELS,steps:[0,2,4,5,7,5,4,2,0],tip:'아로 도레미파솔파미레도를 부른 뒤 숨을 쉬고 에·이·오·우도 같은 음계로 반복하세요. 각 목표 음을 유지합니다.'},
   vowelTriad:{label:'아에이오우 · 도미솔 도약 왕복',vowels:VOWELS,steps:[0,4,7,4,0],tip:'아로 도미솔미도를 부른 뒤 에·이·오·우도 각각 같은 도약을 반복하세요. 아에이오우까지가 한 세트입니다.'},
   five:{label:'5음 왕복 · 도레미파솔',steps:[0,2,4,5,7,5,4,2,0],tip:'음과 음 사이를 편안하게 연결하세요.'},
@@ -173,19 +174,31 @@
   const each=s.completedEach!==false&&s.bins.flat().every(b=>b.voiced>=b.expected*.2);
   return {accuracy,coverage,enough:s.valid>=12&&coverage>=40&&each,each};
  }
- function evaluate(s,completed){
+ function evaluate(s,completed,label=midi=>['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][Math.round(midi)%12]+(Math.floor(midi/12)-1)){
   const m=metrics(s),passed=m.enough&&m.accuracy>=65;
-  return {status:!completed?'중단':!m.enough?'측정 부족':passed?'성공':'다시 연습',
+  const missing=[];
+  if(s.valid<12)missing.push('음정 측정 '+s.valid+'개 / 최소 12개');
+  if(m.coverage<40)missing.push('전체 발성 '+m.coverage+'% / 최소 40%');
+  if(s.completedEach===false)missing.push('이전 반복에서 발성 20% 미만인 구간이 있습니다');
+  const gaps=s.bins.flatMap((bins,round)=>bins.flatMap((b,index)=>b.voiced<b.expected*.2?[{
+   label:(s.pattern.vowels?Math.floor(round/s.phrasesPerSet)+1+'세트 · '+b.vowel:(round+1)+'회')+' · '+(index+1)+'번째 '+(b.label||label(b.midi)),
+   percent:Math.floor(b.voiced/Math.max(1,b.expected)*100+1e-9)
+  }]:[]));
+  const shown=gaps.slice(0,6).map(b=>b.label+' '+b.percent+'% / 최소 20%');
+  if(gaps.length)missing.push('구간별 발성 부족 '+gaps.length+'곳: '+shown.join(', ')+(gaps.length>shown.length?' 외 '+(gaps.length-shown.length)+'곳':''));
+  if(m.enough&&!passed)missing.push('음정 일치율 '+m.accuracy+'% / 최소 65%');
+  return {status:!completed?'중단':!m.enough?'측정 부족':passed?'성공':'미달성',
    kind:!completed?'stopped':!m.enough?'guided':passed?'success':'failure',
    rule:'따라 부르기만 채점 · 목표 ±'+s.tolerance+'cent · 일치율 65% 이상 · 전체 발성 40% 및 '+(s.pattern.vowels?'각 모음의 각 음':s.smooth?'각 이동 구간':'각 음')+' 20% 이상 ('+(s.smooth?'응답 시작':'음 시작')+' '+(s.attackMs/1000).toFixed(2)+'초 제외)',
-   reason:'음정 일치율 '+(m.accuracy===null?'—':m.accuracy+'%')+' · 발성 커버리지 '+m.coverage+'% · 유효 발성 '+(s.voicedMs/1000).toFixed(1)+'초'};
+   reason:!completed?'연습을 끝까지 완료하지 않았습니다.':missing.length?missing.join(' · '):'전체 발성·구간별 발성·음정 일치율 기준을 모두 충족했습니다.',
+   metrics:'음정 일치율 '+(m.accuracy===null?'—':m.accuracy+'%')+' · 발성 커버리지 '+m.coverage+'% · 유효 발성 '+(s.voicedMs/1000).toFixed(1)+'초'};
  }
  function summary(s,label,completed=true){
   const m=metrics(s),weak=s.bins.flat().filter(b=>b.voiced<b.expected*.2||b.good/Math.max(1,b.voiced)<.65);
   const notes=[...new Set(weak.map(b=>b.label||(b.vowel?b.vowel+' ':'')+label(b.midi)))].slice(0,4);
   const completedRounds=clamp(Math.floor(((s.finishedAt??s.start)-s.start)/s.cycleMs),0,s.infinite?Infinity:s.rounds);
   const rounds=s.pattern.vowels?(completed?s.sets+'세트 · 5모음씩':Math.floor(completedRounds/s.phrasesPerSet)+'세트·'+completedRounds%s.phrasesPerSet+'모음 완료 / '+(s.infinite?'계속 반복':s.sets+'세트 계획')):completed?s.rounds+'회':completedRounds+'회 완료 / '+(s.infinite?'계속 반복':s.rounds+'회 계획');
-  return s.pattern.label+' · '+rounds+' · '+evaluate(s,true).reason+
+  return s.pattern.label+' · '+rounds+' · '+evaluate(s,true).metrics+
    (notes.length?' · 더 연습할 '+(s.smooth?'구간 ':'음 ')+notes.join(', '):'')+(m.enough?'':' · 충분히 따라 부른 뒤 다시 확인하세요');
  }
  function createPlayer(ac,destination,sample=()=>null,timers=globalThis,onInterrupted=()=>{}){

@@ -44,7 +44,7 @@ test('Local32 dynamics rejects mostly wrong notes, brief samples and flat volume
  };
  assert.equal(run(false,true).status,'미달성');
  assert.match(run(false,true).reason,/음정 10%/);
- assert.equal(run(true).status,'미달성');
+ assert.equal(run(true).status,'측정 부족');
  assert.equal(run(false,false,true).status,'미달성');
  assert.equal(run().status,'성공');
 });
@@ -53,7 +53,7 @@ test('Local43 isolated pitch detections never fill preceding silence in voice tr
   const h=trainingHarness(),a=h.app.training=h.newTrainingSession(mode,0,settings);
   for(let ms=0;ms<a.duration;ms+=50)h.receiveTrainingSample(a.start+ms,ms%100===0?60:null,.05);
   assert.ok(a.valid>=12);assert.equal(a.voicedMs,0,mode+' counted silence as sustained voice');
-  assert.equal(h.trainingEvaluation(a,true).status,'미달성');
+  assert.equal(h.trainingEvaluation(a,true).status,'측정 부족');
  }
 });
 test('Local43 ear-training coverage starts at the response boundary',()=>{
@@ -166,7 +166,7 @@ function pcmHarness(){
  const removeSessionData=async id=>{for(const [key,p] of parts)if(p.sessionId===id)parts.delete(key);sessions.delete(id)};
  const readSessionParts=async id=>[...parts.values()].filter(p=>p.sessionId===id);
  const nativeCode=chunk('function encodePcmChunk(','function startRecording(){');
- const api=evaluate(nativeCode+chunk('function startRecording(){','async function finishVibrato(){')+
+ const api=evaluate(nativeCode+chunk('function startRecording(){','async function finishVibrato(completed=false){')+
   '\n({startRecording,queueNativePcm,finalizeNativePcm,stopRecording,retryRecording,recoverRecording,wavHeader})',{
    app,store,removeSessionData,readSessionParts,performance:{now:()=>5000},$:nodes(),
    id:()=> 'session-32',stamp:()=> '오늘',notify(){},progress(){},renderRecordPitchOverlay(){},
@@ -223,7 +223,7 @@ test('Local32 native startup error terminates training through the shared stop p
    finishTraining:completed=>{assert.equal(completed,false);h.app.training=null;finishes++},
    finishExercise:completed=>{assert.equal(completed,false);h.app.exercise=null;finishes++},
    finishVibrato:async()=>{h.app.vibratoStart=0;finishes++},
-   resetMainAction(){},clearNote(){},setMessage(){},notify(){},performance:{now:()=>1000}};
+   finishPracticeResults(){},resetMainAction(){},clearNote(){},setMessage(){},notify(){},performance:{now:()=>1000}};
   const fail=evaluate(chunk("async function stopActivity(reason='user'){",'function resetMainAction(){')+
    chunk('async function stopAfterMicError(detail){','function tick(t){')+'\nstopAfterMicError',context);
   await fail('input failed');assert.equal(finishes,1);assert.equal(h.app.mic,false);assert.equal(h.app.frame,0);
@@ -428,7 +428,7 @@ test('Application boot and unified practice controls execute with every existing
    assert.equal($('guideVoicePanel').hidden,false);assert.equal($('trainingOverlay').hidden,true);
    const kind=$('exerciseControls').children[0].children[0],select=$('exerciseControls').children[1].children[0];
    assert.deepEqual(kind.children.map(option=>option.value),['steps','leaps','vowels','smooth']);
-   assert.equal(select.children.length,12);
+   assert.equal(select.children.length,13);
    assert.equal($('exerciseControls').children.some(child=>child.id==='guideSettingsOpen'),false);
    kind.value='vowels';kind.onchange();assert.equal(window.__local32Test.app.guideSettings.pattern,'vowelFive');assert.equal(window.__local32Test.app.guideSettings.rounds,1);
   }

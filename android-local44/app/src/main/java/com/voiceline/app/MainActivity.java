@@ -141,6 +141,16 @@ public class MainActivity extends Activity {
         @android.webkit.JavascriptInterface public void openPrivacyPolicy() { openApprovedPage(PUBLIC_PRIVACY_URL); }
         @android.webkit.JavascriptInterface public void openSupport() { openApprovedPage(PUBLIC_SUPPORT_URL); }
         @android.webkit.JavascriptInterface public void openHomepage() { openApprovedPage(PUBLIC_HOME_URL); }
+        @android.webkit.JavascriptInterface public void openTrainingSource(String id) {
+            if (id == null) return;
+            switch (id) {
+                case "duke": openApprovedPage("https://chorusamerica.org/sites/default/files/resources/VocalExercises_DukeVoiceCareCenter.pdf"); break;
+                case "trinity": openApprovedPage("https://www.trinitycollege.com/qualifications/music/teachers-guide-to-singing/effective-warm-ups"); break;
+                case "berklee": openApprovedPage("https://online.berklee.edu/courses/voice-technique-101"); break;
+                case "nidcd": openApprovedPage("https://www.nidcd.nih.gov/health/taking-care-your-voice"); break;
+                default: break;
+            }
+        }
         @android.webkit.JavascriptInterface public String appVersion() {
             try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
             catch (PackageManager.NameNotFoundException error) { return "2.0.0"; }

@@ -36,7 +36,7 @@ function recorder(){
  const removeSessionData=async id=>{for(const [key,p] of parts)if(p.sessionId===id)parts.delete(key);sessions.delete(id)};
  const context={app,store,readSessionParts,removeSessionData,$:nodes(),performance:{now:()=>clock},
   renderRecordPitchOverlay(){},notify(){},progress(){},id:()=> 'recording-'+(++serial),stamp:()=> '오늘',setTimeout:fn=>{timers.push(fn);return timers.length}};
- const api=run(chunk('function encodePcmChunk(','async function finishVibrato(){')+
+ const api=run(chunk('function encodePcmChunk(','async function finishVibrato(completed=false){')+
   '\n({startRecording,stopRecording,queueNativePcm})',context);
  return {app,parts,sessions,recordings,events,puts,timers,...api,
   setClock:t=>clock=t,delayWrites:()=>slow=deferred(),resumeWrites:()=>{slow.resolve();slow=null},get serial(){return serial}};
@@ -104,7 +104,7 @@ test('Local33 browser recorder requests one continuous recording without a times
   stop(){this.state='inactive';this.ondataavailable({data:bytes});this.onstop()}
  }
  const writes=[];
- const api=run(chunk('function encodePcmChunk(','async function finishVibrato(){')+'\n({startRecording,stopRecording})',{
+ const api=run(chunk('function encodePcmChunk(','async function finishVibrato(completed=false){')+'\n({startRecording,stopRecording})',{
   app:h.app,$:nodes(),window:{MediaRecorder:Recorder},MediaRecorder:Recorder,navigator:{},
   performance:{now:()=>5000},id:()=> 'web-record',stamp:()=> '오늘',renderRecordPitchOverlay(){},notify(){},progress(){},
   store:async(kind,op,item)=>writes.push({kind,item})
@@ -128,7 +128,7 @@ test('Local33 recording cannot write a practice event, including after its audio
 });
 test('Local33 Stop remembers recording provenance even if the screen mode changes during save',async()=>{
  const app={record:{id:'one'},mic:true,mode:'pitch',sessionMode:'record',sessionSamples:100,sessionStart:0};let practiceWrites=0,saves=0;
- const stop=run(chunk("async function stopActivity(reason='user'){",'function resetMainAction(){')+'\nstopActivity',{
+ const stop=run(chunk("async function stopActivity(reason='user'){",'function resetMainAction(){')+'\nstopActivity',{finishPracticeResults(){},
   app,cancelMicStart(){},stopRecording:async()=>{saves++;app.record=null;app.sessionMode=null},
   stopMic:()=>app.mic=false,performance:{now:()=>10000},addEvent:async()=>practiceWrites++,noteLabel:String
  });

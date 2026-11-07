@@ -92,7 +92,7 @@ test('The final result rejects a wholly missed strong target despite a sufficien
  const h=fixture(),ratios=[1,1.8,2.2,1];
  for(let i=0;i<120;i++)h.receiveTrainingSample(h.session.start+i*100,60,.0042*ratios[Math.floor(i/30)]);
  const stats=dynamics.metrics(h.session.dynamicModel);assert.ok(stats.accuracy>=65);assert.equal(stats.phaseMatchedMs[2],0);
- assert.equal(h.trainingEvaluation(h.session,true).status,'미달성');assert.match(h.trainingEvaluation(h.session,true).reason,/단계별 목표 부족/);
+ assert.equal(h.trainingEvaluation(h.session,true).status,'미달성');assert.match(h.trainingEvaluation(h.session,true).reason,/단계별 목표 부족/);assert.match(h.trainingEvaluation(h.session,true).reason,/3구간 .*0% \/ 최소 25%/);
 });
 test('No initial reference fails with a clear reason even if the last three stages have valid voice',()=>{
  const h=fixture();for(let i=30;i<120;i++)h.receiveTrainingSample(h.session.start+i*100,60,[.0042,.008,.014,.0042][Math.floor(i/30)]);

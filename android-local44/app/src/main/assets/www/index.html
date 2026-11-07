@@ -23,6 +23,7 @@
 <script src="third-party-notices.js" defer></script>
 <script src="practice-plans.js" defer></script>
 <script src="practice-settings.js" defer></script>
+<script src="practice-recommendations.js" defer></script>
 <script src="settings-pages.js" defer></script>
 <script src="practice-settings-ui.js" defer></script>
 <script src="practice-plans-ui.js" defer></script>
@@ -271,7 +272,8 @@
   <h2 id="trainingResultTitle">훈련 결과</h2>
   <p id="trainingResultMetrics"></p>
   <p><strong>판정 기준</strong> <span id="trainingResultRule"></span></p>
-  <p><strong>실제 측정</strong> <span id="trainingResultReason"></span></p>
+  <p><strong>판정 이유</strong> <span id="trainingResultReason"></span></p>
+  <ol id="trainingResultSteps" class="training-result-steps" aria-label="단계별 연습 결과" hidden></ol>
   <button type="button" id="trainingResultClose" class="training-result-close">확인</button>
  </section>
 </div>

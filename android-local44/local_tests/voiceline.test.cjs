@@ -540,7 +540,7 @@ test('Local27 separates legacy recording events from practice records without de
  assert.match(js,/kind==='events'&&!isPracticeHistoryEvent\(value\)/,'actual paged records screen filters legacy duplicate events');
 });
 test('Local27 saving a recording creates a recording file only, never a practice event',async()=>{
- const code=snippet('async function retryRecording(record){','async function recoverRecording(')+snippet('function recordTime(milliseconds){','async function stopRecording(){')+snippet('async function stopRecording(){','async function finishVibrato(){','\nstopRecording');
+ const code=snippet('async function retryRecording(record){','async function recoverRecording(')+snippet('function recordTime(milliseconds){','async function stopRecording(){')+snippet('async function stopRecording(){','async function finishVibrato(completed=false){','\nstopRecording');
  const blob=new Blob([new Uint8Array(512)],{type:'audio/webm'});
  const writes=[];
  const elements={mainButton:{textContent:'녹음 중지',classList:{remove() {}}}};
@@ -712,9 +712,9 @@ test('Local30: success/failure is evidence-based for different training modes',(
  const f=runInContext(js.slice(start,end)+'\ntrainingEvaluation',{Math,Number});
  const sustain={mode:'sustainVoice',duration:8000,valid:55,good:45,voicedMs:4000};
  assert.equal(f(sustain,true).status,'성공');
- sustain.voicedMs=800;assert.equal(f(sustain,true).status,'미달성');
+ sustain.voicedMs=800;assert.equal(f(sustain,true).status,'측정 부족');
  assert.equal(f(sustain,false).status,'중단');
- assert.equal(f({mode:'warmupVoice'},true).status,'안내 완료');
+ assert.equal(f({mode:'warmupVoice'},true).status,'성공');
  assert.match(js,/evaluation\.status\+' · '\+detail/);
 });
 
@@ -740,7 +740,7 @@ test('Local30: target key appears for ear answer but not during blind listen',()
 test('Training results retain visible criteria and warmup audio unlock',()=>{
  assert.match(html,/role="dialog" aria-modal="true" aria-labelledby="trainingResultTitle"/);
  assert.match(js,/showTrainingResult\(a,completed,detail\)/);
- assert.match(js,/status:passed\?'성공':'미달성'/);
+ assert.match(js,/status:!enough\?'측정 부족':passed\?'성공':'미달성'/);
  assert.match(js,/if\(app\.mode==='warmupVoice'\|\|app\.mode==='dynamicVoice'\|\|!window\.VoiceLineToneEngine\)ensureSynth\(\)/);
 });
 

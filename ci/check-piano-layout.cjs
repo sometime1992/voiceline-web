@@ -411,6 +411,7 @@ async function checkVolumeRange(page,id,valueId){
   assert.equal(await page.title(),'VoiceLine');assert.equal(await page.locator('.brand').getAttribute('aria-label'),'VoiceLine');
   await require('./check-practice-plans.cjs')(page,choose,output);
   await require('./check-settings-readability.cjs')(page,choose,output);
+  await require('./check-recommendations.cjs')(page,choose,output);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
   console.log('PASS: '+report.length+' mode/viewport layouts and '+patternReport.length+' dynamics method previews; complete stepped and crescendo exercises, 0/50/100% volume endpoints, pattern persistence, hidden phase/countdown, rotation and retained results; graph toggles, unified practice, real pixels and recording save.');

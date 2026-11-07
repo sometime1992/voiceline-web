@@ -10,8 +10,8 @@ function sing(s,{wrong=0,skip=()=>false,step=40}={}){
 }
 test('Unified practice retains all thirteen legacy patterns without duplicating note sequences',()=>{
  assert.equal(Object.keys(guide.LEGACY_PATTERNS).length,13);
- assert.equal(Object.keys(guide.PATTERNS).length,24);
- assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify([p.steps,p.vowels]))).size,24);
+ assert.equal(Object.keys(guide.PATTERNS).length,25);
+ assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify([p.steps,p.vowels]))).size,25);
  for(const [pattern,mapped]of Object.entries(guide.LEGACY_PATTERNS)){
   const original=Object.freeze({pattern,root:60,speed:2800,repeats:2});
   const restored=guide.migratePractice(null,original,null,null);

@@ -31,7 +31,7 @@ function harness(){
   chunk('function targetKeyboardBase(','function keyboardDetectedMidi(')+chunk('function releaseHeldKeys(){','function allKeysOff(){')+
   chunk('function applyResponsiveLayout(','// Arrows remain visible only when more practice options exist off-screen.')+
   chunk('window.VoiceLineLifecycle={',"window.addEventListener('pagehide'")+
-  chunk('function encodePcmChunk(','async function finishVibrato(){')+
+  chunk('function encodePcmChunk(','async function finishVibrato(completed=false){')+
   '\n({targetKeyboardBase,drawKeys,applyResponsiveLayout,queueResponsiveLayout,releaseHeldKeys,startRecording,queueNativePcm,stopRecording})';
  const api=vm.runInNewContext(code,context);
  return {app,window,document,$,calls,frames,parts,sessions,recordings,...api,setClock:t=>clock=t,

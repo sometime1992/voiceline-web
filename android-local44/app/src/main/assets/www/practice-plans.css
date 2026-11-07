@@ -88,6 +88,20 @@
 #planDialog #planRun{background:var(--settings-accent);border-color:var(--settings-accent);color:#12232a;font-weight:800}
 #planDialog #planRun:not(:disabled):active{background:#a1f4e5}
 #planDialog #planSave{background:#5fe6cf0c;border-color:#5fe6cf66;color:#b3f5e8}
+#planDialog #planRecommend{background:#b4a0ee12;border-color:#b4a0ee66;color:#e6ddff}
+#planDialog .recommendation-list{display:grid;gap:10px}
+#planDialog .recommendation-list p{font-size:.875rem;line-height:1.5;margin:4px 0;overflow-wrap:anywhere}
+#planDialog .recommendation-root{display:grid;gap:6px;font-size:.875rem}
+#planDialog .recommendation-card{padding:12px;border:1px solid #b5a6d85c;border-radius:12px;background:#ffffff05;min-width:0}
+#planDialog .recommendation-card h3{margin:0 0 5px;font-size:1rem;color:#9bf1df}
+#planDialog .recommendation-card button{width:100%;margin-top:8px;border-color:#5fe6cf80;color:#b3f5e8}
+#planDialog .recommendation-duration{color:#9bf1df;font-weight:700}
+#planDialog .recommendation-note{color:var(--muted)}
+#planDialog .recommendation-list summary{padding:8px 0;font-size:.875rem;cursor:pointer;min-height:44px;box-sizing:border-box}
+#planDialog .recommendation-list ol{padding-left:22px;font-size:.8125rem;line-height:1.65}
+#planDialog .recommendation-list li{margin:5px 0}
+#planDialog .recommendation-sources{border-top:1px solid var(--line);padding-top:5px}
+#planDialog .recommendation-sources button{display:block;width:100%;text-align:left;margin-bottom:8px}
 #planDialog #planStatus{flex:none;margin:0;padding:4px 12px;color:#ffd6b0;background:#f2b36e0b;font-size:.75rem;line-height:1.4;max-height:48px;overflow:auto}
 #planDialog .settings-integrated-page{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;max-width:none;margin:0;align-items:start}
 #planDialog .settings-topic-card{min-width:0;padding:0;border:1px solid #b3a5d05c;border-radius:10px;background:#ffffff03;overflow:hidden;break-inside:avoid}

@@ -12,7 +12,7 @@ test('Rounding cannot turn insufficient slide coverage or accuracy into a pass',
  assert.equal(guide.metrics(s).coverage,39);assert.equal(guide.evaluate(s,true).status,'측정 부족');
  for(const bin of s.bins.flat())bin.voiced=bin.expected*.5;
  s.voicedMs=s.bins.flat().reduce((n,bin)=>n+bin.voiced,0);s.goodMs=s.voicedMs*.649;
- assert.equal(guide.metrics(s).accuracy,64);assert.equal(guide.evaluate(s,true).status,'다시 연습');
+ assert.equal(guide.metrics(s).accuracy,64);assert.equal(guide.evaluate(s,true).status,'미달성');
  s.goodMs=s.voicedMs*.65;assert.equal(guide.metrics(s).accuracy,65);assert.equal(guide.evaluate(s,true).status,'성공');
 });
 function sing(s,pitch=(p)=>p.midi,step=50){
@@ -20,8 +20,8 @@ function sing(s,pitch=(p)=>p.midi,step=50){
  return guide.metrics(s);
 }
 test('Guide patterns and every round stay in detectable range without reversing the phrase',()=>{
- assert.equal(Object.keys(guide.PATTERNS).length,24);
- assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify([p.steps,p.vowels]))).size,24);
+ assert.equal(Object.keys(guide.PATTERNS).length,25);
+ assert.equal(new Set(Object.values(guide.PATTERNS).map(p=>JSON.stringify([p.steps,p.vowels]))).size,25);
  for(const pattern of Object.keys(guide.PATTERNS))for(const root of [36,48,60,82,94])for(const shift of [-1,0,1]){
   const s=session({pattern,root,shift,rounds:5});
   assert.ok(s.sets>=1&&s.sets<=5);
@@ -65,7 +65,7 @@ test('Complete accurate responses pass with voice coverage and cents tolerance',
 });
 test('Detuned responses fail even with full voice coverage',()=>{
  const s=session();const m=sing(s,p=>p.midi+1.1);
- assert.equal(m.accuracy,0);assert.ok(m.coverage>85);assert.equal(guide.evaluate(s,true).status,'다시 연습');
+ assert.equal(m.accuracy,0);assert.ok(m.coverage>85);assert.equal(guide.evaluate(s,true).status,'미달성');
  assert.match(guide.summary(s,String),/더 연습할 음/);
 });
 test('Singing just one right note cannot produce success for a whole phrase',()=>{
@@ -294,7 +294,7 @@ test('Continuous targets preserve the original twelve-second fractional pitch pa
 test('Continuous scoring accepts a full glide, rejects detuning and incomplete movement',()=>{
  const good=session({pattern:'smooth7'}),metrics=sing(good,p=>p.midi+.3);
  assert.equal(metrics.accuracy,100);assert.ok(metrics.coverage>90);assert.equal(guide.evaluate(good,true).status,'성공');
- const bad=session({pattern:'smooth7'});sing(bad,p=>p.midi+1.5);assert.equal(guide.evaluate(bad,true).status,'다시 연습');
+ const bad=session({pattern:'smooth7'});sing(bad,p=>p.midi+1.5);assert.equal(guide.evaluate(bad,true).status,'미달성');
  const partial=session({pattern:'smooth7'});sing(partial,p=>p.offset<3000?p.midi:null);
  assert.equal(guide.metrics(partial).accuracy,100);assert.equal(guide.evaluate(partial,true).status,'측정 부족');
  assert.match(guide.summary(partial,String),/더 연습할 구간/);

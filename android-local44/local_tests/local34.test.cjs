@@ -30,7 +30,7 @@ function nativeHarness(){
   closeActiveAudio(){},closeTopDialog:()=>false,allKeysOff(){},cancelMicStart(){calls.push(['cancel'])},
   stopActivity:()=>{},completeNativeStart(){},micStatus(){},requestAnimationFrame:()=>1};
  ctx.api=run(part('function rememberFullRecordingPitch(','function encodePcmChunk(')+
-  part('function encodePcmChunk(','async function finishVibrato(){')+
+  part('function encodePcmChunk(','async function finishVibrato(completed=false){')+
   part('window.VoiceLineNativeAudio = {','function completeNativeStart(')+
   part('async function safeStopOnBackground(){','applyPianoVolume(app.pianoVolume,false);')+
   '\n({startRecording,stopRecording,recoverRecording,rememberFullRecordingPitch})',ctx);
@@ -87,8 +87,8 @@ test('Local34 vibrato rejects disconnected short bursts but accepts four consecu
 test('Local34 vibrato clears stale current values and records valid time separately from session time',async()=>{
  const app={vibratoStart:1,vibratoRoot:60,vibratoSamples:wave(0,2800),vibratoValidMs:0,vibratoValidUntil:0};
  let now=2800;const events=[];
- const api=run(part('function analyzeVibrato(','// Recording mode uses')+part('async function finishVibrato(){','async function stopActivity(')+'\n({vibratoStatus,finishVibrato})',{
-  app,performance:{now:()=>now},updateVocalPreparation(){},setMessage(){},$:()=>({}),notify(){},addEvent:async(...e)=>events.push(e)
+ const api=run(part('function analyzeVibrato(','// Recording mode uses')+part('function trainingEvaluation(a,completed){','function showTrainingResult(')+part('async function finishVibrato(completed=false){','async function stopActivity(')+'\n({vibratoStatus,finishVibrato})',{
+  app,showTrainingResult(){},performance:{now:()=>now},updateVocalPreparation(){},setMessage(){},$:()=>({}),notify(){},addEvent:async(...e)=>events.push(e)
  });
  api.vibratoStatus();assert.ok(app.vibratoLast);const valid=app.vibratoValidMs;assert.ok(valid>900&&valid<=2800);
  now=60001;app.vibratoSamples.push({t:60001,midi:null});api.vibratoStatus();assert.equal(app.vibratoLast,null);
