@@ -74,7 +74,7 @@ jobs:
           - 중단·기능 이동·백그라운드 전환 시 다음 단계 예약 취소
           - 녹음은 지정 시간 후 한 파일로 저장, 시간 0은 직접 중단
           - 기존 CI 앱의 패키지·서명을 유지해 삭제 없이 업데이트 설치
-          - 마인드업 스튜디오 지원·방침·홈페이지 연결 유지
+          - 나루비움 스튜디오 지원·방침·홈페이지 연결 유지
 
           기존 CI 앱을 삭제하지 말고 이 APK로 업데이트 설치하세요. 이 파일은 설치 테스트용이며 Play 업로드용 서명 AAB는 별도입니다. 실제 휴대폰 검사와 Play Console 제출은 별도로 진행해야 합니다.
           NOTES
@@ -93,11 +93,11 @@ jobs:
           sha256sum --check "$GITHUB_WORKSPACE/dist/SHA256SUMS.txt"
       - name: Verify public privacy policy without authentication
         run: |
-          curl --fail --location --retry 2 --retry-all-errors --max-time 45 --output "$RUNNER_TEMP/voiceline-public-policy.html" 'https://mindup-studio.pages.dev/apps/voiceline/privacy.html'
+          curl --fail --location --retry 2 --retry-all-errors --max-time 45 --output "$RUNNER_TEMP/voiceline-public-policy.html" 'https://naruvium.com/apps/voiceline/privacy.html'
           python3 - <<'PY_POLICY'
           import os
           from pathlib import Path
           text = (Path(os.environ['RUNNER_TEMP']) / 'voiceline-public-policy.html').read_text()
           assert 'VoiceLine 개인정보처리방침' in text
-          assert '마이크' in text and '마인드업 스튜디오' in text and 'grand4870@gmail.com' in text
+          assert '마이크' in text and '나루비움 스튜디오' in text and 'grand4870@gmail.com' in text
           PY_POLICY

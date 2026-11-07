@@ -1,5 +1,5 @@
 'use strict';
-const CACHE='voiceline-v2-local79';
+const CACHE='voiceline-v2-local80';
 const PIANO=Array.from({length:7},(_,i)=>['C','Ds','Fs','A'].map(note=>'./vendor/salamander/'+note+(i+1)+'v8.mp3')).flat();
 const ASSETS=['./','./index.html','./piano.css','./piano.js','./practice-plans.js','./practice-plans-ui.js','./practice-plans.css','./metronome.js','./recording-tools.js','./recording-tools.css','./reference-piano.js','./practice-settings.js','./settings-pages.js','./practice-settings-ui.js','./guide-training.js','./dynamic-training.js','./guide-training.css','./responsive-layout.css','./third-party-notices.js','./THIRD-PARTY-NOTICES.txt','./privacy-policy.js','./privacy-policy.json','./privacy.html','./favicon.png','./favicon.svg','./icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest','./vendor/tone-piano.js',...PIANO];
 self.addEventListener('install',event=>{

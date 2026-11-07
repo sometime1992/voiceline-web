@@ -1,4 +1,6 @@
-# VoiceLine Local79 · 개인정보처리방침과 이메일 문의 연결 정리
+# VoiceLine Local80 · 나루비움 스튜디오 공식 도메인 연결
+
+공식 홈페이지는 **https://naruvium.com/**, 개발자는 **나루비움 스튜디오 / Naruvium Studio**입니다. 앱의 홈페이지·방침·고객지원 링크와 스토어 안내를 함께 변경했습니다. 변경 범위와 새 빌드·공개 연결 확인 사항은 `store-kit/naruvium-migration-ko.md`를 확인하세요.
 
 최신 Android 프로젝트는 `android-local44/`입니다. Java 17 / Android SDK 36 / Gradle 8.11.1로 빌드합니다. 기본 브랜치의 과거 `android-app/`와 구분하세요.
 
@@ -8,8 +10,8 @@
 - 사용법 → 오픈소스 라이선스에서 피아노 엔진과 관련 라이브러리의 라이선스 전문·음원 출처를 오프라인으로 읽을 수 있습니다.
 - Local77의 피아노 기준음과 설정 팝업을 포함합니다. 레이아웃과 루틴 설정 방식은 유지합니다.
 
-시험용 CI: **2.0.0-local79-ci (96)** · `com.voiceline.app.local18.ci45`. 기존 CI 앱을 삭제하지 않고 업데이트합니다.
-정식 구성: **2.0.0 (95)** · `com.voiceline.app`. CI와 저장 공간이 다르며 녹음은 자동 이전되지 않습니다. 정식 제출에는 기존 업로드 키로 서명한 release AAB가 필요합니다. `UNSIGNED-REVIEW` AAB는 제출 파일이 아닙니다.
+시험용 CI: **2.0.0-local80-ci (97)** · `com.voiceline.app.local18.ci45`. 기존 CI 앱을 삭제하지 않고 업데이트합니다.
+정식 구성: **2.0.0 (96)** · `com.voiceline.app`. CI와 저장 공간이 다르며 녹음은 자동 이전되지 않습니다. 정식 제출에는 기존 업로드 키로 서명한 release AAB가 필요합니다. `UNSIGNED-REVIEW` AAB는 제출 파일이 아닙니다.
 
 ```sh
 cd android-local44

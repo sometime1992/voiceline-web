@@ -17,13 +17,13 @@ manifest=subprocess.check_output(command+['dump','manifest','--bundle='+str(bund
 (review/'RELEASE_MANIFEST.xml').write_text(manifest)
 doc=ET.fromstring(manifest);a='{http://schemas.android.com/apk/res/android}'
 assert doc.attrib['package']=='com.voiceline.app'
-assert doc.attrib[a+'versionName']=='2.0.0' and doc.attrib[a+'versionCode']=='95'
+assert doc.attrib[a+'versionName']=='2.0.0' and doc.attrib[a+'versionCode']=='96'
 sdk=doc.find('uses-sdk');assert sdk.attrib[a+'targetSdkVersion']=='36' and sdk.attrib[a+'minSdkVersion']=='26'
 app=doc.find('application');assert app.attrib[a+'label']=='VoiceLine';assert app.attrib.get(a+'debuggable','false')=='false'
 permissions=[n.attrib[a+'name'] for n in doc.findall('uses-permission')]
 assert 'android.permission.RECORD_AUDIO' in permissions
 assert set(permissions)<= {'android.permission.RECORD_AUDIO','com.voiceline.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'}
-facts={'package':doc.attrib['package'],'name':'VoiceLine','versionName':'2.0.0','versionCode':95,'targetSdk':36,'minSdk':26,'debuggable':False,'permissions':permissions,'sourceCommit':os.environ['GITHUB_SHA']}
+facts={'package':doc.attrib['package'],'name':'VoiceLine','versionName':'2.0.0','versionCode':96,'targetSdk':36,'minSdk':26,'debuggable':False,'permissions':permissions,'sourceCommit':os.environ['GITHUB_SHA']}
 (review/'APP_BUNDLE_INFO.json').write_text(json.dumps(facts,indent=2)+'\n')
 apks=review/'release-runtime-review.apks'
 subprocess.run(command+['build-apks','--bundle='+str(bundle),'--output='+str(apks),'--mode=universal','--overwrite','--ks='+os.environ['VOICELINE_CI_KEYSTORE'],'--ks-key-alias=androiddebugkey','--ks-pass=pass:android','--key-pass=pass:android'],check=True)

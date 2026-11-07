@@ -36,8 +36,8 @@ jobs:
         shell: bash
         run: |
           for page in '' apps/voiceline/privacy.html 'support.html?app=voiceline'; do
-            curl --fail --location --proto '=https' --retry 2 --max-time 45 --output "$RUNNER_TEMP/studio-page.html" "https://mindup-studio.pages.dev/$page"
-            grep -q '마인드업 스튜디오' "$RUNNER_TEMP/studio-page.html"
+            curl --fail --location --proto '=https' --retry 2 --max-time 45 --output "$RUNNER_TEMP/studio-page.html" "https://naruvium.com/$page"
+            grep -q '나루비움 스튜디오' "$RUNNER_TEMP/studio-page.html"
           done
       - name: Test recording, dynamics calibration, training and adaptive layout
         timeout-minutes: 3

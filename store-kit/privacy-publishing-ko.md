@@ -1,10 +1,10 @@
 # VoiceLine 개인정보처리방침 유지
 
-- 공개 URL: https://mindup-studio.pages.dev/apps/voiceline/privacy.html
+- 공개 URL: https://naruvium.com/apps/voiceline/privacy.html
 - 앱 내부 진입: 메뉴 → 개인정보처리방침, 또는 사용법 → 개인정보처리방침 보기
-- 고객지원: https://mindup-studio.pages.dev/support.html?app=voiceline#contact
+- 고객지원: https://naruvium.com/support.html?app=voiceline#contact
 - 문의 이메일: grand4870@gmail.com
-- 개발자 홈페이지: https://mindup-studio.pages.dev/
+- 개발자 홈페이지: https://naruvium.com/
 
 문의는 고객지원 웹페이지에서 VoiceLine을 선택하고 이메일 앱에서 작성·전송합니다. 홈페이지에서는 메일을 자동 전송하거나 문의를 접수하지 않습니다. GitHub는 고객 문의 경로로 안내하지 않습니다.
 

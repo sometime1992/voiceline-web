@@ -1,6 +1,6 @@
-# VoiceLine Google Play 준비 자료 · Local79
+# VoiceLine Google Play 준비 자료 · Local80
 
-일반 연습과 루틴의 상세 설정을 통합했습니다. 현재 값·실제 진행 순서·전체/발성 시간을 위에서 확인하고 관련 항목을 펼쳐 편집합니다. 청음 직접 지정과 비브라토 기준음·메트로놈 저장 복원도 개선했습니다. 아·에·이·오·우는 각각 음계를 왕복합니다. 5음 음계와 도미솔 도약을 선택하고, 모음마다 한 구절 전체를 부릅니다. 각 목표 음을 유지하며 모음 사이 회복·모음마다 먼저 듣기·루틴 저장·반복을 지원합니다. 발음과 소리 크기는 판정하지 않습니다. 이전 모음 강약 루틴은 기준음·반복을 보존해 음계 왕복으로 전환합니다. 정식 업로드 번들은 `VoiceLine-2.0.0-Upload.aab`, 버전 `2.0.0 (95)`, 패키지는 `com.voiceline.app`입니다.
+일반 연습과 루틴의 상세 설정을 통합했습니다. 현재 값·실제 진행 순서·전체/발성 시간을 위에서 확인하고 관련 항목을 펼쳐 편집합니다. 청음 직접 지정과 비브라토 기준음·메트로놈 저장 복원도 개선했습니다. 아·에·이·오·우는 각각 음계를 왕복합니다. 5음 음계와 도미솔 도약을 선택하고, 모음마다 한 구절 전체를 부릅니다. 각 목표 음을 유지하며 모음 사이 회복·모음마다 먼저 듣기·루틴 저장·반복을 지원합니다. 발음과 소리 크기는 판정하지 않습니다. 이전 모음 강약 루틴은 기준음·반복을 보존해 음계 왕복으로 전환합니다. 정식 업로드 번들은 `VoiceLine-2.0.0-Upload.aab`, 버전 `2.0.0 (96)`, 패키지는 `com.voiceline.app`입니다.
 
 1. `custom-plans-ko.md`에서 새 기능의 사용법을 확인하고, `VoiceLine-Local64-Play-Readiness-KO.md`에서 적용 내용·검증 범위·남은 작업을 확인합니다.
 2. `listing-ko.json` 또는 `listing-ko.md`의 소개 문구를 콘솔에 입력합니다.
@@ -11,13 +11,13 @@
 
 | 공개 정보 | 값 |
 | --- | --- |
-| 개발자 표시명 | 마인드업 스튜디오 |
-| 홈페이지 | https://mindup-studio.pages.dev/ |
-| VoiceLine 개인정보처리방침 | https://mindup-studio.pages.dev/apps/voiceline/privacy.html |
-| VoiceLine 고객지원 | https://mindup-studio.pages.dev/support.html?app=voiceline#contact |
+| 개발자 표시명 | 나루비움 스튜디오 |
+| 홈페이지 | https://naruvium.com/ |
+| VoiceLine 개인정보처리방침 | https://naruvium.com/apps/voiceline/privacy.html |
+| VoiceLine 고객지원 | https://naruvium.com/support.html?app=voiceline#contact |
 | 지원 이메일 | grand4870@gmail.com |
 
-설치 확인은 `VoiceLine-Local79-CI.apk`로 진행합니다. CI 버전은 `2.0.0-local79-ci (96)`이며 기존 CI 테스트 앱을 삭제하지 않고 업데이트할 수 있습니다. CI 앱과 정식 앱은 패키지가 달라 기록이 자동 이전되지는 않습니다.
+설치 확인은 `VoiceLine-Local80-CI.apk`로 진행합니다. CI 버전은 `2.0.0-local80-ci (97)`이며 기존 CI 테스트 앱을 삭제하지 않고 업데이트할 수 있습니다. CI 앱과 정식 앱은 패키지가 달라 기록이 자동 이전되지는 않습니다.
 
 `BUILD-VERIFICATION.json`, `PUBLIC-DOWNLOAD-VERIFICATION.json`과 `verification/`에 이번 빌드·서명·설치 이름·업데이트·lint 확인 결과가 있습니다. 세부 업데이트 버전은 `CI_INSTALL_NAME.json`을 기준으로 확인합니다.
 

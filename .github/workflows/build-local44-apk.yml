@@ -1,4 +1,4 @@
-name: VoiceLine Local79 APK
+name: VoiceLine Local80 APK
 
 on:
   push:
@@ -39,8 +39,8 @@ jobs:
         shell: bash
         run: |
           for page in '' apps/voiceline/privacy.html 'support.html?app=voiceline'; do
-            curl --fail --location --proto '=https' --retry 2 --max-time 45 --output "$RUNNER_TEMP/studio-page.html" "https://mindup-studio.pages.dev/$page"
-            grep -q '마인드업 스튜디오' "$RUNNER_TEMP/studio-page.html"
+            curl --fail --location --proto '=https' --retry 2 --max-time 45 --output "$RUNNER_TEMP/studio-page.html" "https://naruvium.com/$page"
+            grep -q '나루비움 스튜디오' "$RUNNER_TEMP/studio-page.html"
           done
       - name: Test recording, dynamics calibration, training and adaptive layout
         timeout-minutes: 3
@@ -54,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local79-Test-Report
+          name: VoiceLine-Local80-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -74,7 +74,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local79-Layout-Report
+          name: VoiceLine-Local80-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -112,7 +112,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local79-APKs
+          name: VoiceLine-Local80-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -155,7 +155,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local79-Store-Media
+          name: VoiceLine-Local80-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -165,7 +165,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local79-Release-Readiness
+          name: VoiceLine-Local80-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*
