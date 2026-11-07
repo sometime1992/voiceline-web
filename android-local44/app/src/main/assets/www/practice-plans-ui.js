@@ -108,7 +108,7 @@
    const use=el('button',editingMode?'설정 확인·수정':'루틴 구성 확인');use.type='button';use.dataset.recommendLevel=level;use.setAttribute('aria-label',meta.label+(editingMode?' 추천 설정 선택':' 추천 루틴 선택'));
    use.onclick=()=>{
     if(editingMode){draft={timing:copy(value.timing),params:copy(value.params)};singleForm=null;hasChanges=true;changeView('edit');status(meta.label+' 추천값입니다. 기준음과 설정을 확인한 뒤 변경 확인 → 최종 저장하세요.');}
-    else{draft=copy(value);savedDraft=api.routine({id:draft.id,name:draft.name,steps:[]});singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=true;outlineScrollTop=0;showRoutine();status('새 추천 루틴 초안입니다. 변경 확인 → 최종 저장하면 내 루틴에 추가됩니다.');}
+    else{draft=copy(value);draft.steps.forEach(prepareStep);savedDraft=api.routine({id:draft.id,name:draft.name,steps:[]});singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=true;outlineScrollTop=0;showRoutine();status('새 추천 루틴 초안입니다. 변경 확인 → 최종 저장하면 내 루틴에 추가됩니다.');}
    };card.append(use);box.append(card);
   }
   const sources=el('details',undefined,'recommendation-sources');sources.append(el('summary','추천 기준과 참고 자료'),el('p',rec.BASIS));

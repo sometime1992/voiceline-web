@@ -1153,6 +1153,7 @@ function describeVibratoProgress(samples,referenceMidi,data,micActive,now=null){
 }
 function rememberVibratoPoint(t,midi){
  if(app.vibratoStart&&t<app.vibratoStart)return;
+ if(app.vibratoStart&&t>app.vibratoEnd)return;
  if(app.vibratoStart){
   const previous=app.vibratoPrevious,gap=previous?t-previous.t:0;
   if(Number.isFinite(midi)){
@@ -2101,16 +2102,16 @@ function updateTraining(t){
  renderTrainingOverlay(t);syncKeyColors();
 }
 function trainingEvaluation(a,completed){
- const seconds=ms=>String(Math.ceil(Math.max(0,ms)-1e-7)/1000);
+ const seconds=(ms,minimum=false)=>String((minimum?Math.ceil(Math.max(0,ms)-1e-7):Math.floor(Math.max(0,ms)+1e-7))/1000);
  if(a.mode==='guideVoice')return window.VoiceLineGuideTraining.evaluate(a,completed,noteLabel);
  if(a.mode==='vibrato'){
   const required=Math.max(900,a.duration*.4),v=a.estimate;
   const enough=a.valid>=12&&a.voicedMs>=required;
   const passed=enough&&a.validMs>=required&&v&&v.rate>=3&&v.rate<=9&&v.depth>=7&&v.depth<=125;
   return {status:!completed?'중단':!enough?'측정 부족':passed?'성공':'미달성',kind:!completed?'stopped':!enough?'guided':passed?'success':'failure',
-   rule:'준비 이후 음정 12개 이상 · 유효 발성 및 비브라토 감지 각각 '+seconds(required)+'초 이상 (연습의 40%, 최소 0.9초) · 기준음 근처 3~9Hz · 진폭 ±7~125cent · 연속 4주기 이상',
-   reason:!completed?'연습을 끝까지 완료하지 않았습니다.':!enough?'음정 측정 '+a.valid+'개 / 최소 12개 · 유효 발성 '+seconds(a.voicedMs)+'초 / 최소 '+seconds(required)+'초':
-    '비브라토 감지 '+seconds(a.validMs)+'초 / 최소 '+seconds(required)+'초'+(v?' · '+v.rate.toFixed(1)+'Hz · 진폭 ±'+Math.round(v.depth)+'cent':' · '+(a.diagnostic||'연속된 비브라토 주기를 확인하지 못했습니다.'))};
+   rule:'준비 이후 음정 12개 이상 · 유효 발성 및 비브라토 감지 각각 '+seconds(required,true)+'초 이상 (연습의 40%, 최소 0.9초) · 기준음 근처 3~9Hz · 진폭 ±7~125cent · 연속 4주기 이상',
+   reason:!completed?'연습을 끝까지 완료하지 않았습니다.':!enough?'음정 측정 '+a.valid+'개 / 최소 12개 · 유효 발성 '+seconds(a.voicedMs)+'초 / 최소 '+seconds(required,true)+'초':
+    '비브라토 감지 '+seconds(a.validMs)+'초 / 최소 '+seconds(required,true)+'초'+(v?' · '+v.rate.toFixed(1)+'Hz · 진폭 ±'+Math.round(v.depth)+'cent':' · '+(a.diagnostic||'연속된 비브라토 주기를 확인하지 못했습니다.'))};
  }
  if(!completed)return {status:'중단',kind:'stopped',rule:'끝까지 완료하면 성공 여부를 판정합니다.',reason:'연습이 끝나기 전에 중단되었습니다.'};
  if(a.mode==='warmupVoice')return {status:'성공',kind:'success',rule:'안내된 호흡·허밍·쉬기 과정을 끝까지 완료',reason:'설정한 안내 과정을 모두 마쳤습니다. 실제 호흡량과 허밍의 정확도는 측정하지 않습니다.'};
@@ -2129,15 +2130,15 @@ function trainingEvaluation(a,completed){
   const passed=enough&&shape&&matched&&score>=SCORE_RULES.percent;
   const gaps=guide?guide.phaseMatchedMs.flatMap((ms,i)=>guide.phaseDurations[i]>0&&ms<guide.phaseDurations[i]*SCORE_RULES.dynamicPhaseCoverage?[(i+1)+'구간 '+(a.dynamicModel.segments[i].label||'발성')+' '+Math.floor(ms/guide.phaseDurations[i]*100)+'% / 최소 25%']:[]):[];
   return {status:!enough?'측정 부족':passed?'성공':'미달성',kind:!enough?'guided':passed?'success':'failure',rule:dynamicRuleText(),
-   reason:(guide?(guide.calibrated?'목표 범위 '+guide.accuracy+'% / 최소 65% · 단계별 목표 '+(eachTarget?'충족':'부족'):'약 단계 기준 부족'+(guide.missingVowels?.length?' · '+guide.missingVowels.join('·'):''))+' · ':'')+'강약 패턴 '+(shape?'확인':'미확인')+' · 음정 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · 유효 발성 '+seconds(a.voicedMs)+'초 / 최소 '+seconds(minVoice)+'초'+(gaps.length?' · 부족한 목표 구간: '+gaps.slice(0,6).join(', ')+(gaps.length>6?' 외 '+(gaps.length-6)+'곳':''):'')};
+   reason:(guide?(guide.calibrated?'목표 범위 '+guide.accuracy+'% / 최소 65% · 단계별 목표 '+(eachTarget?'충족':'부족'):'약 단계 기준 부족'+(guide.missingVowels?.length?' · '+guide.missingVowels.join('·'):''))+' · ':'')+'강약 패턴 '+(shape?'확인':'미확인')+' · 음정 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · 유효 발성 '+seconds(a.voicedMs)+'초 / 최소 '+seconds(minVoice,true)+'초'+(gaps.length?' · 부족한 목표 구간: '+gaps.slice(0,6).join(', ')+(gaps.length>6?' 외 '+(gaps.length-6)+'곳':''):'')};
  }
  const minCoverage=a.mode==='earVoice'?(SCORE_RULES.earCoverage*a.earNotes.length*(a.earAnswerMs||3200)):SCORE_RULES.trainingCoverage*a.duration;
  const covered=a.mode==='earVoice'?a.answerVoicedMs:a.voicedMs;
  const enough=a.valid>=SCORE_RULES.minSamples&&covered>=minCoverage,passed=enough&&score>=SCORE_RULES.percent;
  const tol='±35cent';
  return {status:!enough?'측정 부족':passed?'성공':'미달성',kind:!enough?'guided':passed?'success':'failure',
-  rule:tol+' 일치율 '+SCORE_RULES.percent+'% 이상 + 유효 음정 감지 시간 '+seconds(minCoverage)+'초 이상',
-  reason:'일치율 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · '+(a.mode==='earVoice'?'따라 부르기에서 ':'')+'유효 발성 '+seconds(covered)+'초 / 최소 '+seconds(minCoverage)+'초'};
+  rule:tol+' 일치율 '+SCORE_RULES.percent+'% 이상 + 유효 음정 감지 시간 '+seconds(minCoverage,true)+'초 이상',
+  reason:'일치율 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · '+(a.mode==='earVoice'?'따라 부르기에서 ':'')+'유효 발성 '+seconds(covered)+'초 / 최소 '+seconds(minCoverage,true)+'초'};
 }
 function dynamicRuleText(){
  return '약한 발성으로 개인 기준 설정(모음 강약은 모음마다) · 선택한 방법의 목표 범위 일치 '+SCORE_RULES.percent+'% 이상 · 기준음 ±'+SCORE_RULES.dynamicTolerance+
@@ -2675,14 +2676,14 @@ function startVibratoSession(t){
  app.vibratoSamples=[];app.vibratoLast=null;app.vibratoSummary=null;app.vibratoValidMs=0;app.vibratoValidUntil=0;app.vibratoProgress=0;
  const timing=window.VoiceLinePlansUI?.timing('vibrato'),reference=timing?.reference??1.8,breath=timing?.breath??3;
  app.vibratoPreparation={mode:'vibrato',active:true,createdAt:t,breathStart:t+reference*1000,start:t+(reference+breath)*1000};
- app.vibratoStart=app.vibratoPreparation.start;if(reference>0)playReference(app.vibratoRoot,reference);
+ app.vibratoStart=app.vibratoPreparation.start;app.vibratoEnd=timing?.seconds>0?app.vibratoStart+timing.seconds*1000:Infinity;if(reference>0)playReference(app.vibratoRoot,reference);
  renderVibratoOverlay(t,true);$('mainButton').textContent='비브라토 중지';$('stopButton').hidden=false;
 }
 async function finishVibrato(completed=false){
  if(!app.vibratoStart)return;
  const planned=window.VoiceLinePlansUI?.timing('vibrato')?.seconds,actual=Math.max(0,performance.now()-app.vibratoStart);
  const duration=completed&&Number.isFinite(planned)&&planned>0?Math.min(actual,planned*1000):actual,began=performance.now()>=app.vibratoStart,elapsed=Math.floor(duration/1000);
- app.vibratoStart=0;app.vibratoPreparation=null;updateVocalPreparation('vibratoPreparation',null,performance.now());
+ app.vibratoStart=0;app.vibratoEnd=0;app.vibratoPreparation=null;updateVocalPreparation('vibratoPreparation',null,performance.now());
  const v=app.vibratoSummary||app.vibratoLast;
  if(began){
   const a={mode:'vibrato',duration,valid:app.vibratoSampleCount||0,voicedMs:app.vibratoVoicedMs||0,validMs:app.vibratoValidMs||0,estimate:v,diagnostic:app.vibratoDiagnostic},evaluation=trainingEvaluation(a,completed);

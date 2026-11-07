@@ -61,8 +61,8 @@ async function checkVolumeRange(page,id,valueId){
  let browser;const report=[],errors=[];
  try{
   browser=await chromium.launch({headless:true,...(process.env.CHROME_BIN?{executablePath:process.env.CHROME_BIN}:{}),args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
-  const page=await browser.newPage({viewport:viewports[0]});page.on('pageerror',error=>errors.push(String(error)));
-  await page.addInitScript(()=>{
+  const page=await browser.newPage({viewport:viewports[0]});page.on('pageerror',error=>errors.push(error.stack||String(error)));
+  const initScript=()=>{
    // Observe the real public mount callbacks without exposing test state in
    // the shipped app or reaching into piano.js's private closure.
    // Reproduce an upgrade with obsolete automatic timers still in storage.
@@ -84,8 +84,12 @@ async function checkVolumeRange(page,id,valueId){
    }});
    Object.defineProperty(window.screen,'orientation',{value:{get type(){return innerHeight>=innerWidth?'portrait-primary':'landscape-primary';},addEventListener(){},unlock(){return Promise.resolve();}}});
    window.VoiceLineNative={start(request){window.__micRequest=request;setTimeout(()=>window.VoiceLineNativeAudio.onState('started','',request,44100),window.__micDelay||0);},stop(request){if(window.__micRequest===request)window.__micRequest=null;}};
-  });
+  };
+  await page.addInitScript(initScript);
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForSelector('#keyboard .white-key');
+  const recommendationPage=await browser.newPage({viewport:viewports[0]});recommendationPage.on('pageerror',error=>errors.push(error.stack||String(error)));
+  await recommendationPage.addInitScript(initScript);await recommendationPage.goto(page.url());await recommendationPage.waitForSelector('#keyboard .white-key');
+  await require('./check-recommendations.cjs')(recommendationPage,choose,output);assert.deepEqual(errors,[],'recommendation browser errors');await recommendationPage.close();
   await require('./check-reference-audio.cjs')(page,output);
   for(const viewport of viewports){
    await page.setViewportSize(viewport);await frames(page);let baseline;
@@ -411,10 +415,9 @@ async function checkVolumeRange(page,id,valueId){
   assert.equal(await page.title(),'VoiceLine');assert.equal(await page.locator('.brand').getAttribute('aria-label'),'VoiceLine');
   await require('./check-practice-plans.cjs')(page,choose,output);
   await require('./check-settings-readability.cjs')(page,choose,output);
-  await require('./check-recommendations.cjs')(page,choose,output);
   assert.deepEqual(errors,[],'uncaught browser errors');
   fs.writeFileSync(path.join(output,'geometry.json'),JSON.stringify(report,null,2));
   console.log('PASS: '+report.length+' mode/viewport layouts and '+patternReport.length+' dynamics method previews; complete stepped and crescendo exercises, 0/50/100% volume endpoints, pattern persistence, hidden phase/countdown, rotation and retained results; graph toggles, unified practice, real pixels and recording save.');
- }catch(error){fs.writeFileSync(path.join(output,'failure.txt'),error.stack+'\n'+errors.join('\n'));fs.writeFileSync(path.join(output,'partial-geometry.json'),JSON.stringify(report,null,2));if(browser){const pages=browser.contexts().flatMap(c=>c.pages());if(pages[0])await pages[0].screenshot({path:path.join(output,'failure.png')}).catch(()=>{});}throw error;}
+ }catch(error){fs.writeFileSync(path.join(output,'failure.txt'),error.stack+'\n'+errors.join('\n'));fs.writeFileSync(path.join(output,'partial-geometry.json'),JSON.stringify(report,null,2));if(browser){const pages=browser.contexts().flatMap(c=>c.pages());if(pages.at(-1))await pages.at(-1).screenshot({path:path.join(output,'failure.png')}).catch(()=>{});}throw error;}
  finally{await browser?.close();server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

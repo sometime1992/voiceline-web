@@ -51,6 +51,7 @@ test('Vibrato needs sustained valid detection; silence, a flat note, stale brief
 test('Fractional ear coverage uses the same exact minimum in the rule, reason and decision',()=>{
  const s={mode:'earVoice',duration:2000,earNotes:[60,62],earAnswerMs:500,valid:20,good:20,answerVoicedMs:349};
  let r=evaluate(s,true);assert.equal(r.status,'측정 부족');assert.match(r.rule,/시간 0.35초 이상/);assert.match(r.reason,/0.349초 \/ 최소 0.35초/);
+ s.answerVoicedMs=349.9;r=evaluate(s,true);assert.equal(r.status,'측정 부족');assert.match(r.reason,/0.349초 \/ 최소 0.35초/);
  s.answerVoicedMs=350;r=evaluate(s,true);assert.equal(r.status,'성공');assert.match(r.reason,/0.35초 \/ 최소 0.35초/);
 });
 test('Warmup success explicitly describes completed guidance rather than measured breathing',()=>{
@@ -58,9 +59,9 @@ test('Warmup success explicitly describes completed guidance rather than measure
  assert.equal(evaluate({mode:'warmupVoice'},false).status,'중단');
 });
 test('Vibrato coverage excludes reference audio, null detections and gaps over 160ms',()=>{
- const app={vibratoStart:1000,vibratoSamples:[]};
+ const app={vibratoStart:1000,vibratoEnd:2050,vibratoSamples:[]};
  const receive=vm.runInNewContext(chunk('function rememberVibratoPoint(','function vibratoStatus(')+'\nrememberVibratoPoint',{app,VIBRATO_WINDOW_MS:3000});
- for(const [t,midi]of [[0,60],[1000,60],[1050,60],[1100,null],[1150,60],[2000,60],[2050,60]])receive(t,midi);
+ for(const [t,midi]of [[0,60],[1000,60],[1050,60],[1100,null],[1150,60],[2000,60],[2050,60],[2100,60]])receive(t,midi);
  assert.equal(app.vibratoSampleCount,5);assert.equal(app.vibratoVoicedMs,100);
 });
 test('Timed vibrato opens the shared result and persists the same status',async()=>{

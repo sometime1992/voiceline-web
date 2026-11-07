@@ -47,7 +47,7 @@
  function routine(level='beginner',root=48,base={}){
   level=levelId(level);const steps=[];
   const add=(mode,changes={})=>{const p=preset(mode,level,base,root);Object.assign(p.timing,changes.timing||{});if(changes.guide)Object.assign(p.params.guide,changes.guide);if(changes.warmup)Object.assign(p.params.training.warmup,changes.warmup);const s=plans.step(p);s.params=settings.prepare(mode,s.params,true);steps.push(s);};
-  const rest=seconds=>steps.push(plans.step({mode:'rest',timing:{seconds,rounds:1,rest:0}}));
+  const rest=seconds=>steps.push(plans.step({mode:'rest',timing:{seconds,rounds:1,rest:0},params:settings.prepare('rest',base,true)}));
   add('warmupVoice');rest(15);add('sustainVoice',{timing:{rounds:3}});rest(15);
   add('practice',{timing:{rounds:level==='beginner'?4:3}});rest(20);add('earVoice',{timing:{rounds:2}});rest(15);
   if(level!=='beginner'){
@@ -63,14 +63,14 @@
  }
  function initialize(storage){
   if(!storage)return false;
-  const keys=['voiceline-plans-v1','voiceline-training-v1','voiceline-unified-practice-v1','voiceline-practice-v1','voiceline-guide-v1','voiceline-vibrato-root-v1','voiceline-keyboard-base-v1','voiceline-piano-volume-v1','voiceline-mic-sensitivity-v1'];
+  const keys=['voiceline-plans-v1','voiceline-training-v1','voiceline-unified-practice-v1','voiceline-practice-v1','voiceline-guide-v1','voiceline-vibrato-root-v1','voiceline-keyboard-base-v1','voiceline-piano-volume-v1','voiceline-mic-sensitivity-v1','voiceline-metronome-v1','voiceline-metronome-presets-v1'];
   const written=[];
   try{
    if(keys.some(key=>storage.getItem(key)!==null))return false;
    const tr={};for(const mode of ['warmupVoice','sustainVoice','earVoice','dynamicVoice'])Object.assign(tr,preset(mode).params.training);
    // Each feature keeps its own timing; shared pitch starts at the existing C3.
    tr.sustainSeconds=4;tr.earCount=3;tr.earPattern='same';tr.rounds=3;tr.dynamicPattern='steady';tr.dynamicSeconds=8;tr.warmup={inhale:3,exhale:4,hum:3,rest:4,cues:true};
-   const values={'voiceline-training-v1':tr,'voiceline-unified-practice-v1':preset('practice').params.guide,'voiceline-plans-v1':{version:1,routines:[],settings:Object.fromEntries(MODES.map(mode=>[mode,preset(mode).timing]))}};
+   const values={'voiceline-training-v1':tr,'voiceline-unified-practice-v1':preset('practice').params.guide,'voiceline-metronome-v1':preset('metronome').params.metronome,'voiceline-plans-v1':{version:1,routines:[],settings:Object.fromEntries(MODES.map(mode=>[mode,preset(mode).timing]))}};
    for(const [key,value]of Object.entries(values)){storage.setItem(key,JSON.stringify(value));written.push(key);}return true;
   }catch(_){for(const key of written)try{storage.removeItem(key);}catch(_){}return false;}
  }

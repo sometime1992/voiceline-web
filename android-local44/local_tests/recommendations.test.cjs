@@ -23,16 +23,17 @@ test('Recommended routines include recovery, start gently and finish gently; beg
  let previous=0;
  for(const level of Object.keys(rec.LEVELS)){const p=rec.routine(level),d=settings.routine(p);assert.equal(p.rounds,1);assert.equal(p.steps[0].mode,'warmupVoice');assert.equal(p.steps.at(-1).mode,'warmupVoice');assert.ok(p.steps.some(s=>s.mode==='rest'&&s.timing.seconds>=15));assert.ok(p.steps.every(s=>!['pitch','record'].includes(s.mode)));assert.deepEqual(d.issues,[]);assert.ok(d.totalSeconds>previous);previous=d.totalSeconds;}
  const beginner=rec.routine('beginner');assert.ok(beginner.steps.every(s=>!['vibrato','dynamicVoice'].includes(s.mode)));
+ for(const level of Object.keys(rec.LEVELS))for(const step of rec.routine(level).steps){assert.ok(step.params.training.warmup,'every step including recovery must open in the existing settings editor');assert.ok(step.params.guide&&step.params.metronome);}
 });
 test('Each recommended routine is an independent copy with fresh step identities',()=>{
  const a=rec.routine('beginner'),b=rec.routine('beginner');assert.notEqual(a.id,b.id);assert.notEqual(a.steps[0].id,b.steps[0].id);a.steps[0].params.training.warmup.hum=60;assert.equal(b.steps[0].params.training.warmup.hum,3);
 });
 test('New installations get a coherent beginner baseline without inserting saved routines',()=>{
  const s=storage();assert.equal(rec.initialize(s),true);const value=plans.load(s),tr=JSON.parse(s.getItem('voiceline-training-v1')),g=JSON.parse(s.getItem('voiceline-unified-practice-v1'));
- assert.equal(value.routines.length,0);assert.equal(tr.sustainSeconds,4);assert.equal(tr.earPattern,'same');assert.equal(g.pattern,'three');assert.equal(g.rounds,value.settings.practice.rounds);assert.equal(g.listenFirst,true);assert.equal(rec.initialize(s),false);
+ assert.equal(value.routines.length,0);assert.equal(tr.sustainSeconds,4);assert.equal(tr.earPattern,'same');assert.equal(g.pattern,'three');assert.equal(g.rounds,value.settings.practice.rounds);assert.equal(g.listenFirst,true);assert.equal(JSON.parse(s.getItem('voiceline-metronome-v1')).bpm,60);assert.equal(rec.initialize(s),false);
 });
 test('Any existing individual settings or routines survive initialization byte for byte',()=>{
- for(const key of ['voiceline-plans-v1','voiceline-training-v1','voiceline-unified-practice-v1','voiceline-practice-v1','voiceline-guide-v1','voiceline-piano-volume-v1']){
+ for(const key of ['voiceline-plans-v1','voiceline-training-v1','voiceline-unified-practice-v1','voiceline-practice-v1','voiceline-guide-v1','voiceline-piano-volume-v1','voiceline-metronome-v1','voiceline-metronome-presets-v1']){
   const s=storage();s.setItem(key,'{"saved":"exact contents"}');const before=[...s.data];assert.equal(rec.initialize(s),false);assert.deepEqual([...s.data],before);
  }
 });
