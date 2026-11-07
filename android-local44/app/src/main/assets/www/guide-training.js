@@ -185,7 +185,7 @@
    percent:Math.floor(b.voiced/Math.max(1,b.expected)*100+1e-9)
   }]:[]));
   const shown=gaps.slice(0,6).map(b=>b.label+' '+b.percent+'% / 최소 20%');
-  if(gaps.length)missing.push('구간별 발성 부족 '+gaps.length+'곳: '+shown.join(', ')+(gaps.length>shown.length?' 외 '+(gaps.length-shown.length)+'곳':''));
+  if(gaps.length)missing.push('구간별 발성 부족 '+gaps.length+'곳'+(s.valid>=12&&m.coverage>=40?': '+shown.join(', ')+(gaps.length>shown.length?' 외 '+(gaps.length-shown.length)+'곳':''):''));
   if(m.enough&&!passed)missing.push('음정 일치율 '+m.accuracy+'% / 최소 65%');
   return {status:!completed?'중단':!m.enough?'측정 부족':passed?'성공':'미달성',
    kind:!completed?'stopped':!m.enough?'guided':passed?'success':'failure',

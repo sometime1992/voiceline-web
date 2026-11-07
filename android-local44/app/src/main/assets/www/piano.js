@@ -2101,15 +2101,16 @@ function updateTraining(t){
  renderTrainingOverlay(t);syncKeyColors();
 }
 function trainingEvaluation(a,completed){
+ const seconds=ms=>String(Math.ceil(Math.max(0,ms)-1e-7)/1000);
  if(a.mode==='guideVoice')return window.VoiceLineGuideTraining.evaluate(a,completed,noteLabel);
  if(a.mode==='vibrato'){
-  const required=Math.max(1000,a.duration*.4),v=a.estimate;
+  const required=Math.max(900,a.duration*.4),v=a.estimate;
   const enough=a.valid>=12&&a.voicedMs>=required;
   const passed=enough&&a.validMs>=required&&v&&v.rate>=3&&v.rate<=9&&v.depth>=7&&v.depth<=125;
   return {status:!completed?'중단':!enough?'측정 부족':passed?'성공':'미달성',kind:!completed?'stopped':!enough?'guided':passed?'success':'failure',
-   rule:'준비 이후 음정 12개 이상 · 유효 발성 및 비브라토 감지 각각 '+(required/1000).toFixed(1)+'초 이상 (연습의 40%, 최소 1초) · 기준음 근처 3~9Hz · 진폭 ±7~125cent · 연속 4주기 이상',
-   reason:!completed?'연습을 끝까지 완료하지 않았습니다.':!enough?'음정 측정 '+a.valid+'개 / 최소 12개 · 유효 발성 '+(a.voicedMs/1000).toFixed(1)+'초 / 최소 '+(required/1000).toFixed(1)+'초':
-    '비브라토 감지 '+(a.validMs/1000).toFixed(1)+'초 / 최소 '+(required/1000).toFixed(1)+'초'+(v?' · '+v.rate.toFixed(1)+'Hz · 진폭 ±'+Math.round(v.depth)+'cent':' · '+(a.diagnostic||'연속된 비브라토 주기를 확인하지 못했습니다.'))};
+   rule:'준비 이후 음정 12개 이상 · 유효 발성 및 비브라토 감지 각각 '+seconds(required)+'초 이상 (연습의 40%, 최소 0.9초) · 기준음 근처 3~9Hz · 진폭 ±7~125cent · 연속 4주기 이상',
+   reason:!completed?'연습을 끝까지 완료하지 않았습니다.':!enough?'음정 측정 '+a.valid+'개 / 최소 12개 · 유효 발성 '+seconds(a.voicedMs)+'초 / 최소 '+seconds(required)+'초':
+    '비브라토 감지 '+seconds(a.validMs)+'초 / 최소 '+seconds(required)+'초'+(v?' · '+v.rate.toFixed(1)+'Hz · 진폭 ±'+Math.round(v.depth)+'cent':' · '+(a.diagnostic||'연속된 비브라토 주기를 확인하지 못했습니다.'))};
  }
  if(!completed)return {status:'중단',kind:'stopped',rule:'끝까지 완료하면 성공 여부를 판정합니다.',reason:'연습이 끝나기 전에 중단되었습니다.'};
  if(a.mode==='warmupVoice')return {status:'성공',kind:'success',rule:'안내된 호흡·허밍·쉬기 과정을 끝까지 완료',reason:'설정한 안내 과정을 모두 마쳤습니다. 실제 호흡량과 허밍의 정확도는 측정하지 않습니다.'};
@@ -2128,15 +2129,15 @@ function trainingEvaluation(a,completed){
   const passed=enough&&shape&&matched&&score>=SCORE_RULES.percent;
   const gaps=guide?guide.phaseMatchedMs.flatMap((ms,i)=>guide.phaseDurations[i]>0&&ms<guide.phaseDurations[i]*SCORE_RULES.dynamicPhaseCoverage?[(i+1)+'구간 '+(a.dynamicModel.segments[i].label||'발성')+' '+Math.floor(ms/guide.phaseDurations[i]*100)+'% / 최소 25%']:[]):[];
   return {status:!enough?'측정 부족':passed?'성공':'미달성',kind:!enough?'guided':passed?'success':'failure',rule:dynamicRuleText(),
-   reason:(guide?(guide.calibrated?'목표 범위 '+guide.accuracy+'% / 최소 65% · 단계별 목표 '+(eachTarget?'충족':'부족'):'약 단계 기준 부족'+(guide.missingVowels?.length?' · '+guide.missingVowels.join('·'):''))+' · ':'')+'강약 패턴 '+(shape?'확인':'미확인')+' · 음정 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · 유효 발성 '+(a.voicedMs/1000).toFixed(1)+'초 / 최소 '+(minVoice/1000).toFixed(1)+'초'+(gaps.length?' · 부족한 목표 구간: '+gaps.slice(0,6).join(', ')+(gaps.length>6?' 외 '+(gaps.length-6)+'곳':''):'')};
+   reason:(guide?(guide.calibrated?'목표 범위 '+guide.accuracy+'% / 최소 65% · 단계별 목표 '+(eachTarget?'충족':'부족'):'약 단계 기준 부족'+(guide.missingVowels?.length?' · '+guide.missingVowels.join('·'):''))+' · ':'')+'강약 패턴 '+(shape?'확인':'미확인')+' · 음정 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · 유효 발성 '+seconds(a.voicedMs)+'초 / 최소 '+seconds(minVoice)+'초'+(gaps.length?' · 부족한 목표 구간: '+gaps.slice(0,6).join(', ')+(gaps.length>6?' 외 '+(gaps.length-6)+'곳':''):'')};
  }
  const minCoverage=a.mode==='earVoice'?(SCORE_RULES.earCoverage*a.earNotes.length*(a.earAnswerMs||3200)):SCORE_RULES.trainingCoverage*a.duration;
  const covered=a.mode==='earVoice'?a.answerVoicedMs:a.voicedMs;
  const enough=a.valid>=SCORE_RULES.minSamples&&covered>=minCoverage,passed=enough&&score>=SCORE_RULES.percent;
  const tol='±35cent';
  return {status:!enough?'측정 부족':passed?'성공':'미달성',kind:!enough?'guided':passed?'success':'failure',
-  rule:tol+' 일치율 '+SCORE_RULES.percent+'% 이상 + 유효 음정 감지 시간 '+Math.round(minCoverage/1000*10)/10+'초 이상',
-  reason:'일치율 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · '+(a.mode==='earVoice'?'따라 부르기에서 ':'')+'유효 발성 '+(covered/1000).toFixed(1)+'초 / 최소 '+(minCoverage/1000).toFixed(1)+'초'};
+  rule:tol+' 일치율 '+SCORE_RULES.percent+'% 이상 + 유효 음정 감지 시간 '+seconds(minCoverage)+'초 이상',
+  reason:'일치율 '+(a.valid>=SCORE_RULES.minSamples?score+'% / 최소 65%':a.valid+'개 / 최소 12개')+' · '+(a.mode==='earVoice'?'따라 부르기에서 ':'')+'유효 발성 '+seconds(covered)+'초 / 최소 '+seconds(minCoverage)+'초'};
 }
 function dynamicRuleText(){
  return '약한 발성으로 개인 기준 설정(모음 강약은 모음마다) · 선택한 방법의 목표 범위 일치 '+SCORE_RULES.percent+'% 이상 · 기준음 ±'+SCORE_RULES.dynamicTolerance+
@@ -2168,7 +2169,7 @@ function trainingSummary(a,completed){
  const accuracy=a.valid>=SCORE_RULES.minSamples?Math.floor(a.good/a.valid*100+1e-9):null;
  if(a.mode==='sustainVoice')return '기준음 '+noteLabel(a.root)+' · '+(accuracy===null?'측정값 부족':accuracy+'% 안정 구간');
  if(a.mode==='earVoice')return a.earNotes.length+'음 청음 · '+(accuracy===null?'측정값 부족':accuracy+'% 근접 음정');
- if(a.mode==='dynamicVoice')return (window.VoiceLineDynamics?.getPattern(a.dynamicModel?.patternId).label||'강약 연습')+' · '+a.duration/1000+'초 · 기준음 '+noteLabel(a.root)+' · '+trainingEvaluation(a,true).reason;
+ if(a.mode==='dynamicVoice')return (window.VoiceLineDynamics?.getPattern(a.dynamicModel?.patternId).label||'강약 연습')+' · '+a.duration/1000+'초 · 기준음 '+noteLabel(a.root);
  return Math.floor(Math.max(0,Math.min(a.duration,performance.now()-a.start))/(a.warmupCycleMs||WARMUP_CYCLE_MS))+'세트 수행 · 안내형 워밍업';
 }
 function finishTraining(completed){
@@ -2679,7 +2680,8 @@ function startVibratoSession(t){
 }
 async function finishVibrato(completed=false){
  if(!app.vibratoStart)return;
- const duration=Math.max(0,performance.now()-app.vibratoStart),began=performance.now()>=app.vibratoStart,elapsed=Math.floor(duration/1000);
+ const planned=window.VoiceLinePlansUI?.timing('vibrato')?.seconds,actual=Math.max(0,performance.now()-app.vibratoStart);
+ const duration=completed&&Number.isFinite(planned)&&planned>0?Math.min(actual,planned*1000):actual,began=performance.now()>=app.vibratoStart,elapsed=Math.floor(duration/1000);
  app.vibratoStart=0;app.vibratoPreparation=null;updateVocalPreparation('vibratoPreparation',null,performance.now());
  const v=app.vibratoSummary||app.vibratoLast;
  if(began){
@@ -2974,7 +2976,7 @@ const MODE_GUIDES={
  piano:{intro:'흰 건반과 검은 건반을 눌러 음을 재생하는 기본 피아노 화면입니다.',steps:['건반은 여러 개를 동시에 누를 수 있으며, −/+로 표시 옥타브를 이동합니다. 세로에서는 1옥타브, 가로에서는 2옥타브가 표시됩니다.','피아노 음량 슬라이더는 휴대폰 전체 미디어 볼륨을 변경하지 않습니다.'],rule:'마이크를 켜면 음정 측정 모드로 전환합니다.'},
  pitch:{intro:'마이크로 입력한 목소리의 음높이를 음표와 피아노 건반으로 보여줍니다.',steps:['상단 마이크 켜기를 누르고 한 음을 편안하게 불러보세요.','보라색 건반은 현재 감지된 음정이며, 음정 카드에는 음표·옥타브·Hz·cent가 표시됩니다.','그래프는 최근 6초의 음높이와 최저·최고음을 보여줍니다. 축에도 계이름과 옥타브를 표시하고 음정이 확인되지 않는 구간은 비워둡니다. 마이크를 끄면 마지막 그래프가 남고 다시 켜면 새 측정을 시작합니다.'],rule:'마이크 또는 피아노 소음이 섞이면 측정값이 달라질 수 있습니다.'},
  record:{intro:'음성을 녹음하고 동시에 목소리 음높이 변화를 확인합니다.',steps:['녹음 시작을 한 번 누른 뒤 평소처럼 발성합니다. 잠깐 쉬거나 무음이 있어도 같은 녹음으로 계속 이어집니다.','실시간 그래프는 최근 6초를 보여주며 녹음 파일은 처음부터 전부 이어집니다. 저장 후 전체 재생에서 처음부터 끝까지 들을 수 있습니다.','녹음 중지·저장을 누르면 기기에 녹음 파일이 보관됩니다. 저장 실패나 앱 중단 시 나의 기록에서 복구 가능한 녹음을 확인하세요.'],rule:'사용자가 중지하면 녹음 1개를 저장합니다. 녹음 기록은 나의 기록의 녹음 탭에만 표시하고 연습 기록에는 남기지 않습니다. 앱을 벗어나거나 실제 입력·저장 오류가 발생하면 그 시점까지 한 파일로 저장합니다.'},
- vibrato:{intro:'한 음을 유지하며 비브라토의 흔들림 폭과 속도를 추정합니다.',steps:['연습 설정에서 발성 시간과 반복 횟수(0=무한), 듣기·들이쉬기·회복 시간을 정합니다. 기본 설정에서는 기준음 듣기 1.8초 → 숨 들이쉬기 3초 → 발성 순서로 안내합니다. 준비 중에는 측정하지 않습니다.','민트색 선은 선택한 기준음이며 보라색 곡선은 실제 목소리의 음높이입니다.','측정 중 상태가 길어지면 그래프의 진단 안내를 확인하세요.'],rule:'최근 3초 자료에서 기준음 ±150cent, 유효 자료 16개 이상·0.9초 이상, 진폭 ±7~125cent, 속도 3~9Hz, 일정한 주기 4개 이상을 확인합니다. 연습 완료 후 유효 발성·비브라토 감지가 각각 연습의 40%(최소 1초) 이상이고 음정 12개 이상이면 성공입니다. 상세 기준은 「ⓘ 측정 기준」 버튼으로 확인할 수 있습니다.'},
+ vibrato:{intro:'한 음을 유지하며 비브라토의 흔들림 폭과 속도를 추정합니다.',steps:['연습 설정에서 발성 시간과 반복 횟수(0=무한), 듣기·들이쉬기·회복 시간을 정합니다. 기본 설정에서는 기준음 듣기 1.8초 → 숨 들이쉬기 3초 → 발성 순서로 안내합니다. 준비 중에는 측정하지 않습니다.','민트색 선은 선택한 기준음이며 보라색 곡선은 실제 목소리의 음높이입니다.','측정 중 상태가 길어지면 그래프의 진단 안내를 확인하세요.'],rule:'최근 3초 자료에서 기준음 ±150cent, 유효 자료 16개 이상·0.9초 이상, 진폭 ±7~125cent, 속도 3~9Hz, 일정한 주기 4개 이상을 확인합니다. 연습 완료 후 유효 발성·비브라토 감지가 각각 연습의 40%(최소 0.9초) 이상이고 음정 12개 이상이면 성공입니다. 상세 기준은 「ⓘ 측정 기준」 버튼으로 확인할 수 있습니다.'},
  practice:{intro:'음계·도약과 연속 슬라이드를 하나의 화면에서 연습합니다.',steps:['아에이오우는 음계·도약의 패턴에서 고릅니다. 아로 도레미파솔파미레도 또는 도미솔미도를 부른 뒤 에·이·오·우도 각각 같은 음계로 왕복합니다. 모음 사이에는 쉬며 다섯 모음이 한 세트입니다. 각 목표 음을 유지하고 모음의 발음 자체나 소리 크기는 채점하지 않습니다.','종류에서 음계·도약 또는 연속 슬라이드를 고르고 패턴을 선택합니다. 중복 패턴은 한 목록으로 통합했습니다.','연습 설정에서 시작음, 반복 횟수, 빠르기와 먼저 듣기를 조절합니다. 먼저 듣기를 끄면 숨을 들이쉬며 3·2·1 후 따라 부릅니다. 켜면 한 구절을 듣고 호흡 3초 후 따라 부릅니다. 반복 사이에도 3초의 회복 시간이 있습니다.','가로 화면은 큰 건반 위 중앙에 반투명 그래프를 표시합니다. 그래프는 최대 6초 구간을 따라가며 민트색 목표와 보라색 목소리를 비교합니다. 축에 계이름·옥타브를 표시합니다.','음계·도약은 분리된 가로선마다 목표 음을 맞춥니다. 각 가로선은 그 음의 유지 시간이며, 목소리를 반드시 끊으라는 뜻은 아닙니다. 회색 세로선은 현재 진행 위치입니다.','연속 슬라이드는 이어진 목표선을 따라 음을 끊지 않고 연결합니다. 소리가 없는 구간은 비워 두며 정확도와 충분히 발성했는지를 함께 확인합니다.','같은 시작 버튼이 연습 중단으로 바뀝니다. 마이크 연결 중에는 연결 취소로 바뀝니다. 계속 반복은 중단할 때까지 같은 음역을 반복합니다.'],rule:'음계·도약은 선택한 ±35·50·75cent, 연속 슬라이드는 ±110cent로 확인합니다. 정확도 65% 이상, 발성 40% 이상과 각 음·이동 구간 20% 이상이 필요합니다. 충분한 발성이 없으면 측정 부족으로 표시합니다. 기준음 재생·준비·듣기는 채점에서 제외합니다. 이어폰을 권장합니다.'},
  guideVoice:{intro:'가이드를 듣고 음을 오르내리는 음역 슬라이드입니다. 음계·도약과 기존의 단계별 왕복·연속 슬라이드를 한 패턴 목록에 통합했습니다.',
   steps:['패턴은 음계·도약 10종, 3·5·7·12반음 단계별 왕복 4종, 같은 범위의 연속 슬라이드 4종으로 총 18종입니다. 연습 설정에서 시작음과 1~5회 반복을 정합니다.',
@@ -3024,7 +3026,7 @@ function showVibratoCriteria(){
   ['비브라토 속도','한 초에 3~9번 반복하는 흔들림(3~9Hz)을 대상으로 추정합니다. 이 구간은 앱의 감지 설정이며 모든 발성에 적용되는 절대적인 적정 기준은 아닙니다.'],
   ['흔들림의 반복','무음·기준음 이탈·160ms를 넘는 공백이 없는 한 구간에서 신뢰할 만한 연속 흔들림 주기 4개 이상이 필요합니다. 주기 길이는 105~550ms로 탐지되며 중앙값과 ±35% 이내로 일치하는 주기만 집계합니다.'],
   ['측정 불가 이유','기준음이 다르거나, 진폭이 작거나, 주기가 부족하거나 불규칙하면 측정 중으로 남습니다. 그래프 안에 현재 미충족 사유와 유효 주기 수(0~4)를 표시합니다.'],
-  ['연습 결과','설정한 시간을 끝까지 진행한 뒤 유효 발성과 위 조건의 비브라토 감지가 각각 연습 시간의 40% 이상(최소 1초)이면 성공입니다. 음정은 12개 이상 필요합니다. 발성 자료가 모자라면 측정 부족, 충분히 발성했으나 비브라토 기준에 못 미치면 미달성, 도중에 끝내면 중단으로 표시합니다.'],
+  ['연습 결과','설정한 시간을 끝까지 진행한 뒤 유효 발성과 위 조건의 비브라토 감지가 각각 연습 시간의 40% 이상(최소 0.9초)이면 성공입니다. 음정은 12개 이상 필요합니다. 발성 자료가 모자라면 측정 부족, 충분히 발성했으나 비브라토 기준에 못 미치면 미달성, 도중에 끝내면 중단으로 표시합니다.'],
  ];
  for(const [title,description] of criteria){
   plain(b,'h3','vibrato-criteria-heading',title);

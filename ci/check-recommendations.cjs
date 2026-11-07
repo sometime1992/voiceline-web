@@ -8,9 +8,9 @@ module.exports=async function checkRecommendations(page,choose,output){
   await page.locator('#planRecommend').click();assert.equal(await page.locator('.recommendation-card').count(),3);assert.equal(await page.locator('#planRun').isVisible(),false);
   assert.deepEqual(await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()})),before,'browsing recommendations changed '+mode);
   for(const size of [{width:360,height:640},{width:640,height:320}]){
-   await page.setViewportSize(size);await page.evaluate(()=>document.documentElement.style.fontSize='24px');
+   await page.setViewportSize(size);await page.evaluate(()=>document.documentElement.style.fontSize='24px');await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
    const g=await page.locator('.plan-modal').evaluate(e=>({x:e.getBoundingClientRect().x,right:e.getBoundingClientRect().right,top:e.getBoundingClientRect().top,bottom:e.getBoundingClientRect().bottom,scroll:document.querySelector('#planScroll').scrollWidth,width:document.querySelector('#planScroll').clientWidth}));
-   assert.ok(g.x>=0&&g.right<=size.width+1&&g.top>=0&&g.bottom<=size.height+1,mode+' gallery clipped');assert.ok(g.scroll<=g.width+1,mode+' horizontal gallery scroll');
+   assert.ok(g.x>=0&&g.right<=size.width+1&&g.top>=0&&g.bottom<=size.height+1,mode+' gallery clipped '+JSON.stringify({size,...g}));assert.ok(g.scroll<=g.width+1,mode+' horizontal gallery scroll');
   }
   await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});
   await page.locator('[data-recommend-level=beginner]').click();assert.equal(await page.locator('#planDialog').getAttribute('data-view'),'edit');assert.deepEqual(await page.evaluate(()=>({store:{...localStorage},live:window.__routineBridge.captureAll()})),before,'draft selection changed '+mode);

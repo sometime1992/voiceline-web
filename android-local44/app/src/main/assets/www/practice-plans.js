@@ -94,11 +94,11 @@
   function summary(completed){
    if(!count)return null;
    if(single&&count===1)return {...last,...(!completed?{status:'중단',kind:'stopped',reason:'연습을 끝까지 완료하지 않았습니다. '+last.reason}:{})};
-   const kind=!completed?'stopped':totals.failure?'failure':totals.guided?'guided':'success';
+   const kind=!completed||totals.stopped?'stopped':totals.failure?'failure':totals.guided?'guided':'success';
    return {title:name,mode:'practice',kind,status:({success:'성공',failure:'미달성',guided:'측정 부족',stopped:'중단'})[kind],
     detail:count+'회 결과 · '+countsText(totals),
     rule:'각 연습의 판정 기준을 모든 회차에서 충족하면 성공입니다. 호흡·워밍업은 안내 과정 완료를 기준으로 합니다.',
-    reason:!completed?'전체 연습을 마치기 전에 중단했습니다. 완료한 회차의 결과도 아래에서 확인할 수 있습니다.':totals.failure||totals.guided?'기준을 충족하지 못한 회차가 있습니다. 단계별 결과와 부족한 기준을 확인하세요.':'모든 연습 회차의 기준을 충족했습니다.',
+    reason:!completed||totals.stopped?'중단한 연습이 있습니다. 완료한 회차의 결과도 아래에서 확인할 수 있습니다.':totals.failure||totals.guided?'기준을 충족하지 못한 회차가 있습니다. 단계별 결과와 부족한 기준을 확인하세요.':'모든 연습 회차의 기준을 충족했습니다.',
     steps:[...entries.values()].map(e=>({title:e.title,detail:countsText(e.counts),reason:e.issues.size?[...e.issues.values()].map(x=>x.reason).join(' / '):e.last.reason,rule:e.last.rule}))};
   }
   return {add,summary,get size(){return entries.size;}};
