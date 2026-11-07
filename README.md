@@ -1,6 +1,6 @@
 # VoiceLine Local80 · 나루비움 스튜디오 공식 도메인 연결
 
-공식 홈페이지는 **https://naruvium.com/**, 개발자는 **나루비움 스튜디오 / Naruvium Studio**입니다. 앱의 홈페이지·방침·고객지원 링크와 스토어 안내를 함께 변경했습니다. 변경 범위와 새 빌드·공개 연결 확인 사항은 `store-kit/naruvium-migration-ko.md`를 확인하세요.
+공식 홈페이지는 **https://naruvium.com/**, 개발자는 **나루비움 스튜디오 / Naruvium Studio**입니다. 앱의 홈페이지·방침·고객지원 링크와 스토어 안내를 함께 변경했습니다. 새 도메인 공개 접속, Local80 빌드·Android 16 실행·기존 CI 앱 업데이트와 공식 키 서명 APK/AAB를 확인했습니다. 실제 결과는 `store-kit/naruvium-build-verification.json`을 확인하세요. 변경 범위는 `store-kit/naruvium-migration-ko.md`를 확인하세요.
 
 최신 Android 프로젝트는 `android-local44/`입니다. Java 17 / Android SDK 36 / Gradle 8.11.1로 빌드합니다. 기본 브랜치의 과거 `android-app/`와 구분하세요.
 

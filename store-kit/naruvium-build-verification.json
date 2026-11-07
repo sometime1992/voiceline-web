@@ -1,0 +1,69 @@
+{
+  "source_commit": "074e1268feefb7f50503196f0ba5e5b3de4b2fe2",
+  "version": "2.0.0",
+  "version_code": 96,
+  "ci_version": "2.0.0-local80-ci",
+  "ci_code": 97,
+  "build_run": 42349613340,
+  "build_url": "https://github.com/sometime1992/voiceline-web/actions/runs/42349613340",
+  "build_conclusion": "success",
+  "regression_tests": 363,
+  "regression_failures": 0,
+  "android16_runtime": "passed",
+  "update_without_uninstall": true,
+  "private_test_data_preserved": true,
+  "packages": [
+    {
+      "file": "VoiceLine-2.0.0-Release.apk",
+      "app": "voiceline",
+      "sha256": "a586673d5174400d91a2ae63ad857b32543a8c4fc82820d8aadb8ed21509ccf7",
+      "package": "com.voiceline.app",
+      "version_name": "2.0.0",
+      "version_code": 96,
+      "certificate_sha256": "916a59f6613bdd7f69737eb3eda2c31e35111866d3da1edfa621095b1e2b02ce",
+      "embedded_assets_checked": 59,
+      "signature_verified": true,
+      "native_urls_verified": [
+        "https://naruvium.com/",
+        "https://naruvium.com/apps/voiceline/privacy.html",
+        "https://naruvium.com/support.html?app=voiceline#contact"
+      ],
+      "all_embedded_assets_match_source": true,
+      "old_publisher_references": 0
+    },
+    {
+      "file": "VoiceLine-2.0.0-Upload.aab",
+      "app": "voiceline",
+      "sha256": "0e12810d17d59f1bda52481cfd6cec66c8e180486e268eb529cb5db6474b998d",
+      "certificate_sha256": "916a59f6613bdd7f69737eb3eda2c31e35111866d3da1edfa621095b1e2b02ce",
+      "signature_verified": true,
+      "embedded_assets_checked": 59,
+      "all_embedded_assets_match_source": true,
+      "native_urls_verified": [
+        "https://naruvium.com/",
+        "https://naruvium.com/apps/voiceline/privacy.html",
+        "https://naruvium.com/support.html?app=voiceline#contact"
+      ]
+    },
+    {
+      "file": "VoiceLine-Local80-CI.apk",
+      "app": "voiceline",
+      "sha256": "b81b18553f2f8d88072a57763b99272e113634885f70fd18335196ed877b5760",
+      "package": "com.voiceline.app.local18.ci45",
+      "version_name": "2.0.0-local80-ci",
+      "version_code": 97,
+      "certificate_sha256": "e0bc85a5900a64eee520a444e80db3844a4b9372c172ab021e0944d239ce429c",
+      "embedded_assets_checked": 59,
+      "signature_verified": true,
+      "native_urls_verified": [
+        "https://naruvium.com/",
+        "https://naruvium.com/apps/voiceline/privacy.html",
+        "https://naruvium.com/support.html?app=voiceline#contact"
+      ],
+      "all_embedded_assets_match_source": true,
+      "old_publisher_references": 0
+    }
+  ],
+  "physical_device_tested": false,
+  "play_console_updated": false
+}
