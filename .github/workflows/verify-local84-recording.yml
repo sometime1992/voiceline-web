@@ -1,4 +1,5 @@
 name: VoiceLine Local84 exact recording playback
+# Wait for observed Android focus callbacks; emulator scheduling is variable.
 
 on:
   push:
