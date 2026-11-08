@@ -84,7 +84,7 @@ let ws;
  assert.equal(await evaluate('__lastRecordingAudio.paused'),true);await sleep(1000);assert.equal(await evaluate('__lastRecordingAudio.paused'),true);
  await click('.history-row button');await wait('!__lastRecordingAudio.paused&&__lastRecordingAudio.currentTime>1','explicit replay after background');
  proof.checks.push('Language change preserves playback; leaving the app stops it and returning requires an explicit Play tap');
- const saved=execFileSync('adb',['exec-out','run-as',pkg,'cat','files/voiceline-recordings/'+id+'.wav']);
+ const saved=execFileSync('adb',['exec-out','run-as',pkg,'cat','files/voiceline-recordings/'+id+'.wav'],{maxBuffer:wav.length+65536,timeout:25000});
  proof.original_sha256=createHash('sha256').update(wav).digest('hex');proof.after_sha256=createHash('sha256').update(saved).digest('hex');assert.equal(proof.after_sha256,proof.original_sha256);
  proof.checks.push('Original private recording is unchanged byte for byte');
  await click('.history-row button');proof.status='passed';save();console.log(JSON.stringify(proof));
