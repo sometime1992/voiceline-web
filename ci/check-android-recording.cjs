@@ -39,28 +39,31 @@ let ws;
  ws.onmessage=event=>{const message=JSON.parse(event.data);if(!message.id)return;const task=pending.get(message.id);if(!task)return;pending.delete(message.id);clearTimeout(task.timer);message.error?task.reject(Error(JSON.stringify(message.error))):task.resolve(message.result);};
  const call=(method,params={})=>new Promise((resolve,reject)=>{const command=++next,timer=setTimeout(()=>{pending.delete(command);reject(Error('CDP timeout: '+method));},20000);pending.set(command,{resolve,reject,timer});ws.send(JSON.stringify({id:command,method,params}));});
  const evaluate=async expression=>{const response=await call('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(response.exceptionDetails)throw Error(JSON.stringify(response.exceptionDetails));return response.result.value;};
- const wait=async(expression,label)=>{for(let n=0;n<100;n++){if(await evaluate(expression))return;await sleep(100);}throw Error('Android playback condition: '+label+'; '+JSON.stringify(await evaluate('window.__lastRecordingAudio ? ({paused:__lastRecordingAudio.paused,time:__lastRecordingAudio.currentTime,src:__lastRecordingAudio.src,error:__lastRecordingAudio.error?.code,events:window.__recordingEvents}) : document.readyState')));};
+ const wait=async(expression,label)=>{for(let n=0;n<150;n++){if(await evaluate(expression))return;await sleep(100);}throw Error('Android playback condition: '+label+'; '+JSON.stringify(await evaluate('({audio:window.__lastRecordingAudio&&({paused:__lastRecordingAudio.paused,time:__lastRecordingAudio.currentTime,src:__lastRecordingAudio.src,error:__lastRecordingAudio.error?.code}),events:window.__recordingEvents,dialog:document.querySelector("#infoDialog")?.hidden})')));};
  const click=async selector=>{
-  await wait(`!!document.querySelector(${JSON.stringify(selector)})`,'control '+selector);
+  await wait(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e||e.disabled||e.closest('[hidden]'))return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0;})()`,'visible control '+selector);
   const rect=await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+  assert.equal(await evaluate(`document.querySelector(${JSON.stringify(selector)}).contains(document.elementFromPoint(${rect.x},${rect.y}))`),true,'Android control is covered: '+selector);
   await call('Input.dispatchMouseEvent',{type:'mousePressed',...rect,button:'left',clickCount:1});
   await call('Input.dispatchMouseEvent',{type:'mouseReleased',...rect,button:'left',clickCount:1});
+  await evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
  };
- await call('Page.enable');
- await call('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const NativeAudio=window.Audio;window.__recordingEvents=[];window.Audio=function(...args){const audio=new NativeAudio(...args);window.__lastRecordingAudio=audio;for(const type of ['play','playing','pause','error','ended'])audio.addEventListener(type,()=>window.__recordingEvents.push({type,time:audio.currentTime,src:audio.src}));return audio;};window.Audio.prototype=NativeAudio.prototype;})()`});
- const reload=async()=>{await call('Page.reload');await sleep(500);await wait('!!document.querySelector("#keyboard .white-key")&&!!window.VoiceLineI18n','app reload');await evaluate('VoiceLineI18n.setLanguage("ko")');};
- await reload();
+ await wait('!!document.querySelector("#keyboard .white-key")&&!!window.VoiceLineI18n&&!!window.VoiceLineLifecycle','initial app load');
+ await evaluate(`(()=>{VoiceLineI18n.setLanguage('ko');const NativeAudio=window.Audio;window.__recordingEvents=[];window.Audio=function(...args){const audio=new NativeAudio(...args);window.__lastRecordingAudio=audio;for(const type of ['play','playing','pause','error','ended'])audio.addEventListener(type,()=>window.__recordingEvents.push({type,time:audio.currentTime,src:audio.src}));const pause=audio.pause;audio.pause=function(){window.__recordingEvents.push({type:'pause-call',time:audio.currentTime,stack:new Error().stack});return pause.call(audio);};return audio;};window.Audio.prototype=NativeAudio.prototype;const interrupted=VoiceLineLifecycle.onInterrupted;VoiceLineLifecycle.onInterrupted=function(reason){window.__recordingEvents.push({type:'focus-interruption',reason});return interrupted.call(this,reason);};})()`);
  await evaluate(`(async()=>{const list=await indexedDB.databases();for(const item of list){const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(item.name);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});if(!db.objectStoreNames.contains('recordingsMeta')){db.close();continue;}const record={id:${JSON.stringify(id)},title:'CI playback check',date:new Date().toLocaleString('ko-KR'),timestamp:Date.now(),duration:${seconds},size:${wav.length},mime:'audio/wav',sourceType:'native-file',nativeFileId:${JSON.stringify(id)},pitchTrack:[[0,60],[1000,60],[23000,60]],pitchLow:60,pitchHigh:60};await new Promise((resolve,reject)=>{const tx=db.transaction(['recordings','recordingsMeta'],'readwrite');tx.objectStore('recordings').put(record);tx.objectStore('recordingsMeta').put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();return true;}throw Error('Recording database missing');})()`);
- const openHistory=async()=>{await click('#menuOpen');await click('[data-screen="history"]');await wait('!!document.querySelector(".history-row button")','saved recording row');};
+ const openHistory=async()=>{await click('#menuOpen');await click('[data-screen="history"]');await wait('!document.querySelector("#infoDialog").hidden&&!!document.querySelector(".history-row button")','saved recording row');};
  await openHistory();
- // Reproduce the former two-owner sequence in this real WebView, then reload
- // to restore the native bridge and exercise the fixed, user-visible path.
- await evaluate('(()=>{const native=window.VoiceLineAudioSession;window.VoiceLineAudioSession={request:()=>native.request(),release:()=>native.release(),preparePlayback:()=>native.request()};})()');
+ // Restore the exact native bridge after the legacy sequence. Do not reload
+ // between trials: a slow Android navigation can otherwise accept stale DOM.
+ await evaluate('(()=>{const native=window.VoiceLineAudioSession;window.__originalNativeSession=native;window.VoiceLineAudioSession={request:()=>native.request(),release:()=>native.release(),preparePlayback:()=>native.request()};})()');
  await click('.history-row button');await sleep(2200);
  proof.previousSequence=await evaluate('({paused:__lastRecordingAudio.paused,time:__lastRecordingAudio.currentTime,events:__recordingEvents})');save();
  assert.ok(proof.previousSequence.paused&&proof.previousSequence.time<1,'Former native-plus-WebView focus sequence did not reproduce the immediate stop');
+ assert.ok(proof.previousSequence.events.some(e=>e.type==='focus-interruption'),'The legacy stop must come from the competing native focus request');
  proof.checks.push('Former competing audio-focus sequence reproduces an immediate stop on the real Android WebView');
- await reload();await openHistory();assert.equal(await evaluate('VoiceLineAudioSession.request()'),true);await click('.history-row button');
+ await evaluate('window.VoiceLineAudioSession=window.__originalNativeSession;window.__lastRecordingAudio=null;window.__recordingEvents=[]');
+ if(await evaluate('document.querySelector("#infoDialog").hidden'))await openHistory();
+ assert.equal(await evaluate('VoiceLineAudioSession.request()'),true);await click('.history-row button');
  await wait('window.__lastRecordingAudio&&!__lastRecordingAudio.paused&&__lastRecordingAudio.currentTime>1.5','uninterrupted native WAV playback');
  proof.continuous=await evaluate('({time:__lastRecordingAudio.currentTime,duration:__lastRecordingAudio.duration,paused:__lastRecordingAudio.paused,events:__recordingEvents})');save();
  assert.equal(Math.round(proof.continuous.duration),seconds);
