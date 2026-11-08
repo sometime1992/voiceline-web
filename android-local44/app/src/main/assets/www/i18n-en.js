@@ -1355,7 +1355,7 @@
  "현재 기능 사용 설명 열기": "Open help for this feature",
  "ⓘ 설명": "ⓘ Help",
  "마이크 감도 민감. 누르면 감도 변경": "Mic sensitivity: Sensitive. Tap to change",
- "감도 민감": "Sensitivity: Sensitive",
+ "감도 민감": "Mic: Sensitive",
  "이전 설정 보기": "Previous settings",
  "왼쪽 설정 더 보기": "More settings to the left",
  "오른쪽 설정 더 보기": "More settings to the right",
@@ -1720,5 +1720,7 @@
  "오후": "PM",
  "언어": "Language",
  "안정적인 음정 자료를 모으는 중": "Collecting pitch data",
- "연습·녹음을 마친 뒤 녹음을 재생해 주세요.": "Finish practice or recording before playback."
+ "연습·녹음을 마친 뒤 녹음을 재생해 주세요.": "Finish practice or recording before playback.",
+ "감도 표준": "Mic: Normal",
+ "감도 최대": "Mic: High"
 };if(typeof module==='object'&&module.exports)module.exports=catalog;else root.VoiceLineEnglish=catalog;})(globalThis);

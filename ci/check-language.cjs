@@ -55,6 +55,7 @@ async function clippedText(page){return page.evaluate(()=>{
   for(const mode of ['piano','pitch','record','practice','sustainVoice','earVoice','dynamicVoice','vibrato','warmupVoice','metronome']){
    if(mode!=='piano'){await page.locator('#menuOpen').click();await page.locator('[data-screen="'+mode+'"]').click();}
    await settle(page);
+   if(mode==='vibrato')assert.equal(await page.locator('.vibrato-reference').first().evaluate(e=>getComputedStyle(e,'::after').content),'"Ref"');
    layoutProblems.push(...(await clippedText(page)).map(x=>({screen:mode+' default',...x})));
    await page.screenshot({path:path.join(out,'english-'+mode+'-screen.png')});
    for(const viewport of [{width:390,height:844},{width:844,height:390},{width:360,height:640}]){
