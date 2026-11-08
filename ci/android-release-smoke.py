@@ -143,13 +143,13 @@ def choose_vowel_settings():
     tap('모음 · 아에이오우',partial=True)
     wait_visible('모음 · 아에이오우')
 
-def start():
+def start(language='ko'):
     adb('shell', 'am', 'force-stop', package)
     adb('shell', 'am', 'start', '-W', '-n', package + '/com.voiceline.app.MainActivity')
     # A cold emulator can still be starting WebView after the Activity is visible.
     wait_visible('VoiceLine', timeout=60)
-    wait_visible('C3 · 1옥 도', timeout=40)
-    wait_visible('메뉴 열기', timeout=40)
+    wait_visible('C3 · Do' if language=='en' else 'C3 · 1옥 도', timeout=40)
+    wait_visible('Open menu' if language=='en' else '메뉴 열기', timeout=40)
 
 def choose(label):
     tap('메뉴 열기', 'menuOpen')
@@ -388,7 +388,7 @@ try:
     wait_visible('Practice menu')
     screenshot('06-english-menu-portrait.png')
     tap('Close menu', 'menuClose')
-    start()
+    start('en')
     tap('Open menu', 'menuOpen')
     wait_visible('Practice menu')
     tap('Language settings', 'appLanguage')

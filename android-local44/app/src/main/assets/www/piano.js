@@ -1020,7 +1020,7 @@ async function startMic(){
  const cancelled=new Promise(resolve=>{app.micCancelResolve=resolve;});
  const task=Promise.race([window.VoiceLineNative?.start?startNativeMic(token):startWebMic(token),cancelled]);
  app.micStartPromise=task;
- const main=$('mainButton'),before=main?.textContent;
+ const main=$('mainButton'),before=window.VoiceLineI18n?.originalText(main)||main?.textContent;
  if(main){main.textContent='연결 취소';main.disabled=false;}
  $('stopButton').hidden=true;updateMicToggle();
  try{
@@ -1030,7 +1030,7 @@ async function startMic(){
  }
  finally{
   if(app.micStartPromise===task){app.micStartPromise=null;app.micCancelResolve=null;}
-  if(main?.textContent==='연결 취소')main.textContent=before;
+  if((window.VoiceLineI18n?.originalText(main)||main?.textContent)==='연결 취소')main.textContent=before;
   $('stopButton').textContent='종료';$('stopButton').hidden=true;
   updateMicToggle();
  }
@@ -3558,6 +3558,7 @@ function toggleLandscapeGraph(){
  }
 }
 $('graphToggle')?.addEventListener('click',toggleLandscapeGraph);
+window.addEventListener('voiceline-language-change',()=>{const now=performance.now();renderPitchGraphOverlay(now,true);renderVibratoOverlay(now,true);renderRecordPitchOverlay(now,true);renderTrainingOverlay(now,true);app.refreshOpenAudio?.();requestAnimationFrame(updatePracticeScrollHint);});
 // Resize only the view. Recording, scoring clocks and metronome scheduling stay intact.
 function applyResponsiveLayout(force=false){
  const width=Number(window.innerWidth||document.documentElement?.clientWidth)||0;

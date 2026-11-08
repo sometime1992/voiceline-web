@@ -15,7 +15,7 @@ async function leftovers(page){return page.evaluate(()=>{
  const list=[],walk=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
  let node;while(node=walk.nextNode()){
   const p=node.parentElement;if(!p||p.closest('script,style,[hidden],[data-i18n-ignore],textarea')||!p.getClientRects().length)continue;
-  if(/[가-힣]/.test(node.nodeValue))list.push({text:node.nodeValue.trim(),id:p.id,tag:p.tagName});
+  if(/[가-힣]/.test(node.nodeValue))list.push({text:node.nodeValue.trim(),source:window.VoiceLineI18n.originalText(node),id:p.id,tag:p.tagName});
  }
  for(const el of document.querySelectorAll('[aria-label],[title],[placeholder]')){
   if(el.closest('[hidden],[data-i18n-ignore]')||!el.getClientRects().length)continue;

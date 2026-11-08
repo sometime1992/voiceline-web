@@ -8,7 +8,7 @@
  const KEY='voiceline-language-v1',korean=/[가-힣]/,sources=new WeakMap(),attributes=new WeakMap();
  const normalize=s=>String(s).replace(/\s+/g,' ').trim();
  const escape=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
- const keys=Object.keys(catalog).filter(k=>k.length>1).sort((a,b)=>b.length-a.length);
+ const keys=Object.keys(catalog).filter(k=>k.length>1&&!k.startsWith('· ')).sort((a,b)=>b.length-a.length);
  const matcher=new RegExp(keys.map(escape).join('|'),'g');
  const solfege={'도':'Do','레':'Re','미':'Mi','파':'Fa','솔':'Sol','라':'La','시':'Ti'};
  let language='ko',observer=null;const cache=new Map();
@@ -18,13 +18,12 @@
   const clean=normalize(text);let output;
   if(Object.hasOwn(catalog,clean))output=catalog[clean];
   else{
-   const notes=clean.replace(/([A-G][♯♭#b]?-?\d+)\s*·\s*-?\d+옥\s*([도레미파솔라시])([♯♭]?)/g,(_,note,s,acc)=>note+' · '+solfege[s]+acc);
-   if(notes!==clean)output=translate(notes,'en');
-   else if(clean.includes(' · '))output=clean.split(' · ').map(part=>translate(part,'en')).join(' · ');
-   else output=clean.replace(/^전체\s+(?=\d)/,'Total ').replace(/(-?\d+)옥\s*([도레미파솔라시])([♯♭]?)/g,(_,oct,s,acc)=>solfege[s]+acc+' (octave '+(Number(oct)+2)+')')
-    .replace(/(\d+)번째\s*음/g,'Note $1').replace(/(\d+)번째\s*청음/g,'Ear-training note $1')
-    .replace(/(\d+)단계/g,'Step $1').replace(/(\d+)회차/g,'Round $1')
+   output=clean.replace(/^전체\s+(?=\d)/,'Total ').replace(/음정 측정 (?=\d+개)/g,'Pitch samples ')
+    .replace(/([A-G][♯♭#b]?-?\d+)\s*·\s*-?\d+옥\s*([도레미파솔라시])([♯♭]?)/g,(_,note,s,acc)=>note+' · '+solfege[s]+acc)
     .replace(matcher,key=>catalog[key])
+    .replace(/(-?\d+)옥\s*([도레미파솔라시])([♯♭]?)/g,(_,oct,s,acc)=>solfege[s]+acc+' (octave '+(Number(oct)+2)+')')
+    .replace(/(\d+)번째\s*음/g,'Note $1').replace(/(\d+)번째\s*청음/g,'Ear-training note $1')
+    .replace(/(\d+)(?:단계|Step|steps)/g,'Step $1').replace(/(\d+)(?:회차|round)/g,'Round $1')
     .replace(/(\d+(?:\.\d+)?)초/g,'$1 s').replace(/(\d+)세트/g,'$1 sets').replace(/(\d+)회/g,'$1 reps')
     .replace(/(\d+)개/g,'$1').replace(/(\d+)박/g,'Beat $1').replace(/(\d+)분/g,'$1 min');
    // Single-syllable labels are only replaced as separate words; never inside
