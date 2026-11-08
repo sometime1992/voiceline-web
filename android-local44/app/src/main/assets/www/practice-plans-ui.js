@@ -112,7 +112,7 @@
    const use=el('button',editingMode?'설정 확인·수정':'루틴 구성 확인');use.type='button';use.dataset.recommendLevel=level;use.setAttribute('aria-label',meta.label+(editingMode?' 추천 설정 선택':' 추천 루틴 선택'));
    use.onclick=()=>{
     if(editingMode){draft={timing:copy(value.timing),params:copy(value.params)};singleForm=null;hasChanges=true;changeView('edit');status(meta.label+' 추천값입니다. 기준음과 설정을 확인한 뒤 변경 확인 → 최종 저장하세요.');}
-    else{draft=copy(value);draft.steps.forEach(prepareStep);savedDraft=api.routine({id:draft.id,name:draft.name,steps:[]});singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=true;outlineScrollTop=0;showRoutine();status('새 추천 루틴 초안입니다. 변경 확인 → 최종 저장하면 내 루틴에 추가됩니다.');}
+    else{draft=copy(value);draft.name=root.VoiceLineI18n?.t(draft.name)||draft.name;draft.steps.forEach(prepareStep);savedDraft=api.routine({id:draft.id,name:draft.name,steps:[]});singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=true;outlineScrollTop=0;showRoutine();status('새 추천 루틴 초안입니다. 변경 확인 → 최종 저장하면 내 루틴에 추가됩니다.');}
    };card.append(use);box.append(card);
   }
   const sources=el('details',undefined,'recommendation-sources');sources.append(el('summary','추천 기준과 참고 자료'),el('p',rec.BASIS));
@@ -183,8 +183,8 @@
   if(locked()){bridge.notify('진행 중인 연습을 중단한 뒤 설정해 주세요.');return;}editingMode=mode;draft={timing:copy(timing(mode)),params:root.VoiceLinePracticeSettings.prepare(mode,bridge.capture(mode))};savedDraft=copy(draft);singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;hasChanges=false;editorView='overview';$('planDialog').dataset.editor='general';renderCurrent();status('');bridge.modalOpen('planDialog');fitCurrent();scheduleFit();
  }
  function selectedRoutine(){return state.routines.find(r=>r.id===$('planList').value);}
- function renderList(id){const select=$('planList');select.replaceChildren();for(const r of state.routines){const o=el('option',r.name);o.value=r.id;select.append(o);}if(id)select.value=id;}
- function loadRoutine(value,editing=false){draft=copy(value||api.routine({name:'나의 루틴 '+(state.routines.length+1)}));draft.steps.forEach(prepareStep);savedDraft=copy(draft);singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;outlineAnchor='routine-meta';outlineScrollTop=0;hasChanges=false;delete $('planDelete').dataset.confirm;$('planDelete').hidden=!selectedRoutine();if(editing)showRoutine();else changeView('overview');}
+ function renderList(id){const select=$('planList');select.replaceChildren();for(const r of state.routines){const o=el('option',r.name);o.setAttribute('data-i18n-ignore','');o.value=r.id;select.append(o);}if(id)select.value=id;}
+ function loadRoutine(value,editing=false){draft=copy(value||api.routine({name:(root.VoiceLineI18n?.t('나의 루틴')||'나의 루틴')+' '+(state.routines.length+1)}));draft.steps.forEach(prepareStep);savedDraft=copy(draft);singleForm=null;routineForms.clear();metaForm=addForm=null;activeStepId=null;outlineAnchor='routine-meta';outlineScrollTop=0;hasChanges=false;delete $('planDelete').dataset.confirm;$('planDelete').hidden=!selectedRoutine();if(editing)showRoutine();else changeView('overview');}
  function openRoutines(){if(locked()){bridge.notify('진행 중인 연습을 중단한 뒤 루틴을 편집해 주세요.');return;}editingMode=null;$('planDialog').dataset.editor='routine';renderList();loadRoutine(selectedRoutine());bridge.modalOpen('planDialog');fitCurrent();scheduleFit();}
  function saveDraft(){
   if(!valid())return false;if(editingMode){const previous=copy(state);state.settings[editingMode]=api.timing(editingMode,draft.timing);if(!stored()){state=previous;return false;}bridge.apply(editingMode,draft.timing,draft.params);return true;}

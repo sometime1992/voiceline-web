@@ -316,7 +316,7 @@
    for(const entry of presets.slice(presetPage*2,presetPage*2+2)){
     const card=document.createElement('div');card.className='metro-saved-card';
     const load=document.createElement('button');load.type='button';load.className='metro-saved-load';
-    const title=document.createElement('strong');title.textContent=entry.name;
+    const title=document.createElement('strong');title.textContent=entry.name;title.setAttribute('data-i18n-ignore','');
     const detail=document.createElement('span');detail.textContent=entry.settings.bpm+' BPM · '+entry.settings.numerator+'/'+entry.settings.denominator+' · '+entry.settings.subdivision+'분할';
     load.append(title,detail);load.setAttribute('aria-label',entry.name+' 리듬 불러오기');
     load.onclick=()=>{if(update(entry.settings)){$('metroPresetName').value=entry.name;$('metroPresetMessage').textContent=entry.name+' 리듬을 불러왔습니다.';}};

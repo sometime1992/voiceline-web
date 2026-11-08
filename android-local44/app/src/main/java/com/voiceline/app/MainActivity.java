@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        AppLanguage.set(getSharedPreferences("voiceline-ui", MODE_PRIVATE).getString("language", "ko"));
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             WebView.setWebContentsDebuggingEnabled(true);
         }
@@ -138,6 +139,9 @@ public class MainActivity extends Activity {
     }
 
     public final class PublicAppLinks {
+        @android.webkit.JavascriptInterface public void setLanguage(String language) {
+            if ("ko".equals(language) || "en".equals(language)) { AppLanguage.set(language); getSharedPreferences("voiceline-ui", MODE_PRIVATE).edit().putString("language", language).apply(); }
+        }
         @android.webkit.JavascriptInterface public void openPrivacyPolicy() { openApprovedPage(PUBLIC_PRIVACY_URL); }
         @android.webkit.JavascriptInterface public void openSupport() { openApprovedPage(PUBLIC_SUPPORT_URL); }
         @android.webkit.JavascriptInterface public void openHomepage() { openApprovedPage(PUBLIC_HOME_URL); }
@@ -160,7 +164,7 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> {
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
             catch (android.content.ActivityNotFoundException error) {
-                android.widget.Toast.makeText(this, "웹페이지를 열 수 있는 브라우저가 없습니다.", android.widget.Toast.LENGTH_LONG).show();
+                android.widget.Toast.makeText(this, AppLanguage.pick( "웹페이지를 열 수 있는 브라우저가 없습니다.", "No browser is available to open this webpage."), android.widget.Toast.LENGTH_LONG).show();
             }
         });
     }

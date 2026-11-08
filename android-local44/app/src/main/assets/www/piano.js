@@ -212,7 +212,7 @@ async function importLegacyRecords(){
   }catch(e){console.warn('Previous records could not be imported; source data is preserved.',e);}
 }
 function id(){return Date.now()+'-'+Math.random().toString(36).slice(2,9);}
-function stamp(){return new Date().toLocaleString('ko-KR');}
+function stamp(){return new Date().toLocaleString(window.VoiceLineI18n?.locale()||'ko-KR');}
 function name(m){m=Math.round(m);return NAMES[(m%12+12)%12]+(Math.floor(m/12)-1);}
 function koname(m){m=Math.round(m);return (Math.floor(m/12)-3)+'옥 '+KO[(m%12+12)%12];}
 // VoiceLine uses the established Korean vocal-range octave convention:
@@ -1256,10 +1256,10 @@ function drawLivePitchGraph(canvas,samples,viewEnd,{bridgeGaps=true,allNotes=fal
    const y=yFor(m);
    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);
    ctx.strokeStyle='rgba(107,238,208,.43)';ctx.setLineDash([3,4]);ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle='#b4ecd9';ctx.fillText(noteLabel(m),left-5,Math.max(9,Math.min(h-2,y+3)),left-10);
+   ctx.fillStyle='#b4ecd9';ctx.fillText((globalThis.VoiceLineI18n?.t(noteLabel(m))??(noteLabel(m))),left-5,Math.max(9,Math.min(h-2,y+3)),left-10);
  }
- ctx.textAlign='left';ctx.fillStyle='#b8bcd4';ctx.fillText('−6초',left,bottom+12);
- ctx.textAlign='right';ctx.fillText('현재',right,bottom+12);
+ ctx.textAlign='left';ctx.fillStyle='#b8bcd4';ctx.fillText((globalThis.VoiceLineI18n?.t('−6초')??('−6초')),left,bottom+12);
+ ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t('현재')??('현재')),right,bottom+12);
  // The mint step line records the actual goal at each capture time. Pauses
  // break the goal line, just as silence breaks the purple voice trace.
  let previous=null;
@@ -1338,7 +1338,7 @@ function renderPitchGraphOverlay(now=performance.now(),force=false){
  $('pitchGraphHigh').textContent=values.length?noteLabel(Math.round(Math.max(...values))):'—';
  const last=points[points.length-1],fresh=app.mic&&Number.isFinite(last?.midi)&&now-last.t<250;
  $('pitchGraphStatus').textContent=app.mic?(fresh?'실시간 측정 · 최근 6초':practice?'목표를 따라 불러보세요 · 최근 6초':'음정 대기 · 최근 6초'):app.pitchGraphFrozenAt!==null?'측정 종료 · 다시 시작하면 새 측정':practice?'연습 시작을 누르세요':'마이크를 켜세요';
- if(!voiced.length){ctx.textAlign='center';ctx.fillStyle='#d2cce8';ctx.font='11px system-ui';ctx.fillText(practice?'민트색 목표와 보라색 목소리를 비교하세요':app.mic?'한 음을 편안하게 불러보세요':'마이크를 켜면 음정이 표시됩니다',(left+right)/2,(top+bottom)/2,Math.max(1,right-left-12));}
+ if(!voiced.length){ctx.textAlign='center';ctx.fillStyle='#d2cce8';ctx.font='11px system-ui';ctx.fillText((globalThis.VoiceLineI18n?.t(practice?'민트색 목표와 보라색 목소리를 비교하세요':app.mic?'한 음을 편안하게 불러보세요':'마이크를 켜면 음정이 표시됩니다')??(practice?'민트색 목표와 보라색 목소리를 비교하세요':app.mic?'한 음을 편안하게 불러보세요':'마이크를 켜면 음정이 표시됩니다')),(left+right)/2,(top+bottom)/2,Math.max(1,right-left-12));}
 }
 function syncVibratoOverlay(){
  const el=$('vibratoOverlay');if(!el)return;
@@ -1373,10 +1373,10 @@ function renderVibratoOverlay(now=performance.now(),force=false){
   ctx.strokeStyle=cent===0?'rgba(105,255,213,.95)':'rgba(210,220,240,.18)';
   ctx.setLineDash(cent===0?[6,4]:[2,5]);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle=cent===0?'#85f8df':'#bbc3d7';
-  ctx.fillText((cent>0?'+':'')+cent,left-5,Math.max(9,Math.min(h-1,y+3)));
+  ctx.fillText((globalThis.VoiceLineI18n?.t((cent>0?'+':'')+cent)??((cent>0?'+':'')+cent)),left-5,Math.max(9,Math.min(h-1,y+3)));
  }
- ctx.textAlign='left';ctx.fillStyle='#abbdd3';ctx.fillText('−3초',left,bottom+12);
- ctx.textAlign='right';ctx.fillText('현재',right,bottom+12);
+ ctx.textAlign='left';ctx.fillStyle='#abbdd3';ctx.fillText((globalThis.VoiceLineI18n?.t('−3초')??('−3초')),left,bottom+12);
+ ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t('현재')??('현재')),right,bottom+12);
  const windowStart=now-VIBRATO_WINDOW_MS;
  ctx.beginPath();let drawing=false,prev=null,count=0;
  for(const sample of app.vibratoSamples){
@@ -2259,11 +2259,11 @@ function renderTrainingOverlay(now=performance.now(),force=false){
    const midi=low+(high-low)*(1-i/3);
    if(Number.isFinite(midi)){
     ctx.fillStyle='#b8d4d0';ctx.font='9px system-ui';ctx.textAlign='right';
-    ctx.fillText(noteLabel(Math.round(midi)),x0-5,y+3,x0-10);
+    ctx.fillText((globalThis.VoiceLineI18n?.t(noteLabel(Math.round(midi)))??(noteLabel(Math.round(midi)))),x0-5,y+3,x0-10);
    }
   }
  }
- ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillStyle='#bdb9d3';ctx.fillText('−6초',x0,h-3);ctx.textAlign='right';ctx.fillText('현재',x1,h-3);
+ ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillStyle='#bdb9d3';ctx.fillText((globalThis.VoiceLineI18n?.t('−6초')??('−6초')),x0,h-3);ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t('현재')??('현재')),x1,h-3);
 
   ctx.beginPath();let prev=null;
   for(const p of points){if((audioLevel&&!Number.isFinite(p.rms))||(!audioLevel&&!Number.isFinite(p.midi))){prev=null;continue;}
@@ -2513,8 +2513,8 @@ async function saveNativeFile(record){
  let low=record.pitchLow??null,high=record.pitchHigh??null;
  for(const [,midi] of pitchTrack)if(Number.isFinite(midi)){low=Math.min(low??midi,midi);high=Math.max(high??midi,midi);}
  const duration=info.frames/info.sampleRate;
- await store('recordings','put',{id:record.id,date:record.date||new Date(info.timestamp).toLocaleString('ko-KR'),
-  timestamp:record.timestamp||info.timestamp,duration,mime:'audio/wav',size:44+info.bytes,title:'목소리 녹음',
+ await store('recordings','put',{id:record.id,date:record.date||new Date(info.timestamp).toLocaleString(window.VoiceLineI18n?.locale()||'ko-KR'),
+  timestamp:record.timestamp||info.timestamp,duration,mime:'audio/wav',size:44+info.bytes,title:window.VoiceLineI18n?.t('목소리 녹음')||'목소리 녹음',
   sourceType:'native-file',nativeFileId:record.id,pitchTrack,pitchLow:low,pitchHigh:high,category:'recording',recordingSessionId:record.id});
  // A failed commit marker is safe: the next recovery scan checks the DB before listing a draft.
  const error=window.VoiceLineNative.commitRecording(record.id);if(error)console.warn('Recording draft marker',error);
@@ -2533,7 +2533,7 @@ async function retryRecording(record){
  const rate=record.targetRate;
  const duration=record.type==='native'?(blob.size-44)/(rate*2):record.duration;
  await store('recordings','put',{id:record.id,date:record.date,timestamp:record.timestamp,duration,
-  blob,mime:blob.type,size:blob.size,title:'목소리 녹음',pitchLow:record.pitchLow??null,
+  blob,mime:blob.type,size:blob.size,title:window.VoiceLineI18n?.t('목소리 녹음')||'목소리 녹음',pitchLow:record.pitchLow??null,
   pitchHigh:record.pitchHigh??null,pitchTrack:record.pitchTrack||[],category:'recording',recordingSessionId:record.id});
  if(record.type==='native')await cleanupNativePcm(record);
  if(app.failedRecording?.id===record.id)app.failedRecording=null;
@@ -3170,7 +3170,7 @@ async function renderRecoverableRecordings(body,isCurrent){
  const sessions=await store('recordSessions','getAll');
  if(window.VoiceLineNative?.getPendingRecordings){
   const drafts=JSON.parse(window.VoiceLineNative.getPendingRecordings()||'[]');
-  for(const draft of drafts)sessions.push({...draft,date:draft.timestamp>0?new Date(draft.timestamp).toLocaleString('ko-KR'):'시각 정보 없음'});
+  for(const draft of drafts)sessions.push({...draft,date:draft.timestamp>0?new Date(draft.timestamp).toLocaleString(window.VoiceLineI18n?.locale()||'ko-KR'):'시각 정보 없음'});
  }
  const deleted=new Set((await store('recordFileDeletes','getAll')).map(item=>item.id));
  const available=[];
@@ -3313,7 +3313,7 @@ async function showHistory(kind=app.historyTab||'recordings',focusTab=false){
  closeActiveAudio();$('infoTitle').textContent='나의 기록';const body=$('infoBody');body.replaceChildren();
  modalOpen('infoDialog');
  const generation=app.historyGeneration=(app.historyGeneration||0)+1;
- const isCurrent=()=>app.historyGeneration===generation&&!$('infoDialog').hidden&&$('infoTitle').textContent==='나의 기록'&&app.historyTab===kind;
+ const isCurrent=()=>app.historyGeneration===generation&&!$('infoDialog').hidden&&(window.VoiceLineI18n?.originalText($('infoTitle'))||$('infoTitle').textContent)==='나의 기록'&&app.historyTab===kind;
  const {panel,button}=renderHistoryTabs(body,kind);if(focusTab)button.focus();
  plain(panel,'p','history-tab-description',kind==='recordings'?
   '한 번의 녹음은 한 파일입니다. 더보기에서 이름 변경·파일 저장·공유를 이용하세요.':
@@ -3337,7 +3337,7 @@ async function showHistory(kind=app.historyTab||'recordings',focusTab=false){
     const page=await getHistoryPage(kind,next,40,query);if(!isCurrent()||request!==pageGeneration)return;
     next=page.next;
     for(const item of page.rows){
-     const row=plain(section.list,'div','history-row'),left=plain(row,'div'),title=plain(left,'strong','',item.title);
+     const row=plain(section.list,'div','history-row'),left=plain(row,'div'),title=plain(left,'strong','',item.title);if(kind==='recordings')title.setAttribute('data-i18n-ignore','');
      if(kind==='recordings'){
       plain(left,'small','',item.date+' · 전체 '+recordTime(Number(item.duration||0)*1000)+' · '+window.VoiceLineRecordingTools.formatBytes(item.size)+
        (Number.isFinite(item.pitchLow)&&Number.isFinite(item.pitchHigh)?' · 음역 '+noteLabel(item.pitchLow)+' ~ '+noteLabel(item.pitchHigh):''));

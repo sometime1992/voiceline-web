@@ -132,7 +132,7 @@ before(()=>{
  delete files['com/voiceline/app/BridgeTest.java'];
  for(const [name,text]of Object.entries(files)){const p=path.join(directory,name);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,text);}
  const source=path.join(__dirname,'../app/src/main/java/com/voiceline/app');
- const actual=['NativeMicBridge.java','NativeWavStore.java','RecordingTransfers.java','RecordingDocuments.java','RecordingFileProvider.java','PracticeWebView.java'].map(n=>path.join(source,n));
+ const actual=['AppLanguage.java','NativeMicBridge.java','NativeWavStore.java','RecordingTransfers.java','RecordingDocuments.java','RecordingFileProvider.java','PracticeWebView.java'].map(n=>path.join(source,n));
  const compile=spawnSync(compiler[0],[...compiler.slice(1),'-encoding','UTF-8','-d',path.join(directory,'classes'),...actual,...Object.keys(files).map(n=>path.join(directory,n))],{encoding:'utf8',timeout:30000});
  assert.equal(compile.status,0,compile.stdout+compile.stderr);
 });

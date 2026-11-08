@@ -145,11 +145,11 @@
    if(s.rest)continue;
    ctx.fillStyle=i===current?'rgba(105,236,208,.22)':'rgba(105,236,208,.10)';
    ctx.beginPath();ctx.moveTo(x,yForLevel(s.from+bandWidth));ctx.lineTo(end,yForLevel(s.to+bandWidth));ctx.lineTo(end,yForLevel(s.to-bandWidth));ctx.lineTo(x,yForLevel(s.from-bandWidth));ctx.closePath();ctx.fill();
-   if(!compact&&(model?.patternId!=='vowels'||s.calibrate)){const vowelEnd=model?.patternId==='vowels'?segments.find(v=>v.vowelIndex===s.vowelIndex&&v.part==='fall').end:s.end;ctx.fillStyle=i===current?'#a4ffe7':'#c0c6d6';ctx.textAlign='center';ctx.fillText(s.short,x+(xFor(start+vowelEnd)-x)/2,7,xFor(start+vowelEnd)-x-4);}
+   if(!compact&&(model?.patternId!=='vowels'||s.calibrate)){const vowelEnd=model?.patternId==='vowels'?segments.find(v=>v.vowelIndex===s.vowelIndex&&v.part==='fall').end:s.end;ctx.fillStyle=i===current?'#a4ffe7':'#c0c6d6';ctx.textAlign='center';ctx.fillText((globalThis.VoiceLineI18n?.t(s.short)??(s.short)),x+(xFor(start+vowelEnd)-x)/2,7,xFor(start+vowelEnd)-x-4);}
    ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.strokeStyle='rgba(217,220,243,.16)';ctx.lineWidth=1;ctx.stroke();
   }
   for(const [index,label]of ['약','중','강'].entries()){
-   const y=yForLevel(index);ctx.fillStyle='#c1c9d9';ctx.font=(h<60?'8':'10')+'px system-ui';ctx.textAlign='right';if(h>=60||index!==1)ctx.fillText(label,left-5,y);
+   const y=yForLevel(index);ctx.fillStyle='#c1c9d9';ctx.font=(h<60?'8':'10')+'px system-ui';ctx.textAlign='right';if(h>=60||index!==1)ctx.fillText((globalThis.VoiceLineI18n?.t(label)??(label)),left-5,y);
    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.strokeStyle='rgba(220,220,240,.12)';ctx.stroke();
   }
   ctx.beginPath();
@@ -184,7 +184,7 @@
   const cursor=left+elapsed/duration*(right-left);
   ctx.beginPath();ctx.moveTo(cursor,top);ctx.lineTo(cursor,bottom);ctx.strokeStyle='#ffd67f';ctx.lineWidth=1.5;ctx.stroke();
   ctx.fillStyle='#d6d0df';ctx.font='9px system-ui';ctx.textAlign='center';
-  for(let i=0;i<=4;i++){ctx.textAlign=i===0?'left':i===4?'right':'center';ctx.fillText(String(Math.round(duration/4000*i*10)/10)+'초',left+i*step,h-5);}
+  for(let i=0;i<=4;i++){ctx.textAlign=i===0?'left':i===4?'right':'center';ctx.fillText((globalThis.VoiceLineI18n?.t(String(Math.round(duration/4000*i*10)/10)+'초')??(String(Math.round(duration/4000*i*10)/10)+'초')),left+i*step,h-5);}
   return {baseline:baseline??null,cursor,points:model?.samples.length??0};
  }
  return Object.freeze({STAGES,PATTERNS,VOWELS,baselineAt,patternId,getPattern,timeline,state,STEP_RATIO,BAND_RATIO,MIN_REFERENCE_MS,create,receive,bounds,inBand,metrics,feedback,draw});

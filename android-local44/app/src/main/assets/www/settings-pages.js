@@ -91,7 +91,7 @@
    }finally{fitting=false;}
   }
   function paintMenu(){for(const t of topics){const e=entries.get(t.id),b=e.button;e.node.hidden=b.hidden=!activeUnits(t).length;b.setAttribute('aria-current',String(outline?t.id===managedTopic:t.id===pages[current]?.topic));}}
-  function rowNode(row){const n=el('div',undefined,'settings-summary-row');n.dataset.summaryKey=row.key||row.label;n.append(el('dt',row.label),el('dd',row.value));return n;}
+  function rowNode(row){const n=el('div',undefined,'settings-summary-row');n.dataset.summaryKey=row.key||row.label;const value=el('dd',row.value);if(row.key==='name')value.setAttribute('data-i18n-ignore','');n.append(el('dt',row.label),value);return n;}
   function paintSummary(){meta.textContent=summaryMeta;meta.hidden=!summaryMeta;empty.textContent=summaryEmpty;empty.hidden=summaryRows.length>0||!summaryEmpty;rows.replaceChildren(...summaryRows.map(rowNode));}
   function paint(){
    box.dataset.view=view;menu.hidden=view!=='menu';panels.hidden=view!=='edit';summary.hidden=view!=='summary';

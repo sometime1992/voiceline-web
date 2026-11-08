@@ -60,7 +60,7 @@
     ctx.font='10px system-ui';ctx.textAlign='right';
     for(let note=Math.ceil(low/12)*12;note<=high;note+=12){
      const v=y(note);ctx.strokeStyle='#8bdecc66';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(left,v);ctx.lineTo(right,v);ctx.stroke();ctx.setLineDash([]);
-     ctx.fillStyle='#bdffe5';ctx.fillText(noteLabel(note),left-5,v+3,left-10);
+     ctx.fillStyle='#bdffe5';ctx.fillText((globalThis.VoiceLineI18n?.t(noteLabel(note))??(noteLabel(note))),left-5,v+3,left-10);
     }
     ctx.beginPath();let previous=null;
     for(const p of data.points){
@@ -71,7 +71,7 @@
     }
     ctx.strokeStyle='#d6aaff';ctx.lineWidth=2;ctx.stroke();
    }
-   ctx.font='10px system-ui';ctx.fillStyle='#c5cede';ctx.textAlign='left';ctx.fillText('0:00',left,h-5);ctx.textAlign='right';ctx.fillText(formatTime(seconds),right,h-5);
+   ctx.font='10px system-ui';ctx.fillStyle='#c5cede';ctx.textAlign='left';ctx.fillText((globalThis.VoiceLineI18n?.t('0:00')??('0:00')),left,h-5);ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t(formatTime(seconds))??(formatTime(seconds))),right,h-5);
    cached={track,count:track.length,seconds,w,h,dpr,background,left,right,top,bottom};pitchCache.set(canvas,cached);
   }
   const width=Math.round(w*dpr),height=Math.round(h*dpr);if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;

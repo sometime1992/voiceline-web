@@ -303,7 +303,7 @@
   for(const midi of ticks.sort((a,b)=>a-b)){
    const y=yy(midi);ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);
    ctx.strokeStyle=midi===target?'#83f5d66b':'#d4e6ff25';ctx.setLineDash?.(midi===target?[4,4]:[]);ctx.stroke();ctx.setLineDash?.([]);
-   ctx.fillStyle=midi===target?'#b7ffe9':'#c9d3e8';ctx.fillText(label(midi),x0-5,y+3,x0-9);
+   ctx.fillStyle=midi===target?'#b7ffe9':'#c9d3e8';ctx.fillText((globalThis.VoiceLineI18n?.t(label(midi))??(label(midi))),x0-5,y+3,x0-9);
   }
   ctx.save?.();if(ctx.rect&&ctx.clip){ctx.beginPath();ctx.rect(x0,y0,x1-x0,y1-y0);ctx.clip();}
   if(s.smooth){
@@ -331,14 +331,14 @@
   const cursor=xx(clamp(p.offset,from,to));ctx.beginPath();ctx.moveTo(cursor,y0);ctx.lineTo(cursor,y1);ctx.lineWidth=1.5;ctx.strokeStyle='#ffffff66';ctx.stroke();
   if(startCue(s,t).visible&&from===0){
    ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.lineWidth=3;ctx.strokeStyle='#ffd681';ctx.stroke();
-   ctx.textAlign='left';ctx.font='10px system-ui';ctx.fillStyle='#ffd681';ctx.fillText('첫 음 시작',x0+5,y0+11);
+   ctx.textAlign='left';ctx.font='10px system-ui';ctx.fillStyle='#ffd681';ctx.fillText((globalThis.VoiceLineI18n?.t('첫 음 시작')??('첫 음 시작')),x0+5,y0+11);
   }
   if(p.phase==='answer'&&Number.isFinite(s.last?.midi)&&t-s.last.t<=210){
    ctx.beginPath();ctx.arc(cursor,yy(s.last.midi),3.5,0,Math.PI*2);ctx.fillStyle='#efb4ff';ctx.fill();
   }
   ctx.restore?.();ctx.font='9px system-ui';ctx.fillStyle='#c4cce0';
-  ctx.textAlign='left';ctx.fillText((from/1000).toFixed(1)+'초',x0,h-3);
-  ctx.textAlign='right';ctx.fillText((to/1000).toFixed(1)+'초',x1,h-3);
+  ctx.textAlign='left';ctx.fillText((globalThis.VoiceLineI18n?.t((from/1000).toFixed(1)+'초')??((from/1000).toFixed(1)+'초')),x0,h-3);
+  ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t((to/1000).toFixed(1)+'초')??((to/1000).toFixed(1)+'초')),x1,h-3);
  }
  return {VOWELS,roundLabel,PRACTICE_DEFAULTS,LEGACY_PATTERNS,migratePractice,advance,plotView,PATTERNS,SOUNDS,DEFAULTS,TIMING,normalize,restore,plan,create,position,startCue,receive,metrics,evaluate,summary,createPlayer,draw};
 });

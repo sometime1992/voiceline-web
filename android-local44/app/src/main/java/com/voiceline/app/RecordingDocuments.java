@@ -59,7 +59,7 @@ public final class RecordingDocuments implements NativeMicBridge.DocumentActions
                 Intent send=new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM,uri);
                 send.setClipData(ClipData.newUri(activity.getContentResolver(),filename,uri));
                 send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                activity.startActivity(Intent.createChooser(send,"녹음 공유").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                activity.startActivity(Intent.createChooser(send,AppLanguage.pick("녹음 공유","Share recording")).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
                 if(transfer!=null)transfers.forget(transfer,false);
                 result.complete(job,"shared","공유할 앱을 선택하세요.");return;
             }

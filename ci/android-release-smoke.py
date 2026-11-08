@@ -200,9 +200,9 @@ def verify_ci_update_name():
     marker = 'files/voiceline-name-update-probe'
     adb('shell', 'run-as', ci_package, 'touch', marker)
     adb('shell', 'am', 'force-stop', 'com.android.settings')
-    adb('install', '-r', str(root / 'dist/VoiceLine-Local82-CI.apk'))
+    adb('install', '-r', str(root / 'dist/VoiceLine-Local83-CI.apk'))
     installed = adb('shell', 'dumpsys', 'package', ci_package)
-    assert 'versionName=2.0.0-local82-ci' in installed and 'versionCode=101' in installed
+    assert 'versionName=2.0.0-local83-ci' in installed and 'versionCode=103' in installed
     assert marker in adb('shell', 'run-as', ci_package, 'ls', marker)
     adb('shell', 'am', 'start', '-W', '-a', 'android.settings.APPLICATION_DETAILS_SETTINGS',
         '-d', 'package:' + ci_package)
@@ -213,7 +213,7 @@ def verify_ci_update_name():
     (qa / 'ci-installed-app-info.xml').write_bytes(ET.tostring(document, encoding='utf-8'))
     (qa / 'CI_INSTALL_NAME.json').write_text(json.dumps({
         'status': 'passed', 'package': ci_package, 'before_version': '2.0.0-local77-ci (92)',
-        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local82-ci (101)',
+        'before_app_info_label': 'VoiceLine', 'after_version': '2.0.0-local83-ci (103)',
         'after_app_info_label': 'VoiceLine', 'update_installed_without_uninstall': True,
         'private_test_file_preserved': True, 'environment': 'Android16 API36 emulator',
         'phone_physical_test': 'not performed',
@@ -382,8 +382,22 @@ try:
     checks.append('Landscape layout and graph toggle work on Android16')
     adb('shell', 'wm', 'user-rotation', 'lock', '0')
     time.sleep(1)
+    tap('메뉴 열기', 'menuOpen')
+    tap('언어 설정', 'appLanguage')
+    tap('English')
+    wait_visible('Practice menu')
+    screenshot('06-english-menu-portrait.png')
+    tap('Close menu', 'menuClose')
+    start()
+    tap('Open menu', 'menuOpen')
+    wait_visible('Practice menu')
+    tap('Language settings', 'appLanguage')
+    tap('한국어')
+    wait_visible('연습 메뉴')
+    tap('메뉴 닫기', 'menuClose')
+    checks.append('Korean/English menu selection updates on Android16, persists across process restart and restores Korean without resetting practice settings')
     verify_ci_update_name()
-    checks.append('Exact distributed CI APK updates Local77 to Local82 without uninstall; Android app-info label is VoiceLine and private test data remains')
+    checks.append('Exact distributed CI APK updates Local77 to Local83 without uninstall; Android app-info label is VoiceLine and private test data remains')
     result={'status':'passed','environment':'Android 16 API36 x86_64 emulator; production build signed only with CI test key for runtime review','package':package,'checks':checks,'physical_s24_ultra':'not tested','store_screenshots':'unaltered app UI captured from this Android emulator'}
     (qa / 'ANDROID16_SMOKE.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False))

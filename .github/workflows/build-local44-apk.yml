@@ -1,4 +1,4 @@
-name: VoiceLine Local82 APK
+name: VoiceLine Local83 APK
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local82-Test-Report
+          name: VoiceLine-Local83-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
@@ -68,13 +68,14 @@ jobs:
           export NODE_PATH="$RUNNER_TEMP/voiceline-layout/node_modules"
           export CHROME_BIN="$(command -v google-chrome || command -v chromium || true)"
           test -n "$CHROME_BIN"
+          node ci/check-language.cjs
           node ci/check-piano-layout.cjs
           node ci/render-store-graphic.cjs
       - name: Keep keyboard layout and graph report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local82-Layout-Report
+          name: VoiceLine-Local83-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -112,7 +113,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local82-APKs
+          name: VoiceLine-Local83-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -155,7 +156,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local82-Store-Media
+          name: VoiceLine-Local83-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -165,7 +166,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local82-Release-Readiness
+          name: VoiceLine-Local83-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*
