@@ -57,6 +57,14 @@ public final class AudioSessionGuard {
         }
     }
 
+    /** HTML media has its own Chromium focus client. Hand over before play(),
+     *  rather than treating that client's focus gain as an external interruption. */
+    @JavascriptInterface public synchronized boolean preparePlayback() {
+        if (disposed || interruptionPending || !foreground) return false;
+        release();
+        return true;
+    }
+
     private synchronized void interrupt(long token, String reason) {
         if (disposed || focus == null || token != generation) return;
         release();

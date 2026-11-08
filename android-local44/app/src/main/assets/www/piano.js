@@ -3368,15 +3368,38 @@ function closeActiveAudio(){
  app.refreshOpenAudio=null;
  const old=app.openAudio;app.openAudio=null;app.openAudioRecordId=null;
  if(app.openAudioButton){app.openAudioButton.textContent='전체 재생';app.openAudioButton=null;}
- if(old){old.pause();old.src='';old.load();}
+ if(old){old.voiceLineUserPlay=false;old.pause();old.src='';old.load();}
  if(app.openAudioUrl){URL.revokeObjectURL(app.openAudioUrl);app.openAudioUrl=null;}
  if(app.openAudioTimer){cancelAnimationFrame(app.openAudioTimer);app.openAudioTimer=0;}
 }
+function prepareRecordingPlayback(){
+ if(app.backgrounded||document.hidden||app.lifeStopping||app.audioInterruptionPromise)return false;
+ if(app.record||app.recordSaving||app.stopPromise||app.training||app.exercise||app.vibratoStart||window.VoiceLinePlansUI?.active){notify('연습·녹음을 마친 뒤 녹음을 재생해 주세요.');return false;}
+ if(typeof allKeysOff==='function')allKeysOff();
+ if(typeof stopSettingsPreview==='function')stopSettingsPreview();
+ if(typeof cancelReferenceNotes==='function')cancelReferenceNotes();
+ try{
+  clearTimeout(audioFocusTimer);audioFocusTimer=0;
+  const session=window.VoiceLineAudioSession;
+  // WebView owns focus for both native-file WAVs and legacy Blob recordings.
+  // Releasing invalidates queued callbacks from the former native focus lease.
+  if(session?.preparePlayback)return session.preparePlayback()!==false;
+  session?.release?.();return true;
+ }catch(error){console.warn('Playback audio focus unavailable',error);return false;}
+}
+async function playRecordingAudio(audio){
+ if(!prepareRecordingPlayback())return false;
+ audio.voiceLineUserPlay=true;
+ try{await audio.play();return true;}
+ catch(error){audio.voiceLineUserPlay=false;throw error;}
+}
 async function playLocal(r,button,row){
- if(!requestAppAudio())return;
+ if(app.record||app.recordSaving||app.training||app.exercise||app.vibratoStart||window.VoiceLinePlansUI?.active){notify('연습·녹음을 마친 뒤 녹음을 재생해 주세요.');return;}
+ if(app.mic||app.micStartPromise){await stopActivity('playback');resetMainAction();}
+ if(app.backgrounded||document.hidden||app.lifeStopping||app.audioInterruptionPromise)return;
  if(app.openAudioRecordId===r.id&&app.openAudio){
   const audio=app.openAudio;
-  try{if(audio.paused)await audio.play();else audio.pause();}
+  try{if(audio.paused)await playRecordingAudio(audio);else{audio.voiceLineUserPlay=false;audio.pause();}}
   catch(e){if(app.openAudio===audio){notify('녹음을 재생할 수 없습니다.');closeActiveAudio();}}
   return;
  }
@@ -3418,17 +3441,22 @@ async function playLocal(r,button,row){
   });
   audio.addEventListener('timeupdate',render);audio.addEventListener('loadedmetadata',render);
   const nextFrame=()=>{if(app.openAudio!==audio||audio.paused)return;render();app.openAudioTimer=requestAnimationFrame(nextFrame);};
-  audio.onplay=()=>{if(app.openAudio!==audio)return;button.textContent='일시정지';if(app.openAudioTimer)cancelAnimationFrame(app.openAudioTimer);nextFrame();};
-  audio.onpause=()=>{if(app.openAudio!==audio)return;button.textContent='전체 재생';if(app.openAudioTimer)cancelAnimationFrame(app.openAudioTimer);app.openAudioTimer=0;render();};
+  audio.onplay=()=>{
+   if(app.openAudio!==audio||!audio.voiceLineUserPlay||app.backgrounded||document.hidden){audio.voiceLineUserPlay=false;audio.pause();return;}
+   audio.voiceLineUserPlay=false;button.textContent='일시정지';if(app.openAudioTimer)cancelAnimationFrame(app.openAudioTimer);nextFrame();
+  };
+  audio.onpause=()=>{audio.voiceLineUserPlay=false;if(app.openAudio!==audio)return;button.textContent='전체 재생';if(app.openAudioTimer)cancelAnimationFrame(app.openAudioTimer);app.openAudioTimer=0;render();};
   audio.onended=()=>{if(app.openAudio===audio){button.textContent='전체 재생';render();}};
   audio.onerror=()=>{if(app.openAudio===audio){notify('이 녹음 형식을 재생할 수 없습니다.');closeActiveAudio();}};
   // The button always routes through playLocal, never a detached Audio closure.
-  render();await audio.play();
+  render();if(!await playRecordingAudio(audio))closeActiveAudio();
  }catch(e){if(app.playbackGeneration===generation){console.error(e);button.textContent='전체 재생';notify('녹음을 재생할 수 없습니다.');closeActiveAudio();}}
  finally{button.disabled=false;}
 }
 let audioFocusTimer=0;
 function requestAppAudio(){
+ // Starting a new app sound is an explicit switch away from HTML playback.
+ if(app.openAudio)closeActiveAudio();
  if(!window.VoiceLineAudioSession?.request)return true;
  if(app.backgrounded||document.hidden||app.lifeStopping||app.audioInterruptionPromise)return false;
  try{

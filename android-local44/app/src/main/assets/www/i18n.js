@@ -38,12 +38,26 @@
   if(cache.size>=2000)cache.clear();cache.set(text,output);return output;
  }
  const ignored=e=>!e||Boolean(e.closest('script,style,textarea,[data-i18n-ignore],[translate="no"]'));
+ function display(value,kind,lang=language){
+  const text=String(value??'');if(lang!=='en')return text;
+  if(kind==='solfege'){
+   const match=text.match(/^(-?\d+)옥\s*([도레미파솔라시])([♯#♭]?)$/);
+   if(match)return solfege[match[2]]+match[3]; // The adjacent C4 label already gives the octave.
+  }
+  if(kind==='range'){
+   const match=text.match(/^(-?\d+)옥\s*([도레미파솔라시])([♯#♭]?)\s*[–~]\s*(-?\d+)옥\s*([도레미파솔라시])([♯#♭]?)$/);
+   const west={'도':'C','레':'D','미':'E','파':'F','솔':'G','라':'A','시':'B'};
+   if(match)return west[match[2]]+match[3]+(Number(match[1])+2)+' – '+west[match[5]]+match[6]+(Number(match[4])+2);
+  }
+  return translate(text,lang);
+ }
  function localizeText(node){
   if(ignored(node.parentElement))return;
   const previous=sources.get(node),current=node.nodeValue;
   const source=previous&&current===previous.output?previous.source:current;
   if(!korean.test(source)&&!previous)return;
-  const output=translate(source);sources.set(node,{source,output});if(current!==output)node.nodeValue=output;
+  const parent=node.parentElement,kind=parent.matches('.key-note-korean,#noteKorean')?'solfege':parent.id==='octaveLabel'?'range':null;
+  const output=display(source,kind);sources.set(node,{source,output});if(current!==output)node.nodeValue=output;
  }
  const attrs=['aria-label','aria-valuetext','title','placeholder','alt'];
  function localizeAttributes(element){
@@ -87,5 +101,5 @@
   observer.observe(host.document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:attrs});
  }
  if(host?.document){if(host.document.readyState==='loading')host.document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();}
- return {KEY,t:translate,setLanguage:apply,get language(){return language;},locale:()=>language==='en'?'en-US':'ko-KR',render,originalText};
+ return {KEY,t:translate,display,setLanguage:apply,get language(){return language;},locale:()=>language==='en'?'en-US':'ko-KR',render,originalText};
 });

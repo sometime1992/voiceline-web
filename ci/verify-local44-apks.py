@@ -15,20 +15,20 @@ sdk_tools = Path(os.environ["ANDROID_HOME"]) / "build-tools/35.0.0"
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
 report = [
-    "VoiceLine Local83 - GitHub Actions debug APKs",
+    "VoiceLine Local84 - GitHub Actions debug APKs",
     "Commit: " + os.environ["GITHUB_SHA"],
     "Run: https://github.com/" + os.environ["GITHUB_REPOSITORY"]
     + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
     "Original Local44 source ZIP SHA-256: "
     "2e17511e47a63d4d7620bede62e0e58e0fe1395acac8c694556b3b2ab1bd75c1",
-    "Local83 adds a persistent in-app Korean/English choice with offline translation of menus, controls, recommendations, guides, graphs and results, while preserving saved settings and recordings; Local82 feature-specific recommendations remain included; Local81 consistent results and saved-settings preservation remain included; Local78 stops and saves on audio-focus loss, Android system microphone silencing, input-device change and foreground interruption; never auto-resumes; includes offline third-party license texts. Local77 piano reference and settings changes remain included.",
+    "Local84 compacts the language selector, shortens and wraps English UI labels, and hands recording playback focus to WebView; Local83 adds a persistent in-app Korean/English choice with offline translation of menus, controls, recommendations, guides, graphs and results, while preserving saved settings and recordings; Local82 feature-specific recommendations remain included; Local81 consistent results and saved-settings preservation remain included; Local78 stops and saves on audio-focus loss, Android system microphone silencing, input-device change and foreground interruption; never auto-resumes; includes offline third-party license texts. Local77 piano reference and settings changes remain included.",
     "CI45 APK: separate application and separate storage; keeps earlier PC/CI installations and recordings intact.",
     "Do not uninstall an existing app to resolve a signature mismatch.",
     "CI45 signing uses an explicit cached key. Once pinned, a missing or different key blocks future builds.",
     "",
 ]
 variants = [
-    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local83-ci", "VoiceLine-Local83-CI.apk"),
+    ("ciDebug", "com.voiceline.app.local18.ci45", "2.0.0-local84-ci", "VoiceLine-Local84-CI.apk"),
 ]
 certificates = []
 for variant, app_id, version, filename in variants:
@@ -37,7 +37,7 @@ for variant, app_id, version, filename in variants:
     apk = outputs[0]
     badging = subprocess.check_output([str(sdk_tools / "aapt"), "dump", "badging", str(apk)], text=True)
     assert "package: name='" + app_id + "'" in badging, badging
-    assert "versionCode='103'" in badging, badging
+    assert "versionCode='105'" in badging, badging
     assert "versionName='" + version + "'" in badging, badging
     assert "sdkVersion:'26'" in badging, badging
     assert "targetSdkVersion:'36'" in badging, badging
@@ -72,7 +72,7 @@ for variant, app_id, version, filename in variants:
     report.extend([
         filename,
         "  Application ID: " + app_id,
-        "  Version: " + version + " (103)",
+        "  Version: " + version + " (105)",
         "  Application and effective launcher label: VoiceLine",
         "  SHA-256: " + hashlib.sha256(target.read_bytes()).hexdigest(),
         "  Signing certificate SHA-256: " + digest.group(1),
@@ -82,7 +82,7 @@ for variant, app_id, version, filename in variants:
     ])
     (dist / 'APK_LABEL_VERIFIED.json').write_text(json.dumps({
         'source_commit': os.environ['GITHUB_SHA'], 'package': app_id,
-        'version_name': version, 'version_code': 103, 'application_labels': app_labels,
+        'version_name': version, 'version_code': 105, 'application_labels': app_labels,
         'launcher_labels': launcher_labels, 'effective_launcher_label': 'VoiceLine',
         'apk_sha256': hashlib.sha256(target.read_bytes()).hexdigest(),
         'certificate_sha256': digest.group(1), 'offline_assets_verified': count,

@@ -15,7 +15,7 @@ module.exports={
  public static final int AUDIOFOCUS_GAIN=1,AUDIOFOCUS_LOSS=-1,AUDIOFOCUS_LOSS_TRANSIENT=-2,AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK=-3,AUDIOFOCUS_REQUEST_GRANTED=1,AUDIOFOCUS_REQUEST_FAILED=0;
  public interface OnAudioFocusChangeListener{void onAudioFocusChange(int change);}
  public static class AudioRecordingCallback{public void onRecordingConfigChanged(List<AudioRecordingConfiguration> configurations){}}
- public int result=AUDIOFOCUS_REQUEST_GRANTED,requests,abandons;public AudioFocusRequest last;
- public int requestAudioFocus(AudioFocusRequest r){last=r;requests++;return result;}public int abandonAudioFocusRequest(AudioFocusRequest r){abandons++;return 1;}
+ public int result=AUDIOFOCUS_REQUEST_GRANTED,requests,abandons;public AudioFocusRequest last,active;
+ public int requestAudioFocus(AudioFocusRequest r){AudioFocusRequest previous=active;last=r;requests++;if(result==AUDIOFOCUS_REQUEST_GRANTED){active=r;if(previous!=null&&previous!=r)previous.listener.onAudioFocusChange(AUDIOFOCUS_LOSS);}return result;}public int abandonAudioFocusRequest(AudioFocusRequest r){if(active==r)active=null;abandons++;return 1;}
  }`
 };

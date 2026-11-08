@@ -1,4 +1,4 @@
-name: VoiceLine Local83 APK
+name: VoiceLine Local84 APK
 
 on:
   push:
@@ -56,11 +56,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local83-Test-Report
+          name: VoiceLine-Local84-Test-Report
           path: android-local44/local44-tests.log
           if-no-files-found: warn
           retention-days: 7
-      - name: Check every keyboard size and live graph in Chromium
+      - name: Check bilingual labels and menu readability in Chromium
         timeout-minutes: 15
         shell: bash
         run: |
@@ -70,14 +70,30 @@ jobs:
           export NODE_PATH="$RUNNER_TEMP/voiceline-layout/node_modules"
           export CHROME_BIN="$(command -v google-chrome || command -v chromium || true)"
           test -n "$CHROME_BIN"
+          echo "NODE_PATH=$NODE_PATH" >> "$GITHUB_ENV"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
           node ci/check-language.cjs
+      - name: Keep bilingual readability report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local84-Language-Report
+          path: |
+            layout-report/english-*.png
+            layout-report/language-report.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Check every keyboard size and live graph in Chromium
+        timeout-minutes: 15
+        shell: bash
+        run: |
           node ci/check-piano-layout.cjs
           node ci/render-store-graphic.cjs
       - name: Keep keyboard layout and graph report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local83-Layout-Report
+          name: VoiceLine-Local84-Layout-Report
           path: layout-report/
           if-no-files-found: warn
           retention-days: 7
@@ -115,7 +131,7 @@ jobs:
       - name: Upload APKs and verification report
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local83-APKs
+          name: VoiceLine-Local84-APKs
           path: dist/
           if-no-files-found: error
           compression-level: 0
@@ -158,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local83-Store-Media
+          name: VoiceLine-Local84-Store-Media
           path: |
             store-media/
             android-smoke/
@@ -168,7 +184,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local83-Release-Readiness
+          name: VoiceLine-Local84-Release-Readiness
           path: |
             release-review/
             android-local44/app/build/reports/lint-results-release.*

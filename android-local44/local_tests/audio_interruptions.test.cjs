@@ -28,6 +28,16 @@ before(()=>{
     manager.result=AudioManager.AUDIOFOCUS_REQUEST_FAILED;check(!guard.request(),"denied focus allowed audio");
     guard.foreground(false);int requests=manager.requests;check(!guard.request()&&manager.requests==requests,"background requested focus");
     guard.foreground(true);check(manager.requests==requests,"resume requested focus without tap");guard.dispose();check(!guard.request(),"disposed guard accepted request");
+   }else if(args[0].equals("playback-focus")){
+    AudioManager manager=new AudioManager();AtomicInteger stopped=new AtomicInteger();AudioSessionGuard guard=new AudioSessionGuard(manager,why->stopped.incrementAndGet());
+    check(guard.request(),"native focus request failed");
+    AudioFocusRequest web=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setOnAudioFocusChangeListener(change->{},new android.os.Handler(android.os.Looper.getMainLooper())).build();
+    manager.requestAudioFocus(web);check(stopped.get()==1,"fixture did not reproduce WebView preempting the app lease");
+    check(guard.request(),"native restart failed");AudioFocusRequest old=manager.last;
+    check(guard.preparePlayback(),"foreground handoff failed");int requests=manager.requests;
+    old.listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS);check(stopped.get()==1,"queued old focus loss stopped recording playback");
+    manager.requestAudioFocus(web);check(stopped.get()==1&&manager.requests==requests+1,"handoff requested competing native focus");
+    guard.foreground(false);check(!guard.preparePlayback(),"background playback allowed");guard.foreground(true);guard.dispose();check(!guard.preparePlayback(),"disposed playback allowed");
    }else{
     Build.VERSION.SDK_INT=args[0].equals("old-api")?26:36;
     Activity activity=new Activity();activity.allowed=true;WebView web=new WebView();AudioManager manager=new AudioManager();AtomicInteger stopped=new AtomicInteger();NativeMicBridge[] box=new NativeMicBridge[1];
@@ -59,7 +69,7 @@ before(()=>{
  const compile=spawnSync(compiler[0],[...compiler.slice(1),'-encoding','UTF-8','-d',path.join(directory,'classes'),...actual,...Object.keys(files).map(n=>path.join(directory,n))],{encoding:'utf8',timeout:30000});assert.equal(compile.status,0,compile.stdout+compile.stderr);
 });
 after(()=>{if(directory)fs.rmSync(directory,{recursive:true,force:true});});
-for(const name of ['focus','capture','route','old-api'])test('Audio interruptions: '+name,{skip:!compiler},()=>{
+for(const name of ['focus','playback-focus','capture','route','old-api'])test('Audio interruptions: '+name,{skip:!compiler},()=>{
  const result=spawnSync('java',['-cp',path.join(directory,'classes'),'com.voiceline.app.AudioInterruptionTest',name],{encoding:'utf8',timeout:10000});assert.equal(result.status,0,result.stdout+result.stderr);
 });
 function ui(){

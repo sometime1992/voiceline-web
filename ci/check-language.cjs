@@ -23,8 +23,19 @@ async function leftovers(page){return page.evaluate(()=>{
  }
  return list;
 });}
+async function clippedText(page){return page.evaluate(()=>{
+ const problems=[];
+ const selectors='#menuDialog .menu-tile strong,#menuDialog .menu-tile small,.language-setting label,#modeTitle,.mode-heading-row button,#mainButton,#exerciseControls button,#planDialog .settings-label label,#planDialog .settings-select-value,#planDialog .plan-actions button,#planTitle,.training-result-modal h2';
+ for(const el of document.querySelectorAll(selectors)){
+  const style=getComputedStyle(el),text=el.textContent.trim();
+  if(!text||el.closest('[hidden]')||!el.getClientRects().length||style.display==='none'||style.visibility==='hidden')continue;
+  const horizontal=el.scrollWidth>el.clientWidth+2,vertical=el.scrollHeight>el.clientHeight+2&&['hidden','clip'].includes(style.overflowY);
+  if(horizontal||vertical)problems.push({id:el.id,tag:el.tagName,text,width:el.clientWidth,scrollWidth:el.scrollWidth,height:el.clientHeight,scrollHeight:el.scrollHeight});
+ }
+ return problems;
+});}
 (async()=>{
- await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;const errors=[],leaks=[],checks=[];
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;const errors=[],leaks=[],layoutProblems=[],checks=[];
  try{
   browser=await chromium.launch({headless:true,...(process.env.CHROME_BIN?{executablePath:process.env.CHROME_BIN}:{}),args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
   const page=await browser.newPage({viewport:{width:390,height:844}});page.on('pageerror',e=>errors.push(String(e)));
@@ -34,15 +45,23 @@ async function leftovers(page){return page.evaluate(()=>{
   await page.locator('#menuOpen').click();await page.locator('#appLanguage').selectOption('en');await settle(page);
   assert.equal(await page.locator('html').getAttribute('lang'),'en');assert.equal(await page.evaluate(()=>window.__nativeLanguage),'en');
   const after=await page.evaluate(()=>({...localStorage}));delete after['voiceline-language-v1'];assert.deepEqual(after,before,'language changed saved training settings');
-  leaks.push(...(await leftovers(page)).map(x=>({screen:'menu',...x})));await page.locator('#menuClose').click();
+  leaks.push(...(await leftovers(page)).map(x=>({screen:'menu',...x})));
+  for(const [name,viewport,scale] of [['portrait',{width:390,height:844},16],['compact',{width:360,height:640},16],['landscape',{width:844,height:390},16],['large-text',{width:390,height:844},24]]){
+   await page.setViewportSize(viewport);await page.evaluate(size=>document.documentElement.style.fontSize=size+'px',scale);await settle(page);
+   layoutProblems.push(...(await clippedText(page)).map(x=>({screen:'menu '+name,...x})));await page.screenshot({path:path.join(out,'english-menu-'+name+'.png')});
+  }
+  await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});await page.locator('#menuClose').click();
   await page.reload();await page.waitForSelector('#keyboard .white-key');assert.equal(await page.locator('html').getAttribute('lang'),'en');checks.push('in-app language persists and changes no practice storage');
   for(const mode of ['piano','pitch','record','practice','sustainVoice','earVoice','dynamicVoice','vibrato','warmupVoice','metronome']){
    if(mode!=='piano'){await page.locator('#menuOpen').click();await page.locator('[data-screen="'+mode+'"]').click();}
    await settle(page);
+   layoutProblems.push(...(await clippedText(page)).map(x=>({screen:mode+' default',...x})));
+   await page.screenshot({path:path.join(out,'english-'+mode+'-screen.png')});
    for(const viewport of [{width:390,height:844},{width:844,height:390},{width:360,height:640}]){
     await page.setViewportSize(viewport);await page.evaluate(()=>document.documentElement.style.fontSize='24px');await settle(page);
     leaks.push(...(await leftovers(page)).map(x=>({screen:mode,...x})));
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),mode+' English horizontal page overflow');
+    layoutProblems.push(...(await clippedText(page)).map(x=>({screen:mode+' '+viewport.width+' large text',...x})));
    }
    await page.evaluate(()=>document.documentElement.style.fontSize='');await page.setViewportSize({width:390,height:844});
    await page.locator('#modeGuideButton').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' guide',...x})));await page.locator('#infoClose').click();
@@ -51,7 +70,7 @@ async function leftovers(page){return page.evaluate(()=>{
     await page.locator('#planRecommend').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' recommendations',...x})));
     assert.equal(await page.locator('.recommendation-card').count(),3);
     await page.screenshot({path:path.join(out,'english-'+mode+'-recommendations.png')});
-    await page.locator('[data-recommend-level=intermediate]').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' editor',...x})));await page.locator('#planClose').click();
+    await page.locator('[data-recommend-level=intermediate]').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' editor',...x})));layoutProblems.push(...(await clippedText(page)).map(x=>({screen:mode+' editor',...x})));await page.screenshot({path:path.join(out,'english-'+mode+'-editor.png')});await page.locator('#planClose').click();
    }else assert.equal(await page.locator('#customTimingOpen').count(),0);
    checks.push(mode+' English screen, guide, presets and 150% layouts');
   }
@@ -66,8 +85,9 @@ async function leftovers(page){return page.evaluate(()=>{
    await settle(page);assert.equal(await page.locator('#trainingResultStatus').textContent(),result);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' live/result',...x})));await page.screenshot({path:path.join(out,'english-'+mode+'-result.png')});await page.locator('#trainingResultClose').click();
   }
   await page.locator('#menuOpen').click();await page.locator('#appLanguage').selectOption('ko');await settle(page);assert.equal(await page.locator('#menuTitle').textContent(),'연습 메뉴');await page.locator('#menuClose').click();checks.push('live results, native language handoff, user text preservation and lossless Korean restoration');
-  fs.writeFileSync(path.join(out,'language-report.json'),JSON.stringify({checks,leaks,errors},null,2));
+  fs.writeFileSync(path.join(out,'language-report.json'),JSON.stringify({checks,leaks,layoutProblems,errors},null,2));
   assert.deepEqual(errors,[],'English runtime errors');assert.deepEqual(leaks,[],'Untranslated English UI; see language-report.json');
+  assert.deepEqual(layoutProblems,[],'Clipped English labels; see language-report.json');
   console.log('PASS: '+checks.length+' bilingual integration groups');
  }finally{await browser?.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

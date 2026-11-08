@@ -229,7 +229,7 @@ test('Local32 native startup error terminates training through the shared stop p
   await fail('input failed');assert.equal(finishes,1);assert.equal(h.app.mic,false);assert.equal(h.app.frame,0);
  }
 });
-function playbackHarness(store){
+function playbackHarness(store,audioSession){
  const app={},media=[],notifications=[],graphs=[];let serial=0;
  class Audio{
   constructor(url){this.src=url;this.currentTime=0;this.duration=3;this.paused=true;this.events={};media.push(this)}
@@ -238,7 +238,7 @@ function playbackHarness(store){
   play(){assert.ok(this.src,'must not play a detached audio source');this.paused=false;this.onplay?.();return Promise.resolve()}
  }
  const api=evaluate(chunk('function closeActiveAudio(){','async function safeStopOnBackground(){')+'\n({playLocal,closeActiveAudio})',{
-  app,Audio,store,URL:{createObjectURL:()=> 'blob:'+(++serial),revokeObjectURL(){}},document:{createElement:()=>new Node()},plain,
+  app,Audio,store,window:{VoiceLineAudioSession:audioSession},URL:{createObjectURL:()=> 'blob:'+(++serial),revokeObjectURL(){}},document:{createElement:()=>new Node()},plain,
   performance:{now:()=>0},requestAnimationFrame:()=>1,cancelAnimationFrame(){},notify:s=>notifications.push(s),drawHistoryPitch:(...args)=>graphs.push(args)
  });
  return {app,media,notifications,graphs,...api};
@@ -491,4 +491,24 @@ test('A pending microphone can be cancelled from the primary action without a se
  const pending=h.startMic();assert.equal(h.$('mainButton').textContent,'연결 취소');assert.equal(h.$('mainButton').disabled,false);
  assert.equal(h.$('stopButton').hidden,true);h.cancelMicStart();assert.equal(await pending,false);
  assert.equal(h.$('mainButton').textContent,'연습 시작');assert.equal(h.app.mic,false);
+});
+
+// HTML media uses Chromium's focus client, including native-file WAV playback.
+test('Recording playback hands focus to WebView without issuing a competing native request',async()=>{
+ const calls=[],session={preparePlayback(){calls.push('handoff');return true;},request(){calls.push('native');return true;},release(){calls.push('release');}};
+ const record={id:'native-take',sourceType:'native-file',nativeFileId:'native-take',duration:3};
+ const h=playbackHarness(async()=>record,session),button=new Node(),row=new Node();
+ await h.playLocal(record,button,row);assert.equal(h.app.openAudio.paused,false);assert.deepEqual(calls,['handoff']);
+ await h.playLocal(record,button,row);assert.equal(h.app.openAudio.paused,true);
+ await h.playLocal(record,button,row);assert.equal(h.app.openAudio.paused,false);assert.deepEqual(calls,['handoff','handoff']);
+});
+test('Interrupted playback keeps its position and rejects automatic system resume until a new tap',async()=>{
+ const record={id:'blob-take',blob:new Blob(['voice']),duration:3},h=playbackHarness(async()=>record,{preparePlayback:()=>true});
+ const button=new Node(),row=new Node();await h.playLocal(record,button,row);const audio=h.app.openAudio;audio.currentTime=1.2;
+ audio.pause();await audio.play();assert.equal(audio.paused,true,'focus regain restarted playback');assert.equal(audio.currentTime,1.2);
+ await h.playLocal(record,button,row);assert.equal(audio.paused,false);assert.equal(audio.currentTime,1.2);assert.equal(h.media.length,1);
+});
+test('A refused playback handoff preserves the original recording and releases the transient player',async()=>{
+ const blob=new Blob(['original voice']),record={id:'voice',blob,duration:3},h=playbackHarness(async()=>record,{preparePlayback:()=>false});
+ await h.playLocal(record,new Node(),new Node());assert.equal(h.app.openAudio,null);assert.equal(record.blob,blob);assert.equal(h.media[0].paused,true);
 });

@@ -6,6 +6,8 @@ test('Korean remains the default and unsupported language choices cannot change 
 });
 test('English preserves scientific octaves, numerical results and threshold explanations',()=>{
  assert.equal(i18n.t('C4 · 2옥 도','en'),'C4 · Do');assert.equal(i18n.t('C♯4 · 2옥 도♯','en'),'C♯4 · Do♯');
+ assert.equal(i18n.display('2옥 도♯','solfege','en'),'Do♯');assert.equal(i18n.display('1옥 도 – 2옥 시','range','en'),'C3 – B4');
+ assert.equal(i18n.display('2옥 도','solfege','ko'),'2옥 도');
  assert.equal(i18n.t('측정 부족','en'),'Not enough data');assert.equal(i18n.t('미달성','en'),'Target not met');
  assert.equal(i18n.t('음정 일치율 86% · 발성 커버리지 78% · 유효 발성 7.8초','en'),'Pitch accuracy 86% · Voice coverage 78% · Valid singing 7.8 s');
  assert.equal(i18n.t('2단계 · 발성 유지 · 6초','en'),'Step 2 · Sustain · 6 s');
