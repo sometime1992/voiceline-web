@@ -21,6 +21,7 @@ test('Every feature-specific level exposes English goals, notes and actual recom
   }
  }
  assert.deepEqual(leaks,[]);
+
 });
 test('All vocal result states retain their criteria and missing-note details in English',()=>{
  const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
@@ -39,4 +40,6 @@ test('All vocal result states retain their criteria and missing-note details in 
   model.bins[0][0].voiced=0;check(guide.evaluate(model,true,()=> 'C4 · 2옥 도'));
  }
  assert.deepEqual(leaks,[]);
+ const guides=vm.runInNewContext(chunk('const PITCH_RANGE=','const MODES=')+chunk('function dynamicRuleText(){','function showTrainingResult(')+chunk('const MODE_GUIDES={','function showModeGuide(')+'\nMODE_GUIDES',{});
+ for(const [mode,guide] of Object.entries(guides))assert.doesNotMatch(i18n.t([guide.intro,...guide.steps,'측정·판정: '+guide.rule].join(' '),'en'),/[가-힣]/,mode+' complete help');
 });
