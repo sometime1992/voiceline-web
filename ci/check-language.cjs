@@ -39,7 +39,7 @@ async function clippedText(page){return page.evaluate(()=>{
  try{
   browser=await chromium.launch({headless:true,...(process.env.CHROME_BIN?{executablePath:process.env.CHROME_BIN}:{}),args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
   const page=await browser.newPage({viewport:{width:390,height:844}});page.on('pageerror',e=>errors.push(String(e)));
-  await page.addInitScript(()=>{window.VoiceLinePublicLinks={setLanguage(v){window.__nativeLanguage=v;}};window.VoiceLineNative={start(id){setTimeout(()=>window.VoiceLineNativeAudio.onState('started','',id,44100),0);},stop(){}};});
+  await page.addInitScript(()=>{Object.defineProperty(screen.orientation,'type',{get:()=>innerHeight>=innerWidth?'portrait-primary':'landscape-primary'});window.VoiceLinePublicLinks={setLanguage(v){window.__nativeLanguage=v;}};window.VoiceLineNative={start(id){setTimeout(()=>window.VoiceLineNativeAudio.onState('started','',id,44100),0);},stop(){}};});
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForSelector('#keyboard .white-key');
   const before=await page.evaluate(()=>({...localStorage}));
   await page.locator('#menuOpen').click();await page.locator('#appLanguage').selectOption('en');await settle(page);
@@ -89,5 +89,5 @@ async function clippedText(page){return page.evaluate(()=>{
   assert.deepEqual(errors,[],'English runtime errors');assert.deepEqual(leaks,[],'Untranslated English UI; see language-report.json');
   assert.deepEqual(layoutProblems,[],'Clipped English labels; see language-report.json');
   console.log('PASS: '+checks.length+' bilingual integration groups');
- }finally{await browser?.close();server.close();}
+ }finally{fs.writeFileSync(path.join(out,'language-report.json'),JSON.stringify({checks,leaks,layoutProblems,errors},null,2));await browser?.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

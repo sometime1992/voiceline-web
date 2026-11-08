@@ -60,7 +60,7 @@ let ws;
  proof.previousSequence=await evaluate('({paused:__lastRecordingAudio.paused,time:__lastRecordingAudio.currentTime,events:__recordingEvents})');save();
  assert.ok(proof.previousSequence.paused&&proof.previousSequence.time<1,'Former native-plus-WebView focus sequence did not reproduce the immediate stop');
  proof.checks.push('Former competing audio-focus sequence reproduces an immediate stop on the real Android WebView');
- await reload();await openHistory();await click('.history-row button');
+ await reload();await openHistory();assert.equal(await evaluate('VoiceLineAudioSession.request()'),true);await click('.history-row button');
  await wait('window.__lastRecordingAudio&&!__lastRecordingAudio.paused&&__lastRecordingAudio.currentTime>1.5','uninterrupted native WAV playback');
  proof.continuous=await evaluate('({time:__lastRecordingAudio.currentTime,duration:__lastRecordingAudio.duration,paused:__lastRecordingAudio.paused,events:__recordingEvents})');save();
  assert.equal(Math.round(proof.continuous.duration),seconds);
