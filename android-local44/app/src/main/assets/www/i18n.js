@@ -19,14 +19,16 @@
   if(Object.hasOwn(catalog,clean))output=catalog[clean];
   else if(/^(\d+)세트 수행 · 안내형 워밍업$/.test(clean)){const count=Number(clean.match(/^\d+/)[0]);output=count+' '+(count===1?'set':'sets')+' completed · Guided warm-up';}
   else{
-   output=clean.replace(/^전체\s+(?=\d)/,'Total ').replace(/음정 측정 (?=\d+개)/g,'Pitch samples ')
+   output=clean.replace(/^전체\s*(?=\d)/,'Total ').replace(/음정 측정 (\d+)개 \/ 최소 (\d+)개/g,'Pitch samples $1 / at least $2 samples')
     .replace(/([A-G][♯♭#b]?-?\d+)\s*·\s*-?\d+옥\s*([도레미파솔라시])([♯♭]?)/g,(_,note,s,acc)=>note+' · '+solfege[s]+acc)
+    .replace(/(\d+)번째\s+(?=[A-G][♯♭#b]?-?\d)/g,'Note $1 ').replace(/(\d+)마디째/g,'Bar $1')
+    .replace(/\b(1|2|4|8|16|32|64)분음표/g,(_,n)=>({'1':'Whole','2':'Half','4':'Quarter','8':'Eighth','16':'Sixteenth','32':'Thirty-second','64':'Sixty-fourth'})[n]+' note')
     .replace(matcher,key=>catalog[key])
     .replace(/(-?\d+)옥\s*([도레미파솔라시])([♯♭]?)/g,(_,oct,s,acc)=>solfege[s]+acc+' (octave '+(Number(oct)+2)+')')
     .replace(/(\d+)번째\s*음/g,'Note $1').replace(/(\d+)번째\s*청음/g,'Ear-training note $1')
     .replace(/(\d+)(?:단계|Step|steps)/g,'Step $1').replace(/(\d+)(?:회차|round)/g,'Round $1')
     .replace(/(\d+(?:\.\d+)?)초/g,'$1 s').replace(/(\d+)세트/g,'$1 sets').replace(/(\d+)회/g,'$1 reps')
-    .replace(/(\d+)개/g,'$1').replace(/(\d+)박/g,'Beat $1').replace(/(\d+)분/g,'$1 min').replace(/(\d+)음/g,'$1 notes');
+    .replace(/(\d+)개/g,'$1').replace(/(\d+)박/g,'Beat $1').replace(/(\d+)분/g,'$1 min').replace(/(\d+)음/g,'$1 notes').replace(/(\d+)곳/g,'$1 sections');
    // Single-syllable labels are only replaced as separate words; never inside
    // an unknown phrase or a name. Vowels use AH / EH / EE / OH / OO.
    output=output.replace(/(^|[\s·→(])([아에이오우도레미파솔라시초음약중강회분박])(?=$|[\s·→)%])/g,

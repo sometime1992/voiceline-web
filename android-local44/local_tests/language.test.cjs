@@ -22,3 +22,21 @@ test('Every feature-specific level exposes English goals, notes and actual recom
  }
  assert.deepEqual(leaks,[]);
 });
+test('All vocal result states retain their criteria and missing-note details in English',()=>{
+ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+ const js=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/www/piano.js'),'utf8');
+ const chunk=(a,b)=>js.slice(js.indexOf(a),js.indexOf(b,js.indexOf(a)));
+ const guide=require('../app/src/main/assets/www/guide-training.js');
+ const evaluate=vm.runInNewContext(chunk('const PITCH_RANGE=','const MODES=')+chunk('function trainingEvaluation(a,completed){','function showTrainingResult(')+'\ntrainingEvaluation',{window:{VoiceLineGuideTraining:guide},noteLabel:()=> 'C4 · 2옥 도'});
+ const leaks=[];
+ function check(result){for(const field of ['status','rule','reason']){const output=i18n.t(result[field],'en');if(/[가-힣]/.test(output))leaks.push({field,source:result[field],output});}}
+ for(const mode of ['sustainVoice','earVoice','dynamicVoice','vibrato','warmupVoice'])for(const completed of [true,false])for(const valid of [0,100])for(const good of [64,65]){
+  check(evaluate({mode,duration:8000,valid,good,voicedMs:valid?8000:0,answerVoicedMs:valid?6400:0,earNotes:[60,62],earAnswerMs:3200,validMs:valid?8000:0,estimate:{rate:5,depth:30},phaseLevels:{},phaseCounts:{},phaseVoicedMs:{}},completed));
+ }
+ for(const pattern of ['triad','vowelFive','smooth5']){
+  const model=guide.create({pattern,root:60,rounds:1},0);check(guide.evaluate(model,true,()=> 'C4 · 2옥 도'));
+  for(const b of model.bins.flat())b.voiced=b.expected;model.valid=200;model.voicedMs=model.responseMs;model.goodMs=model.voicedMs*.64;check(guide.evaluate(model,true));
+  model.bins[0][0].voiced=0;check(guide.evaluate(model,true,()=> 'C4 · 2옥 도'));
+ }
+ assert.deepEqual(leaks,[]);
+});
