@@ -1,5 +1,5 @@
 name: VoiceLine Local84 exact recording playback
-# Observe focus callbacks and actual background visibility before continuing.
+# Verify focus, visible/background transitions and the full unchanged WAV bytes.
 
 on:
   push:
