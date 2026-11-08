@@ -17,6 +17,7 @@
   if(cache.has(text))return cache.get(text);
   const clean=normalize(text);let output;
   if(Object.hasOwn(catalog,clean))output=catalog[clean];
+  else if(/^(\d+)세트 수행 · 안내형 워밍업$/.test(clean)){const count=Number(clean.match(/^\d+/)[0]);output=count+' '+(count===1?'set':'sets')+' completed · Guided warm-up';}
   else{
    output=clean.replace(/^전체\s+(?=\d)/,'Total ').replace(/음정 측정 (?=\d+개)/g,'Pitch samples ')
     .replace(/([A-G][♯♭#b]?-?\d+)\s*·\s*-?\d+옥\s*([도레미파솔라시])([♯♭]?)/g,(_,note,s,acc)=>note+' · '+solfege[s]+acc)
@@ -25,7 +26,7 @@
     .replace(/(\d+)번째\s*음/g,'Note $1').replace(/(\d+)번째\s*청음/g,'Ear-training note $1')
     .replace(/(\d+)(?:단계|Step|steps)/g,'Step $1').replace(/(\d+)(?:회차|round)/g,'Round $1')
     .replace(/(\d+(?:\.\d+)?)초/g,'$1 s').replace(/(\d+)세트/g,'$1 sets').replace(/(\d+)회/g,'$1 reps')
-    .replace(/(\d+)개/g,'$1').replace(/(\d+)박/g,'Beat $1').replace(/(\d+)분/g,'$1 min');
+    .replace(/(\d+)개/g,'$1').replace(/(\d+)박/g,'Beat $1').replace(/(\d+)분/g,'$1 min').replace(/(\d+)음/g,'$1 notes');
    // Single-syllable labels are only replaced as separate words; never inside
    // an unknown phrase or a name. Vowels use AH / EH / EE / OH / OO.
    output=output.replace(/(^|[\s·→(])([아에이오우도레미파솔라시초음약중강회분박])(?=$|[\s·→)%])/g,

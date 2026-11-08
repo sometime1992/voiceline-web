@@ -9,6 +9,8 @@ test('English preserves scientific octaves, numerical results and threshold expl
  assert.equal(i18n.t('측정 부족','en'),'Not enough data');assert.equal(i18n.t('미달성','en'),'Target not met');
  assert.equal(i18n.t('음정 일치율 86% · 발성 커버리지 78% · 유효 발성 7.8초','en'),'Pitch accuracy 86% · Voice coverage 78% · Valid singing 7.8 s');
  assert.equal(i18n.t('2단계 · 발성 유지 · 6초','en'),'Step 2 · Sustain · 6 s');
+ assert.equal(i18n.t('같은 음 반복 · 3음','en'),'Repeat same note · 3 notes');
+ assert.equal(i18n.t('1세트 수행 · 안내형 워밍업','en'),'1 set completed · Guided warm-up');
  const threshold=i18n.t('각 모음의 각 음 20% 이상 (음 시작 0.28초 제외)','en');assert.doesNotMatch(threshold,/[가-힣]/);assert.match(threshold,/20%/);assert.match(threshold,/0\.28 s/);
 });
 test('Every feature-specific level exposes English goals, notes and actual recommended values',()=>{
