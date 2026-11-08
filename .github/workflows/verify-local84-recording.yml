@@ -1,0 +1,93 @@
+name: VoiceLine Local84 exact recording playback
+
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/verify-local84-recording.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recording:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      QEMU_AUDIO_DRV: alsa
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Reuse the exact tested Local84 APK
+        run: |
+          gh run download 42447338558 --repo "$GH_REPO" --name VoiceLine-Local84-APKs --dir dist
+          git fetch --depth=1 origin 2f9587c629bb1c39b81c06df59eef2336850bac0
+          git diff --exit-code 2f9587c629bb1c39b81c06df59eef2336850bac0 HEAD -- android-local44
+          python3 - <<'PY'
+          import hashlib,json,zipfile
+          from pathlib import Path
+          apk=Path('dist/VoiceLine-Local84-CI.apk')
+          info=json.loads(Path('dist/APK_LABEL_VERIFIED.json').read_text())
+          assert info['source_commit']=='2f9587c629bb1c39b81c06df59eef2336850bac0'
+          assert info['version_code']==105 and info['version_name']=='2.0.0-local84-ci'
+          assert info['certificate_sha256']==Path('ci/android-debug-cert.sha256').read_text().strip()
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==info['apk_sha256']=='a33686723b41b7ec6e54e5562b621af71015f5cab87f9eb5ebf455271d6dc220'
+          with zipfile.ZipFile(apk) as z:
+              assert z.testzip() is None
+              for p in Path('android-local44/app/src/main/assets').rglob('*'):
+                  if p.is_file():assert p.read_bytes()==z.read('assets/'+p.relative_to('android-local44/app/src/main/assets').as_posix())
+          PY
+      - name: Provide a clocked audio output for playback testing
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pulseaudio libasound2-plugins
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=voiceline_ci rate=44100 channels=2
+          pactl set-default-sink voiceline_ci
+          cat > "$HOME/.asoundrc" <<'ALSA'
+          pcm.!default { type pulse }
+          ctl.!default { type pulse }
+          ALSA
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify real WebView recording playback
+        timeout-minutes: 7
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb shell wm size 1080x1920
+            adb shell wm density 420
+            adb shell wm user-rotation lock 0
+            adb install -r dist/VoiceLine-Local84-CI.apk
+            adb logcat -c
+            node ci/check-android-recording.cjs; playback_result=$?; adb logcat -d -t 2000 > android-smoke/recording-logcat.txt; adb exec-out screencap -p > android-smoke/recording-final.png; exit "$playback_result"
+      - name: Keep exact APK recording verification
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: VoiceLine-Local84-Recording-Verified
+          path: android-smoke/
+          retention-days: 7
+          if-no-files-found: error
