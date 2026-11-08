@@ -19,7 +19,9 @@ concurrency:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    name: Android package and bilingual checks
+    # Keep the Android SDK, Chrome and KVM image stable across language builds.
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
       VOICELINE_CI_KEYSTORE: ${{ github.workspace }}/.ci-signing/debug.keystore
