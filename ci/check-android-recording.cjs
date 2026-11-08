@@ -56,12 +56,14 @@ let ws;
  // Restore the exact native bridge after the legacy sequence. Do not reload
  // between trials: a slow Android navigation can otherwise accept stale DOM.
  await evaluate('(()=>{const native=window.VoiceLineAudioSession;window.__originalNativeSession=native;window.VoiceLineAudioSession={request:()=>native.request(),release:()=>native.release(),preparePlayback:()=>native.request()};})()');
- await click('.history-row button');await sleep(2200);
+ await click('.history-row button');
+ await wait('window.__lastRecordingAudio?.paused&&window.__recordingEvents.some(e=>e.type==="focus-interruption")','legacy competing-focus interruption');
  proof.previousSequence=await evaluate('({paused:__lastRecordingAudio.paused,time:__lastRecordingAudio.currentTime,events:__recordingEvents})');save();
  assert.ok(proof.previousSequence.paused&&proof.previousSequence.time<1,'Former native-plus-WebView focus sequence did not reproduce the immediate stop');
  assert.ok(proof.previousSequence.events.some(e=>e.type==='focus-interruption'),'The legacy stop must come from the competing native focus request');
  proof.checks.push('Former competing audio-focus sequence reproduces an immediate stop on the real Android WebView');
  await evaluate('window.VoiceLineAudioSession=window.__originalNativeSession;window.__lastRecordingAudio=null;window.__recordingEvents=[]');
+ await wait('window.VoiceLineAudioSession.preparePlayback()===true','native interruption cleanup');
  if(await evaluate('document.querySelector("#infoDialog").hidden'))await openHistory();
  assert.equal(await evaluate('VoiceLineAudioSession.request()'),true);await click('.history-row button');
  await wait('window.__lastRecordingAudio&&!__lastRecordingAudio.paused&&__lastRecordingAudio.currentTime>1.5','uninterrupted native WAV playback');
