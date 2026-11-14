@@ -1,4 +1,4 @@
-name: VoiceLine Local84 exact recording playback
+name: VoiceLine Local85 exact APK verification
 # Verify focus, visible/background transitions and the full unchanged WAV bytes.
 
 on:
@@ -31,25 +31,28 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Reuse the exact tested Local84 APK
+      - name: Reuse the exact tested Local85 APK
         run: |
-          gh run download 42447338558 --repo "$GH_REPO" --name VoiceLine-Local84-APKs --dir dist
-          git fetch --depth=1 origin 2f9587c629bb1c39b81c06df59eef2336850bac0
-          git diff --exit-code 2f9587c629bb1c39b81c06df59eef2336850bac0 HEAD -- android-local44
+          gh run download 43617282643 --repo "$GH_REPO" --name VoiceLine-Local85-APKs --dir dist
+          git fetch --depth=1 origin 164d67572956c121533e5d478aab12181cb0cdfc
+          git diff --exit-code 164d67572956c121533e5d478aab12181cb0cdfc HEAD -- android-local44
           python3 - <<'PY'
           import hashlib,json,zipfile
           from pathlib import Path
-          apk=Path('dist/VoiceLine-Local84-CI.apk')
+          apk=Path('dist/VoiceLine-Local85-CI.apk')
           info=json.loads(Path('dist/APK_LABEL_VERIFIED.json').read_text())
-          assert info['source_commit']=='2f9587c629bb1c39b81c06df59eef2336850bac0'
-          assert info['version_code']==105 and info['version_name']=='2.0.0-local84-ci'
+          assert info['source_commit']=='164d67572956c121533e5d478aab12181cb0cdfc'
+          assert info['version_code']==107 and info['version_name']=='2.0.0-local85-ci'
           assert info['certificate_sha256']==Path('ci/android-debug-cert.sha256').read_text().strip()
-          assert hashlib.sha256(apk.read_bytes()).hexdigest()==info['apk_sha256']=='a33686723b41b7ec6e54e5562b621af71015f5cab87f9eb5ebf455271d6dc220'
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()==info['apk_sha256']=='2cc88c7db22f66df59db6ba8dc77060c2cc23ade598841b044a395a493a92bad'
           with zipfile.ZipFile(apk) as z:
               assert z.testzip() is None
               for p in Path('android-local44/app/src/main/assets').rglob('*'):
                   if p.is_file():assert p.read_bytes()==z.read('assets/'+p.relative_to('android-local44/app/src/main/assets').as_posix())
           PY
+          mkdir -p release-review
+          curl --fail --location --retry 3 --output release-review/previous-Local77-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local77-ci/VoiceLine-Local77-CI.apk
+          echo '1b79448b9e5910bd7758411b1409dcc22bfd79bc582d130dec232f7381a5bdf9  release-review/previous-Local77-CI.apk' | sha256sum --check
       - name: Provide a clocked audio output for playback testing
         run: |
           sudo apt-get update -qq
@@ -81,14 +84,14 @@ jobs:
             adb shell wm size 1080x1920
             adb shell wm density 420
             adb shell wm user-rotation lock 0
-            adb install -r dist/VoiceLine-Local84-CI.apk
+            python3 scripts/verify-ci-apk-update.py
             adb logcat -c
             node ci/check-android-recording.cjs; playback_result=$?; adb logcat -d -t 2000 > android-smoke/recording-logcat.txt; adb exec-out screencap -p > android-smoke/recording-final.png; exit "$playback_result"
       - name: Keep exact APK recording verification
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: VoiceLine-Local84-Recording-Verified
+          name: VoiceLine-Local85-Recording-Verified
           path: android-smoke/
           retention-days: 7
           if-no-files-found: error
