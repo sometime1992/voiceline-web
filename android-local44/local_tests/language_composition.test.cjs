@@ -58,6 +58,7 @@ test('Every actual pitch pattern localizes live positions, interrupted summaries
   // More than six missing notes exercises the "and N more sections" suffix.
   for(const bin of model.bins.flat().slice(0,8))bin.voiced=0;
   const result=guide.evaluate(model,true,settings.noteLabel);translated(result.reason);translated(result.metrics);
+  if(result.reason.includes('구간별 발성 부족'))assert.match(english(result.reason),/Insufficient voice coverage in \d+ sections?/);
  }
 });
 
