@@ -103,3 +103,20 @@ test('App-owned native microphone, file and interruption messages have English t
   }
  }
 });
+
+test('Changing language redraws cached recording graph labels without restarting playback',()=>{
+ const original=i18n.language,backgrounds=[];
+ const context=()=>({text:[],setTransform(){},fillRect(){},clearRect(){},setLineDash(){},beginPath(){},stroke(){},moveTo(){},lineTo(){},drawImage(){},fillText(text){this.text.push(text);}});
+ const document={createElement(){const ctx=context();backgrounds.push(ctx);return {getContext:()=>ctx};}};
+ const target=context(),canvas={ownerDocument:document,getBoundingClientRect:()=>({width:600,height:120}),getContext:()=>target};
+ const host={VoiceLineI18n:i18n};vm.runInNewContext(fs.readFileSync(web+'/recording-tools.js','utf8'),host);
+ const track=[[0,60],[250,62],[500,72]];
+ try{
+  for(const language of ['ko','en','ko']){
+   i18n.setLanguage(language);host.VoiceLineRecordingTools.drawPitch(canvas,track,.5,.25,settings.noteLabel);
+   const labels=backgrounds.at(-1).text.join(' ');
+   if(language==='en')assert.doesNotMatch(labels,/[가-힣]/);else assert.match(labels,/[가-힣]/);
+  }
+  assert.equal(backgrounds.length,3,'each language change must invalidate the translated background');
+ }finally{i18n.setLanguage(original);}
+});

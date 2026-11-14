@@ -47,9 +47,9 @@
  const pitchCache=new WeakMap();
  function drawPitch(canvas,track,duration,position,noteLabel=String){
   const box=canvas.getBoundingClientRect();if(box.width<80||box.height<30)return;
-  const dpr=Math.min(root.devicePixelRatio||1,2),w=box.width,h=box.height,seconds=durationSeconds(duration);
+  const dpr=Math.min(root.devicePixelRatio||1,2),w=box.width,h=box.height,seconds=durationSeconds(duration),language=root.VoiceLineI18n?.language||'ko';
   let cached=pitchCache.get(canvas);
-  if(!cached||cached.track!==track||cached.count!==track.length||cached.seconds!==seconds||cached.w!==w||cached.h!==h||cached.dpr!==dpr){
+  if(!cached||cached.track!==track||cached.count!==track.length||cached.seconds!==seconds||cached.w!==w||cached.h!==h||cached.dpr!==dpr||cached.language!==language){
    const doc=canvas.ownerDocument||root.document;if(!doc)return;
    const background=doc.createElement('canvas');background.width=Math.round(w*dpr);background.height=Math.round(h*dpr);
    const ctx=background.getContext('2d');if(!ctx)return;
@@ -72,7 +72,7 @@
     ctx.strokeStyle='#d6aaff';ctx.lineWidth=2;ctx.stroke();
    }
    ctx.font='10px system-ui';ctx.fillStyle='#c5cede';ctx.textAlign='left';ctx.fillText((globalThis.VoiceLineI18n?.t('0:00')??('0:00')),left,h-5);ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t(formatTime(seconds))??(formatTime(seconds))),right,h-5);
-   cached={track,count:track.length,seconds,w,h,dpr,background,left,right,top,bottom};pitchCache.set(canvas,cached);
+   cached={track,count:track.length,seconds,w,h,dpr,language,background,left,right,top,bottom};pitchCache.set(canvas,cached);
   }
   const width=Math.round(w*dpr),height=Math.round(h*dpr);if(canvas.width!==width)canvas.width=width;if(canvas.height!==height)canvas.height=height;
   const ctx=canvas.getContext('2d');if(!ctx)return;
