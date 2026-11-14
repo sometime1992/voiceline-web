@@ -17,9 +17,9 @@ async function leftovers(page){return page.evaluate(()=>{
   const p=node.parentElement;if(!p||p.closest('script,style,[hidden],[data-i18n-ignore],textarea')||!p.getClientRects().length)continue;
   if(/[가-힣]/.test(node.nodeValue))list.push({text:node.nodeValue.trim(),source:window.VoiceLineI18n.originalText(node),id:p.id,tag:p.tagName});
  }
- for(const el of document.querySelectorAll('[aria-label],[title],[placeholder]')){
+ for(const el of document.querySelectorAll('[aria-label],[aria-valuetext],[title],[placeholder],[alt]')){
   if(el.closest('[hidden],[data-i18n-ignore]')||!el.getClientRects().length)continue;
-  for(const attr of ['aria-label','title','placeholder'])if(/[가-힣]/.test(el.getAttribute(attr)||''))list.push({attr,text:el.getAttribute(attr),id:el.id});
+  for(const attr of ['aria-label','aria-valuetext','title','placeholder','alt'])if(/[가-힣]/.test(el.getAttribute(attr)||''))list.push({attr,text:el.getAttribute(attr),id:el.id});
  }
  return list;
 });}
@@ -34,6 +34,14 @@ async function clippedText(page){return page.evaluate(()=>{
  }
  return problems;
 });}
+async function inspectLiveResult(page,mode,leaks){
+ const result=page.locator('#trainingResultDialog'),deadline=Date.now()+10000;
+ while(!await result.isVisible()){
+  assert.ok(Date.now()<deadline,mode+' timed English result did not complete');
+  await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' live phase',...x})));
+  await page.waitForTimeout(100);
+ }
+}
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;const errors=[],leaks=[],layoutProblems=[],checks=[];
  try{
@@ -76,15 +84,24 @@ async function clippedText(page){return page.evaluate(()=>{
    checks.push(mode+' English screen, guide, presets and 150% layouts');
   }
   for(const screen of ['help','privacy','history']){await page.locator('#menuOpen').click();await page.locator('[data-screen="'+screen+'"]').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen,...x})));await page.locator('#infoClose').click();}
+  await page.locator('#menuOpen').click();await page.locator('#openRoutines').click();await settle(page);
+  leaks.push(...(await leftovers(page)).map(x=>({screen:'routine overview',...x})));
+  await page.locator('#planRecommend').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:'routine presets',...x})));
+  await page.locator('[data-recommend-level=intermediate]').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:'routine builder',...x})));
+  await page.locator('#planRun').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:'routine review',...x})));await page.locator('#planClose').click();
+  checks.push('English routine presets, builder and review');
   // A title that happens to equal a UI translation key is still user content.
   await page.evaluate(()=>{const e=document.createElement('strong');e.id='languageUserProbe';e.dataset.i18nIgnore='';e.textContent='성공 · 나의 루틴';document.body.append(e);});await settle(page);assert.equal(await page.locator('#languageUserProbe').textContent(),'성공 · 나의 루틴');await page.locator('#languageUserProbe').evaluate(e=>e.remove());
   await page.evaluate(()=>{const p=JSON.parse(localStorage.getItem('voiceline-plans-v1'));for(const mode of ['vibrato','sustainVoice','dynamicVoice'])p.settings[mode]={seconds:mode==='dynamicVoice'?4:1,rounds:1,reference:0,breath:0,rest:0};p.settings.practice={rounds:1};p.settings.earVoice={rounds:1,listen:.5,answer:.5,breath:0,noteRest:0,rest:0};p.settings.warmupVoice={rounds:1,prepare:0};localStorage.setItem('voiceline-plans-v1',JSON.stringify(p));const t=JSON.parse(localStorage.getItem('voiceline-training-v1'));Object.assign(t,{rounds:1,sustainSeconds:1,dynamicSeconds:4,earCount:3,earPattern:'same',dynamicPattern:'steady',warmup:{inhale:1,exhale:1,hum:1,rest:0,cues:false}});localStorage.setItem('voiceline-training-v1',JSON.stringify(t));const g=JSON.parse(localStorage.getItem('voiceline-unified-practice-v1'));Object.assign(g,{pattern:'three',rounds:1,noteSeconds:.5,listenFirst:false,prepareSeconds:0,breathSeconds:0,restSeconds:0});localStorage.setItem('voiceline-unified-practice-v1',JSON.stringify(g));});
   await page.reload();await page.waitForSelector('#keyboard .white-key');
   for(const [mode,result]of [['practice','Not enough data'],['sustainVoice','Not enough data'],['earVoice','Not enough data'],['dynamicVoice','Not enough data'],['vibrato','Not enough data'],['warmupVoice','Success']]){
    await page.locator('#menuOpen').click();await page.locator('[data-screen="'+mode+'"]').click();await page.locator('#mainButton').click();
-   try{await page.locator('#trainingResultDialog').waitFor({state:'visible',timeout:10000});}catch(error){console.error('English timed result did not complete',mode,await page.evaluate(()=>({button:document.querySelector('#mainButton').textContent,message:document.querySelector('#modeMessage').textContent,banner:document.querySelector('#planBannerText').textContent,timing:window.VoiceLinePlansUI.timing(document.querySelector('#app').dataset.mode)})));await page.screenshot({path:path.join(out,'english-'+mode+'-failure.png')});throw error;}
+   try{await inspectLiveResult(page,mode,leaks);}catch(error){console.error('English timed result did not complete',mode,await page.evaluate(()=>({button:document.querySelector('#mainButton').textContent,message:document.querySelector('#modeMessage').textContent,banner:document.querySelector('#planBannerText').textContent,timing:window.VoiceLinePlansUI.timing(document.querySelector('#app').dataset.mode)})));await page.screenshot({path:path.join(out,'english-'+mode+'-failure.png')});throw error;}
    await settle(page);assert.equal(await page.locator('#trainingResultStatus').textContent(),result);leaks.push(...(await leftovers(page)).map(x=>({screen:mode+' live/result',...x})));await page.screenshot({path:path.join(out,'english-'+mode+'-result.png')});await page.locator('#trainingResultClose').click();
   }
+  await page.evaluate(()=>{const key='voiceline-unified-practice-v1',g=JSON.parse(localStorage.getItem(key));Object.assign(g,{pattern:'vowelTriad',rounds:1,noteSeconds:.1,listenFirst:false,prepareSeconds:0,breathSeconds:.3,restSeconds:.1});localStorage.setItem(key,JSON.stringify(g));});
+  await page.reload();await page.waitForSelector('#keyboard .white-key');await page.locator('#menuOpen').click();await page.locator('[data-screen=practice]').click();await page.locator('#mainButton').click();
+  await inspectLiveResult(page,'all five vowels',leaks);await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:'vowel result and summary',...x})));await page.screenshot({path:path.join(out,'english-vowels-result.png')});await page.locator('#trainingResultClose').click();checks.push('every live countdown phase and all five vowel instructions');
   await page.locator('#menuOpen').click();await page.locator('#appLanguage').selectOption('ko');await settle(page);assert.equal(await page.locator('#menuTitle').textContent(),'연습 메뉴');await page.locator('#menuClose').click();checks.push('live results, native language handoff, user text preservation and lossless Korean restoration');
   fs.writeFileSync(path.join(out,'language-report.json'),JSON.stringify({checks,leaks,layoutProblems,errors},null,2));
   assert.deepEqual(errors,[],'English runtime errors');assert.deepEqual(leaks,[],'Untranslated English UI; see language-report.json');

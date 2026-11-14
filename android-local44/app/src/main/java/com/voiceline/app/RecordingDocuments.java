@@ -37,9 +37,9 @@ public final class RecordingDocuments implements NativeMicBridge.DocumentActions
     }
     @Override public void abort(String job){if(transfers!=null)transfers.forget(job,true);}
     private static String safeName(String name,String extension) {
-        String safe=name==null?"목소리 녹음":name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]","_").trim();
+        String safe=name==null?AppLanguage.pick("목소리 녹음","Voice recording"):name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]","_").trim();
         safe=safe.replaceFirst("(?i)\\.(wav|webm|m4a|mp4|ogg|mp3)$","");
-        if(safe.isEmpty())safe="목소리 녹음";
+        if(safe.isEmpty())safe=AppLanguage.pick("목소리 녹음","Voice recording");
         return safe.substring(0,Math.min(80,safe.length()))+"."+extension;
     }
     @Override public void open(String operation,String source,String name,String suppliedMime,String job) {
