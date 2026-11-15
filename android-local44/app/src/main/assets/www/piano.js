@@ -3048,6 +3048,7 @@ function showHelp(){
   ['피아노 음원 및 저작권','피아노 연주 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT). 그랜드 피아노 녹음: Salamander Grand Piano / Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 음원과 라이브러리는 APK에 포함되어 오프라인에서도 연주할 수 있습니다.'],
   ['통화와 오디오 중단','통화·다른 앱의 오디오 사용·마이크 연결 장치 변경으로 입력이 중단되면 연습과 채점을 멈추고 진행 중인 녹음을 저장합니다. 사용자가 마이크 권한을 허용하는 창은 시작 과정으로 처리합니다. 중단 원인이 사라져도 자동으로 다시 시작하지 않으며 시작 버튼을 눌러 재개합니다.'],
   ['마이크와 피아노 소리','피아노와 메트로놈 소리가 마이크에 들어가면 음정·박자 판정에 영향을 줄 수 있습니다. 이어폰을 권장합니다. 마이크를 끄거나 앱을 벗어나면 활동을 종료하고 녹음을 저장합니다. 음정 측정에는 기기 입력 지연과 주변 소음의 영향이 있을 수 있습니다.'],
+  ['녹음 공유와 저작권','직접 제작했거나 필요한 이용 허락을 받은 녹음만 공개 공유하세요. 녹음에 포함된 곡·가사·반주의 권리는 별도로 확인해야 합니다.'],
   ['주의','목이 아프거나 어지러우면 중단하세요. 측정은 참고용이며 의료적 진단이 아닙니다.']
  );
  for(const [title,body] of sections){plain(b,'h3','',title);plain(b,'p','',body);}
@@ -3059,7 +3060,9 @@ function showOpenSourceLicenses(){
  $('infoTitle').textContent='오픈소스 라이선스';const b=$('infoBody');b.replaceChildren();
  const back=plain(b,'button','privacy-policy-help','사용법으로 돌아가기');back.type='button';back.onclick=showHelp;
  for(const notice of window.VoiceLineThirdPartyNotices||[]){
-  plain(b,'h3','',notice.name+' · '+notice.license);plain(b,'p','',notice.source);plain(b,'pre','license-text',notice.text);
+  const heading=plain(b,'h3','',notice.name+' · '+notice.license);heading.dataset.i18nIgnore='';
+  const source=plain(b,'p','',notice.source);source.dataset.i18nIgnore='';
+  const text=plain(b,'pre','license-text',notice.text);text.dataset.i18nIgnore='';
  }
  modalOpen('infoDialog');
 }

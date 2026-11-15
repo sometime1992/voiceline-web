@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-11-15",
+  "application": "VoiceLine Local86",
+  "assets": [
+    {
+      "path": "vendor/salamander/C1v8.mp3",
+      "sha256": "eca440cecae64d3665235abc0001a1d2ec9e2717ef772268755115ba80acb785",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds1v8.mp3",
+      "sha256": "2675110d0f94adfafdd66a0c6d273c6897ccfc0f7419762e9c61590e01a9a690",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs1v8.mp3",
+      "sha256": "9e908e308a21501ca3cd936d22922a83041674a1076528a137a31135d1b0d1a1",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A1v8.mp3",
+      "sha256": "ed415a636cd1ac0f461f55ab3997be6fa1f9877728077a91b89b1114e4339ae2",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/C2v8.mp3",
+      "sha256": "41664af78045c416e98c990d0bab0b6c26c61da63e2a7d62d6dd4dafc5a82167",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds2v8.mp3",
+      "sha256": "acd6c32d9a88675c1ae326f14727aae0a3667cc70f9ef7a39b6bc5c1a3a0342c",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs2v8.mp3",
+      "sha256": "710685dd1a82b0dfa849c0056b50f4e6836c818c393e582b3c07ff17ddcacd04",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A2v8.mp3",
+      "sha256": "ea3b12700be31a2d7fa1db672ced04802368f75f08162ce3afd20ee2c56b6b1e",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/C3v8.mp3",
+      "sha256": "790bf54430365989ae14fad704264a46bce4baedced5298d6d700a1d3c7600c6",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds3v8.mp3",
+      "sha256": "dcca048dc25de903f86efddfac6b4320597deb4f300cea70f215dd1d900cdca6",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs3v8.mp3",
+      "sha256": "e632f2dc532a3158693c026b93698c8ed6c6fc03c9854bb75c887542cef118da",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A3v8.mp3",
+      "sha256": "298d319fca1ca6934ea5b07d7100002f8dfdbf8cf36fa068c8df8b5a9eb49c13",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/C4v8.mp3",
+      "sha256": "497464f6d8e0455c6b72b35bf7fed1bbd14a382b90bb389c3c88ebf9ffc8a566",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds4v8.mp3",
+      "sha256": "423aeb40f9719f32892eb313236b56e39a363e13616fccc7f721ab0427eb9150",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs4v8.mp3",
+      "sha256": "eefc4e8bc71867c06dbb5c926bff50ccde942d19ee885e958ec110186cf631b1",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A4v8.mp3",
+      "sha256": "c5270f435ab7100e6fa4a363d985b7a41ab1c20ea0d12dd8fc1106e7e753cd7c",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/C5v8.mp3",
+      "sha256": "9748a6d4668a571291983c3dbe3907cb3597a17f33cdb63672f25043c685b028",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds5v8.mp3",
+      "sha256": "88ed771278770d796255976303d3645252f2b4299cf865df51d8e9ad44df84d1",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs5v8.mp3",
+      "sha256": "7a0830da67ed80a322f9bd3718ef0050c8ba8a4588f7f33599b1719ad0fbdb67",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A5v8.mp3",
+      "sha256": "4d8c5386a638ec0fd1f70081bf4b51cae2b8f6acf7ffc849052c37bb49da142c",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/C6v8.mp3",
+      "sha256": "583f570482c22e94fe37df0e31cadb005ba9f9ce742cc465311ba06c235d994d",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds6v8.mp3",
+      "sha256": "fecea39137ab19a7a45a5fe97e9b338eddbab7bd9bb15746cf185f49ddcfa4e9",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs6v8.mp3",
+      "sha256": "f6dd2f92614e9e07f10e0928f31ec887f6f5540952a2991b478d824ad3ffb087",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A6v8.mp3",
+      "sha256": "1b9106440f720f7120c7ef723e4b8c95bb887e4b3d3d57d6f84bf56d34ec9535",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/C7v8.mp3",
+      "sha256": "86faf0061f6aa4e47c8b50a656650bc3a274dbd3281668fcdd7bdebec9eaf9ec",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Ds7v8.mp3",
+      "sha256": "93af8aeafe102ac69c7ccfc447589a118392b4eb37d3a03cecc222cab8842d44",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/Fs7v8.mp3",
+      "sha256": "47ded87b96753c7f763b2f70ee777fd406fb369e0e29d957375a07e8c91bbcc6",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "vendor/salamander/A7v8.mp3",
+      "sha256": "08d8de462746153691f3ce4b3d822633713a324960f8861a172d46ffbe1bb02a",
+      "creator": "Alexander Holm",
+      "license": "CC-BY-3.0",
+      "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
+      "changes": "Playback pitch, gain and envelope changes; original MP3 bytes retained."
+    },
+    {
+      "path": "icon-192.png",
+      "sha256": "4e06e98a6f4222c16ab256c17374f311f42966caab85a1a62fc7640243d9b789",
+      "creator": null,
+      "license": null,
+      "source": "User-selected image recorded in Local22 change history.",
+      "rightsEvidenceStatus": "pending_original_creation_or_permission_record"
+    },
+    {
+      "path": "icon-512.png",
+      "sha256": "a3928133a72fdb8a37b771f5a19002a6a27b144939d4b536c0f4a8b18ad1b56c",
+      "creator": null,
+      "license": null,
+      "source": "User-selected image recorded in Local22 change history.",
+      "rightsEvidenceStatus": "pending_original_creation_or_permission_record"
+    },
+    {
+      "path": "favicon.png",
+      "sha256": "f40c459028abbfb5d36890946d33d2f096915435ad02033fcef5d3682e044b58",
+      "creator": null,
+      "license": null,
+      "source": "User-selected image recorded in Local22 change history.",
+      "rightsEvidenceStatus": "pending_original_creation_or_permission_record"
+    },
+    {
+      "path": "piano.js#pitchYin",
+      "source": "Repository implementation and edit history. External implementation provenance has not been independently established.",
+      "rightsEvidenceStatus": "review_external_code_history_if_reused"
+    }
+  ]
+}

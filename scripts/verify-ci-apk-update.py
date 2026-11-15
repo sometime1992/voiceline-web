@@ -17,7 +17,7 @@ def adb(*args):
 
 adb('install', '-r', str(root / 'release-review/previous-Local77-CI.apk'))
 assert 'versionName=2.0.0-local77-ci' in adb('shell', 'dumpsys', 'package', package)
-marker = 'files/voiceline-local85-update-probe'
+marker = 'files/voiceline-local86-update-probe'
 adb('shell', 'run-as', package, 'mkdir', '-p', 'files')
 adb('shell', 'run-as', package, 'touch', marker)
 adb('install', '-r', str(apk))

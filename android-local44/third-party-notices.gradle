@@ -1,0 +1,149 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import groovy.xml.XmlSlurper
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.maven.MavenModule
+import org.gradle.maven.MavenPomArtifact
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+import java.util.jar.JarInputStream
+
+// Resolve the same runtime configurations that are packaged by AGP. Keep license
+// data out of application logic and retain the upstream text without translation.
+tasks.register('generateThirdPartyNotices') {
+    group = 'verification'
+    description = 'Package licenses and notices from the actual Android runtime dependencies.'
+    doLast {
+        def legal = project.file('../legal')
+        def web = project.file('src/main/assets/www')
+        def apache = new File(legal, 'apache-2.0.txt').getText('UTF-8')
+        if (!apache.contains('END OF TERMS AND CONDITIONS')) {
+            throw new GradleException('The complete Apache 2.0 license is required.')
+        }
+        def variants = ['ciDebugRuntimeClasspath', 'releaseRuntimeClasspath']
+        def artifacts = [:]
+        def configurationsById = [:].withDefault { [] }
+        variants.each { name ->
+            def config = configurations.findByName(name)
+            if (config == null) throw new GradleException('Missing runtime configuration: ' + name)
+            config.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                def id = artifact.moduleVersion.id.toString()
+                if (artifacts.containsKey(id) && !java.util.Arrays.equals(artifacts[id].file.bytes, artifact.file.bytes)) {
+                    throw new GradleException('Runtime artifact differs between variants: ' + id)
+                }
+                artifacts[id] = artifact
+                configurationsById[id].add(name)
+            }
+        }
+        def ids = variants.collectMany { name ->
+            configurations.getByName(name).incoming.resolutionResult.allComponents.collect { it.id }
+        }.findAll { it instanceof ModuleComponentIdentifier }.unique()
+        def query = dependencies.createArtifactResolutionQuery().forComponents(ids)
+                .withArtifacts(MavenModule, MavenPomArtifact).execute()
+        def poms = [:]
+        query.resolvedComponents.each { component ->
+            component.getArtifacts(MavenPomArtifact).each { artifact ->
+                if (artifact instanceof org.gradle.api.artifacts.result.ResolvedArtifactResult) {
+                    poms[component.id.toString()] = artifact.file
+                }
+            }
+        }
+        def sha256 = { byte[] bytes -> MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString() }
+        def isNotice = { String name ->
+            name ==~ /(?i)(?:.*\/)?(?:license|notice|copying|copyright)(?:[._-][a-z0-9._-]+)?/
+        }
+        def components = []
+        def upstreamNotices = []
+        artifacts.keySet().sort().each { id ->
+            def artifact = artifacts[id]
+            def pom = poms[id]
+            if (pom == null) throw new GradleException('Cannot verify the license without its POM: ' + id)
+            def xml = new XmlSlurper(false, false).parse(pom)
+            def licenseXml = xml
+            def licensePom = pom
+            def licensePomId = id
+            def licenses = []
+            def visited = [] as Set
+            // Maven POMs can inherit their license from a parent (for example,
+            // Guava's listenablefuture). Follow and verify that parent as well.
+            while (licenses.isEmpty()) {
+                if (!visited.add(licensePomId) || visited.size() > 10) {
+                    throw new GradleException('Invalid parent POM chain: ' + id)
+                }
+                licenses = licenseXml.licenses.license.collect { [name: it.name.text(), url: it.url.text()] }
+                if (!licenses.isEmpty()) break
+                def parent = licenseXml.parent
+                def pg = parent.groupId.text(), pa = parent.artifactId.text(), pv = parent.version.text()
+                if (!pg || !pa || !pv || pv.contains('$')) break
+                licensePomId = pg + ':' + pa + ':' + pv
+                if (!poms.containsKey(licensePomId)) {
+                    def parentQuery = dependencies.createArtifactResolutionQuery().forModule(pg, pa, pv)
+                            .withArtifacts(MavenModule, MavenPomArtifact).execute()
+                    parentQuery.resolvedComponents.each { component ->
+                        component.getArtifacts(MavenPomArtifact).each { parentArtifact ->
+                            if (parentArtifact instanceof org.gradle.api.artifacts.result.ResolvedArtifactResult) {
+                                poms[licensePomId] = parentArtifact.file
+                            }
+                        }
+                    }
+                }
+                licensePom = poms[licensePomId]
+                if (licensePom == null) throw new GradleException('Cannot verify parent POM: ' + licensePomId)
+                licenseXml = new XmlSlurper(false, false).parse(licensePom)
+            }
+            if (licenses.isEmpty() || !licenses.every { it.name.toLowerCase().contains('apache') && it.name.contains('2.0') }) {
+                throw new GradleException('Review the new runtime license before shipping: ' + id + ' ' + licenses)
+            }
+            def origin = artifact.moduleVersion.id.group.startsWith('androidx.')
+                    ? 'https://dl.google.com/dl/android/maven2/' : 'https://repo.maven.apache.org/maven2/'
+            def coordinate = artifact.moduleVersion.id
+            def pomUrl = origin + coordinate.group.replace('.', '/') + '/' + coordinate.name + '/' + coordinate.version + '/' + coordinate.name + '-' + coordinate.version + '.pom'
+            def notices = []
+            new ZipFile(artifact.file).withCloseable { zip ->
+                zip.entries().each { entry ->
+                    if (!entry.directory && isNotice(entry.name)) {
+                        def content = zip.getInputStream(entry).withCloseable { it.getText('UTF-8') }
+                        notices.add([path: entry.name, text: content])
+                    }
+                    if (!entry.directory && entry.name == 'classes.jar') {
+                        new JarInputStream(zip.getInputStream(entry)).withCloseable { jar ->
+                            def nested
+                            while ((nested = jar.nextJarEntry) != null) {
+                                if (!nested.directory && isNotice(nested.name)) {
+                                    def bytes = jar.readAllBytes()
+                                    notices.add([path: 'classes.jar!/' + nested.name, text: new String(bytes, 'UTF-8')])
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Include all supplied notices, even where they repeat the license.
+            notices.each { notice -> upstreamNotices.add(id + '\n' + notice.path + '\n\n' + notice.text) }
+            components.add([coordinate: id, configurations: configurationsById[id].unique().sort(),
+                    artifactSha256: sha256(artifact.file.bytes), pomSha256: sha256(pom.bytes),
+                    pom: pomUrl, licensePom: licensePomId, licensePomSha256: sha256(licensePom.bytes),
+                    source: xml.scm.url.text() ?: xml.url.text(), licenses: licenses,
+                    notices: notices.collect { [path: it.path, sha256: sha256(it.text.getBytes('UTF-8'))] }])
+        }
+        if (components.isEmpty()) throw new GradleException('No Android runtime components were verified.')
+        def nativeText = 'Android runtime components\n\n' + components.collect { it.coordinate }.join('\n') +
+                '\n\n' + (upstreamNotices ? 'Notices included in upstream artifacts\n\n' + upstreamNotices.join('\n\n---\n\n') + '\n\n' : '') + apache
+        def base = new JsonSlurper().parse(new File(legal, 'third-party-base.json'), 'UTF-8')
+        def notices = base + [[name: 'AndroidX, Kotlin and Android runtime libraries', license: 'Apache-2.0',
+                source: 'https://www.apache.org/licenses/LICENSE-2.0\nComponent sources: THIRD-PARTY-COMPONENTS.json', text: nativeText]]
+        def pretty = { value -> JsonOutput.prettyPrint(JsonOutput.toJson(value)).replaceAll(/(?m)[ \t]+$/, '') }
+        def script = "'use strict';\n(function(root){const notices=" + pretty(notices) +
+                ";if(typeof module==='object'&&module.exports)module.exports=notices;else root.VoiceLineThirdPartyNotices=notices;})(globalThis);\n"
+        new File(web, 'third-party-notices.js').setText(script, 'UTF-8')
+        new File(web, 'THIRD-PARTY-NOTICES.txt').setText('VoiceLine — Third-party software and sound recordings\n\n' +
+                notices.collect { it.name + '\n' + it.license + '\n' + it.source + '\n\n' + it.text }.join('\n\n').stripTrailing() + '\n', 'UTF-8')
+        new File(web, 'THIRD-PARTY-COMPONENTS.json').setText(pretty([
+                schemaVersion: 1, configurations: variants, components: components]) + '\n', 'UTF-8')
+        logger.lifecycle('Verified licenses for {} Android runtime components and {} upstream notice files.', components.size(), upstreamNotices.size())
+    }
+}
+
+tasks.matching { it.name ==~ /merge.*Assets/ }.configureEach {
+    dependsOn tasks.named('generateThirdPartyNotices')
+}

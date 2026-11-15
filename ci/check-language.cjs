@@ -83,7 +83,21 @@ async function inspectLiveResult(page,mode,leaks){
    }else assert.equal(await page.locator('#customTimingOpen').count(),0);
    checks.push(mode+' English screen, guide, presets and 150% layouts');
   }
-  for(const screen of ['help','privacy','history']){await page.locator('#menuOpen').click();await page.locator('[data-screen="'+screen+'"]').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen,...x})));await page.locator('#infoClose').click();}
+  for(const screen of ['help','privacy','history']){
+   await page.locator('#menuOpen').click();await page.locator('[data-screen="'+screen+'"]').click();await settle(page);
+   leaks.push(...(await leftovers(page)).map(x=>({screen,...x})));
+   if(screen==='help'){
+    await page.locator('#helpLicensesOpen').click();await settle(page);
+    assert.equal(await page.locator('#infoTitle').textContent(),'Open-source licenses');
+    assert.deepEqual(await page.locator('.license-text').allTextContents(),await page.evaluate(()=>window.VoiceLineThirdPartyNotices.map(n=>n.text)),'Upstream license text changed during translation');
+    assert.ok((await page.locator('.license-text').allTextContents()).some(t=>t.includes('END OF TERMS AND CONDITIONS')),'Apache 2.0 full text is missing');
+    leaks.push(...(await leftovers(page)).map(x=>({screen:'licenses',...x})));
+    await page.screenshot({path:path.join(out,'english-open-source-licenses.png')});
+    await page.getByRole('button',{name:'Back to Help',exact:true}).click();await settle(page);
+    checks.push('offline licenses retain upstream text and English navigation');
+   }
+   await page.locator('#infoClose').click();
+  }
   await page.locator('#menuOpen').click();await page.locator('#openRoutines').click();await settle(page);
   leaks.push(...(await leftovers(page)).map(x=>({screen:'routine overview',...x})));
   await page.locator('#planRecommend').click();await settle(page);leaks.push(...(await leftovers(page)).map(x=>({screen:'routine presets',...x})));
