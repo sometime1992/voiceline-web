@@ -110,6 +110,6 @@ async function centerLine(page){
   await page.reload();await page.waitForSelector('#keyboard .white-key');assert.equal(await page.evaluate(()=>localStorage.getItem('voiceline-mic-sensitivity-v1')),'high');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('voiceline-training-v1')).root),48);
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'target-pitch.json'),JSON.stringify({status:'passed',checks,errors},null,2));console.log(JSON.stringify({status:'passed',checks}));
- }catch(error){await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:String(error),errors,checks},null,2));throw error;}
+ }catch(error){await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});const geometry=await page?.evaluate(()=>{const c=document.querySelector('#trainingGraph'),r=c.getBoundingClientRect();return {mode:document.querySelector('#app').dataset.mode,language:document.documentElement.lang,viewport:[innerWidth,innerHeight],dpr:devicePixelRatio,canvas:[c.width,c.height],rect:[r.width,r.height],target:document.querySelector('#trainingPitchTarget').textContent};}).catch(()=>null);fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:String(error.stack||error),geometry,errors,checks},null,2));throw error;}
  finally{await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

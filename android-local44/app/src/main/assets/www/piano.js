@@ -1285,6 +1285,7 @@ function renderRecordPitchOverlay(now=performance.now(),force=false){
  if(landscapeGraphHidden())return;
  if(!force&&now-app.recordPitchLast<80)return;
  app.recordPitchLast=now;
+ globalThis.VoiceLineI18n?.render(el);
  const graph=drawLivePitchGraph($('recordPitchGraph'),app.recordPitchSamples,app.recordPitchFrozenAt??now);
  if(!graph)return;
  const {points}=graph;
@@ -1330,6 +1331,7 @@ function renderPitchGraphOverlay(now=performance.now(),force=false){
  $('pitchPracticeLegend').hidden=!practice;
  const target=practice?(app.exercise?.active?app.exercise.target:app.exerciseRoot):null;
  $('pitchGraphTarget').textContent=Number.isFinite(target)?'목표 '+noteLabel(target):'목표음 대기';
+ globalThis.VoiceLineI18n?.render(el);
  const graph=drawLivePitchGraph($('pitchGraph'),app.pitchGraphSamples,app.pitchGraphFrozenAt??now,
   {bridgeGaps:false,allNotes:true,referenceMidi:practice&&!app.exercise?.active?app.exerciseRoot:null});
  if(!graph)return;
@@ -1353,6 +1355,7 @@ function renderVibratoOverlay(now=performance.now(),force=false){
  if(!force&&now-app.vibratoOverlayLast<55)return;
  app.vibratoOverlayLast=now;
  updateVocalPreparation('vibratoPreparation',app.vibratoPreparation,now);
+ globalThis.VoiceLineI18n?.render(el);
  const canvas=$('vibratoGraph'),rect=canvas.getBoundingClientRect();
  if(rect.width<15||rect.height<15)return;
  const w=rect.width,h=rect.height,dpr=Math.min(window.devicePixelRatio||1,2);
@@ -2251,7 +2254,7 @@ function renderTrainingOverlay(now=performance.now(),force=false){
  if(app.mode==='warmupVoice'){
   $('trainingTitle').textContent='호흡·워밍업';$('trainingInfo').textContent=(a?a.warmupCues:normalizeWarmup(app.trainingSettings.warmup).cues)===false?'안내음 꺼짐 · 초록색 안내에 허밍하세요':'딩딩 두 번 → 허밍 시작 · 마이크 없이 진행';return;
  }
- const canvas=$('trainingGraph'),rect=canvas.getBoundingClientRect();
+ const canvas=$('trainingGraph');
  $('trainingTitle').textContent=MODES[app.mode]?.[0]||'보컬 훈련';
  $('trainingInfo').textContent=a?(
   a.mode==='dynamicVoice'?'상대 소리 크기 (마이크 거리 고정)':
@@ -2265,7 +2268,10 @@ function renderTrainingOverlay(now=performance.now(),force=false){
  $('trainingMetric3').textContent=a&&a.low!==null?noteLabel(a.low)+' ~ '+noteLabel(a.high):'—';
  $('trainingMetric4').textContent=a?Math.max(0,Math.ceil((a.duration-Math.max(0,now-a.start))/1000))+'초':'—';
  if(preparation)$('trainingInfo').textContent=preparation.title+' · '+preparation.seconds+'초 · '+preparation.hint;
- if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){const model=a?.dynamicModel||window.VoiceLineDynamics.create({start:viewNow,duration:dynamicSeconds()*1000,pattern:app.trainingSettings.dynamicPattern,segmentSeconds:window.VoiceLinePlansUI?.timing('dynamicVoice').customStages?window.VoiceLinePlansUI.timing('dynamicVoice').stages:null});$('dynamicLegend').querySelector('small').textContent='상대 소리 크기 · '+model.duration/1000+'초';window.VoiceLineDynamics.draw(canvas,model,viewNow);return;}}
+ if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){const model=a?.dynamicModel||window.VoiceLineDynamics.create({start:viewNow,duration:dynamicSeconds()*1000,pattern:app.trainingSettings.dynamicPattern,segmentSeconds:window.VoiceLinePlansUI?.timing('dynamicVoice').customStages?window.VoiceLinePlansUI.timing('dynamicVoice').stages:null});$('dynamicLegend').querySelector('small').textContent='상대 소리 크기 · '+model.duration/1000+'초';globalThis.VoiceLineI18n?.render(el);window.VoiceLineDynamics.draw(canvas,model,viewNow);return;}}
+ // Measure the final localized layout, rather than transient Korean labels.
+ globalThis.VoiceLineI18n?.render(el);
+ const rect=canvas.getBoundingClientRect();
  if(!rect.width||!rect.height)return;
  const dpr=Math.min(window.devicePixelRatio||1,2),w=rect.width,h=rect.height;
  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){
@@ -2425,7 +2431,7 @@ function renderGuideTraining(t=performance.now(),force=false){
  $('guideLiveHint').textContent=recent?(Math.abs(cents)<=a.tolerance?'목표에 가깝습니다':cents>0?'조금 낮춰보세요':'조금 높여보세요'):phase==='listen'?'듣기 · 채점 제외':'목소리 대기';
  $('guideAccuracy').textContent=m.accuracy===null?'—':m.accuracy+'%';$('guideTolerance').textContent='목표 ±'+a.tolerance+'cent';
  $('guideCoverage').textContent=m.coverage+'%';$('guideCoverageHint').textContent='유효 발성 '+(a.voicedMs/1000).toFixed(1)+'초';
- if(!landscapeGraphHidden())api.draw($('guidePhraseGraph'),a,now,noteLabel);
+ if(!landscapeGraphHidden()){globalThis.VoiceLineI18n?.render(panel);api.draw($('guidePhraseGraph'),a,now,noteLabel);}
 }
 function rememberFullRecordingPitch(t,midi){
  if(!app.record)return;
