@@ -16,7 +16,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      # GitHub's Ubuntu runner already includes an Android SDK.
+      # setup-android@v3 tries to install obsolete "tools", which fails on current SDK repositories.
+      - name: Inspect preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
