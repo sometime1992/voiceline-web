@@ -1,0 +1,42 @@
+name: VoiceLine Local93 verified downloads
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/publish-local93-download.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require exact tested source and verification reports
+        run: |
+          gh run download 43861161181 --repo "$GITHUB_REPOSITORY" --name VoiceLine-Local93-Review --dir reviewed
+          gh run download 43864081693 --repo "$GITHUB_REPOSITORY" --name VoiceLine-Local93-Production-Verified --dir production
+          git fetch --depth=1 origin 89e68cdaf295a6e20da4670693e4d1feeeadac32
+          git diff --exit-code 89e68cdaf295a6e20da4670693e4d1feeeadac32 HEAD -- android-local44
+          python3 <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          final=json.loads(Path('production/FINAL_VERIFIED.json').read_text())
+          prod=json.loads(Path('production/production-smoke/PRODUCTION_SMOKE.json').read_text())
+          assert final['status']=='passed' and prod['status']=='passed'
+          assert final['production_runtime']=='passed' and prod['nonblank_screen_pixels']
+          assert final['apk_sha256']==hashlib.sha256(Path('reviewed/dist/VoiceLine-Local93-CI.apk').read_bytes()).hexdigest()=='2ea9c25cd128dc58317f399c91e90de61ffcee862e9a465b4dab8837d7758a8f'
+          assert final['source_commit']=='89e68cdaf295a6e20da4670693e4d1feeeadac32'
+          for name in ['android-upgrade-report/UPDATE_VERIFIED.json','android-smoke/RECORDING_PLAYBACK.json']:
+              assert json.loads((Path('reviewed')/name).read_text())['status']=='passed'
+          print('Exact source, file hashes and all verification reports passed')
+          PY
+      - name: Publish verified download files
+        run: |
+          gh release create voiceline-local93-release-audit-ci --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'VoiceLine Local93 - Language, rights and stability review' \
+            --notes-file android-local44/docs/local93-release-notes.md \
+            reviewed/dist/VoiceLine-Local93-CI.apk reviewed/dist/VoiceLine-Local93-CI.zip reviewed/dist/SHA256SUMS.txt reviewed/dist/APK_VERIFIED.json production/FINAL_VERIFIED.json

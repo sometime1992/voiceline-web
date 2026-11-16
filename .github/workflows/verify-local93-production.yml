@@ -1,8 +1,6 @@
 name: VoiceLine Local93 exact production verification
 on:
-  push:
-    branches: [build/android-apk]
-    paths: [.github/workflows/verify-local93-production.yml]
+  # Re-run manually when needed; download publication has its own workflow.
   workflow_dispatch:
 permissions:
   contents: write
@@ -95,8 +93,7 @@ jobs:
           retention-days: 14
       - name: Publish verified Local93 APK
         run: |
-          gh release create voiceline-local93-release-audit-ci --repo "$GITHUB_REPOSITORY" --target 89e68cdaf295a6e20da4670693e4d1feeeadac32 \
+          gh release create voiceline-local93-release-audit-ci --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title 'VoiceLine Local93 - Language, rights and stability review' \
             --notes-file android-local44/docs/local93-release-notes.md \
             reviewed/dist/VoiceLine-Local93-CI.apk reviewed/dist/VoiceLine-Local93-CI.zip reviewed/dist/SHA256SUMS.txt reviewed/dist/APK_VERIFIED.json FINAL_VERIFIED.json
-
