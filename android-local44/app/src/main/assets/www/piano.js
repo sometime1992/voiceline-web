@@ -3152,7 +3152,8 @@ function showPianoCredits(){
  plain(b,'p','','원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio');
  plain(b,'p','','라이선스: https://creativecommons.org/licenses/by/3.0/');
  plain(b,'p','','피아노 엔진: @tonejs/piano 및 Tone.js (Yotam Mann), MIT');
- const link=(label,fn)=>{const a=plain(b,'button','privacy-policy-help',label);a.type='button';a.onclick=fn;};
+ const actions=plain(b,'div','piano-credits-actions','');
+ const link=(label,fn)=>{const a=plain(actions,'button','privacy-policy-help',label);a.type='button';a.onclick=fn;};
  link('원본 음원 출처 열기',()=>window.VoiceLinePublicLinks?.openPianoSampleSource?.());
  link('CC BY 3.0 원문 열기',()=>window.VoiceLinePublicLinks?.openPianoSampleLicense?.());
  link('전체 오픈소스 고지',showOpenSourceLicenses);

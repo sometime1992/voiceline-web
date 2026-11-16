@@ -1,11 +1,6 @@
 name: VoiceLine Local91 - microphone and target pitch
 on:
-  push:
-    branches: [build/android-apk]
-    paths:
-      - android-local44/**
-      - ci/**
-      - .github/workflows/build-local91-apk.yml
+  # Archived Local91 pipeline. Current builds use build-local92-apk.yml.
   workflow_dispatch:
 permissions:
   contents: write

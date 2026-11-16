@@ -1,0 +1,152 @@
+name: VoiceLine Local92 - credits button spacing
+on:
+  push:
+    branches: [build/android-apk]
+    paths:
+      - android-local44/**
+      - .github/workflows/build-local92-apk.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: voiceline-local92-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      VOICELINE_CI_KEYSTORE: ${{ github.workspace }}/.ci-signing/debug.keystore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Run existing offline regression checks
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test --prefix android-local44 | tee unit-tests.txt
+      - name: Prepare browser layout review
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          npm install --prefix "$RUNNER_TEMP/voiceline-browser" --no-audit --no-fund --ignore-scripts playwright-core@1.56.1
+          echo "NODE_PATH=$RUNNER_TEMP/voiceline-browser/node_modules" >> "$GITHUB_ENV"
+          echo "CHROME_BIN=$(command -v google-chrome || command -v chromium)" >> "$GITHUB_ENV"
+      - name: Capture credits on mobile, large text and landscape screens
+        run: |
+          node <<'JS'
+          const {chromium}=require('playwright-core');
+          const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
+          const web=path.resolve('android-local44/app/src/main/assets/www'),out=path.resolve('credits-review');
+          fs.mkdirSync(out,{recursive:true});
+          const server=http.createServer((req,res)=>{
+            const name=new URL(req.url,'http://localhost').pathname;
+            const file=path.resolve(web,'.'+(name==='/'?'/index.html':decodeURIComponent(name)));
+            if(!file.startsWith(web+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);return res.end();}
+            const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css','.png':'image/png','.mp3':'audio/mpeg'};
+            res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);
+          });
+          (async()=>{
+            await new Promise(r=>server.listen(0,'127.0.0.1',r));
+            const browser=await chromium.launch({executablePath:process.env.CHROME_BIN,headless:true,args:['--no-sandbox']});
+            try{
+              const page=await browser.newPage(),reports=[],errors=[];
+              page.on('pageerror',e=>errors.push(String(e)));
+              await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForSelector('#keyboard .white-key');
+              for(const lang of ['ko','en'])for(const [name,width,height,font]of [['compact',320,568,16],['phone',390,844,16],['large-text',390,844,24],['landscape',844,390,16]]){
+                await page.setViewportSize({width,height});
+                await page.evaluate(({lang,font})=>{VoiceLineI18n.setLanguage(lang);document.documentElement.style.fontSize=font+'px';},{lang,font});
+                await page.locator('#menuOpen').click();await page.locator('#pianoCreditsOpen').click();
+                await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+                const metrics=await page.locator('.piano-credits-actions').evaluate(el=>({
+                  gap:getComputedStyle(el).gap,
+                  buttons:[...el.children].map(b=>{const r=b.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom,text:b.textContent};}),
+                  overflow:document.querySelector('#infoBody').scrollWidth>document.querySelector('#infoBody').clientWidth+1
+                }));
+                await page.locator('.piano-credits-actions button').last().scrollIntoViewIfNeeded();
+                await page.screenshot({path:out+'/'+lang+'-'+name+'.png'});
+                reports.push({lang,name,width,height,font,...metrics});
+                await page.locator('#infoClose').click();
+              }
+              fs.writeFileSync(out+'/layout.json',JSON.stringify({reports,errors},null,2));
+              if(errors.length)throw Error(errors.join('\n'));
+            }finally{await browser.close();await new Promise(r=>server.close(r));}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Ensure Android SDK
+        run: |
+          manager=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)
+          yes | "$manager" --licenses >/dev/null || true
+          "$manager" --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Restore original CI signing key
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VOICELINE_CI_KEYSTORE }}
+          key: voiceline-ci45-debug-signing-v1
+      - name: Require original signing key
+        run: test -s "$VOICELINE_CI_KEYSTORE"
+      - name: Build and lint APK
+        working-directory: android-local44
+        run: gradle --no-daemon :app:assembleCiDebug :app:lintCiDebug
+      - name: Verify APK version, certificate and packaged offline files
+        run: |
+          mkdir -p dist
+          cp android-local44/app/build/outputs/apk/ciDebug/*.apk dist/VoiceLine-Local92-CI.apk
+          python3 <<'PY'
+          import hashlib,json,os,re,subprocess,zipfile
+          from pathlib import Path
+          apk=Path('dist/VoiceLine-Local92-CI.apk')
+          sdk=Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0'
+          run=lambda cmd,args:subprocess.check_output([str(sdk/cmd),*args],text=True)
+          badging=run('aapt',['dump','badging',str(apk)])
+          assert "name='com.voiceline.app.local18.ci45'" in badging
+          assert "versionCode='115'" in badging
+          assert "versionName='2.0.0-local92-ci'" in badging
+          assert 'android.permission.INTERNET' not in run('aapt',['dump','permissions',str(apk)])
+          cert=run('apksigner',['verify','--print-certs',str(apk)])
+          digest=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)',cert,re.I).group(1).lower()
+          assert digest==Path('ci/android-debug-cert.sha256').read_text().strip().lower()
+          web=Path('android-local44/app/src/main/assets/www')
+          with zipfile.ZipFile(apk) as z:
+              assert z.testzip() is None
+              for file in web.rglob('*'):
+                  if file.is_file():assert z.read('assets/www/'+file.relative_to(web).as_posix())==file.read_bytes(),str(file)
+              assert len([n for n in z.namelist() if n.startswith('assets/www/vendor/salamander/') and n.endswith('.mp3')])==28
+              assert 'piano-credits-actions' in z.read('assets/www/piano.js').decode()
+              assert '.piano-credits-actions' in z.read('assets/www/responsive-layout.css').decode()
+          facts={'status':'passed','source_commit':os.environ['GITHUB_SHA'],'package':'com.voiceline.app.local18.ci45','version_name':'2.0.0-local92-ci','version_code':115,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'same_signing_certificate':True,'all_offline_assets_identical_to_source':True}
+          Path('dist/APK_VERIFIED.json').write_text(json.dumps(facts,indent=2)+'\n')
+          print(json.dumps(facts))
+          PY
+          python3 ci/verify-third-party-notices.py dist/VoiceLine-Local92-CI.apk
+          sha256sum dist/VoiceLine-Local92-CI.apk > dist/SHA256SUMS.txt
+          (cd dist && zip -q VoiceLine-Local92-CI.zip VoiceLine-Local92-CI.apk)
+      - name: Keep APK and layout review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-Local92-Review
+          path: |
+            dist/
+            credits-review/
+            unit-tests.txt
+            android-local44/app/build/reports/lint-results-ciDebug*
+          retention-days: 14
+      - name: Publish Local92 download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create voiceline-local92-credits-spacing-ci --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'VoiceLine Local92 - Credits button spacing' \
+            --notes-file android-local44/docs/local92-release-notes.md \
+            dist/VoiceLine-Local92-CI.apk dist/VoiceLine-Local92-CI.zip dist/SHA256SUMS.txt dist/APK_VERIFIED.json
+
