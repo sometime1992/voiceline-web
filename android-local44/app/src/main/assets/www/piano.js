@@ -2215,6 +2215,12 @@ function trainingPitchView(a,now){
  return Number.isFinite(target)?{target,low:target-2,high:target+2,tolerance}:
   {target:null,low:PITCH_RANGE.minMidi,high:PITCH_RANGE.maxMidi,tolerance};
 }
+function trainingOverlaySession(){
+ if(app.training)return app.training;
+ const last=app.dynamicLastResult;
+ // A previous result must not override a newly selected target in preview.
+ return app.mode==='dynamicVoice'&&last?.root===app.trainingSettings.root?last:null;
+}
 function updateTrainingPitchGuide(a,now,view){
  const row=$('trainingPitchGuide'),label=$('trainingPitchTarget'),offset=$('trainingPitchOffset');
  row.hidden=!Number.isFinite(view.target);
@@ -2231,7 +2237,7 @@ function renderTrainingOverlay(now=performance.now(),force=false){
  if(landscapeGraphHidden()&&app.mode!=='warmupVoice')return;
  if(!force&&now-app.trainingLastDraw<100)return;
  app.trainingLastDraw=now;
- const a=app.training||(app.mode==='dynamicVoice'?app.dynamicLastResult:null);
+ const a=trainingOverlaySession();
  const viewNow=a?.mode==='dynamicVoice'&&!a.active?a.finishedAt:now;
  updateVocalPreparation('trainingPreparation',a,viewNow);
  updateWarmupGuide(a,now);
@@ -3734,6 +3740,19 @@ window.addEventListener('resize',queueResponsiveLayout);
 window.screen?.orientation?.addEventListener?.('change',queueResponsiveLayout);
 window.visualViewport?.addEventListener?.('resize',queueResponsiveLayout);
 if(window.ResizeObserver)new ResizeObserver(()=>requestAnimationFrame(updatePracticeScrollHint)).observe($('practiceScrollShell'));
+// Translated/wrapped labels can resize idle canvases without a window resize.
+// Redraw view pixels only; capture, lesson clocks and history remain untouched.
+if(window.ResizeObserver){
+ let graphResizeFrame=0;
+ const graphResize=new ResizeObserver(()=>{
+  if(graphResizeFrame)return;
+  graphResizeFrame=requestAnimationFrame(()=>{
+   graphResizeFrame=0;const now=performance.now();
+   renderPitchGraphOverlay(now,true);renderVibratoOverlay(now,true);renderRecordPitchOverlay(now,true);renderTrainingOverlay(now,true);
+  });
+ });
+ for(const id of ['trainingGraph','vibratoGraph','pitchGraph','recordPitchGraph','guidePhraseGraph'])if($(id))graphResize.observe($(id));
+}
 
 let settingsPreviewPlayer=null,settingsPreviewGeneration=0,settingsPreviewTimer=null;
 function stopSettingsPreview(){settingsPreviewGeneration++;settingsPreviewPlayer?.stop();settingsPreviewPlayer=null;clearTimeout(settingsPreviewTimer);settingsPreviewTimer=null;}

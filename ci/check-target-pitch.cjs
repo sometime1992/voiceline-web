@@ -31,6 +31,10 @@ async function tone(page,midi){
  await frames(page);
 }
 async function centerLine(page){
+ await page.waitForFunction(()=>{
+  const c=document.querySelector('#trainingGraph'),r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);
+  return c.width===Math.round(r.width*d)&&c.height===Math.round(r.height*d);
+ });
  return page.locator('#trainingGraph').evaluate(c=>{
   const ctx=c.getContext('2d'),{data}=ctx.getImageData(0,0,c.width,c.height),scale=c.width/c.getBoundingClientRect().width;
   let strongest=0,yMax=-1;
@@ -41,11 +45,11 @@ async function centerLine(page){
  });
 }
 (async()=>{
- let browser;const checks=[],errors=[];
+ let browser,page;const checks=[],errors=[];
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  try{
   browser=await chromium.launch({headless:true,...(process.env.CHROME_BIN?{executablePath:process.env.CHROME_BIN}:{}),args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
-  const page=await browser.newPage({viewport:{width:390,height:844}});page.on('pageerror',e=>errors.push(String(e)));
+  page=await browser.newPage({viewport:{width:390,height:844}});page.on('pageerror',e=>errors.push(String(e)));
   await page.addInitScript(()=>{
    if(!localStorage.getItem('local91-target-test')){
     const raw=JSON.parse(localStorage.getItem('voiceline-plans-v1')||'{}');raw.settings=raw.settings||{};
@@ -106,6 +110,6 @@ async function centerLine(page){
   await page.reload();await page.waitForSelector('#keyboard .white-key');assert.equal(await page.evaluate(()=>localStorage.getItem('voiceline-mic-sensitivity-v1')),'high');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('voiceline-training-v1')).root),48);
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'target-pitch.json'),JSON.stringify({status:'passed',checks,errors},null,2));console.log(JSON.stringify({status:'passed',checks}));
- }catch(error){fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:String(error),errors,checks},null,2));throw error;}
+ }catch(error){await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:String(error),errors,checks},null,2));throw error;}
  finally{await browser?.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

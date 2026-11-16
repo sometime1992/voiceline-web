@@ -11,7 +11,7 @@ function fixture(mode,root){
  const api=vm.runInNewContext(chunk('const PITCH_RANGE=','const MODES=')+
   chunk('function trainingTargetAt(','function newTrainingSession(')+
   chunk('function trainingPitchView(','function renderTrainingOverlay(')+
-  '\n({trainingPitchView,updateTrainingPitchGuide})',{app,$,noteLabel:m=>'MIDI '+m});
+  '\n({trainingPitchView,updateTrainingPitchGuide,trainingOverlaySession})',{app,$,noteLabel:m=>'MIDI '+m});
  return {app,$,...api};
 }
 test('Held-note views use the selected note before input, during preparation, and with octave errors',()=>{
@@ -33,6 +33,13 @@ test('Ear training exposes each goal only during its answer, including repeated 
   const view=h.trainingPitchView(s,time);assert.equal(view.target,target);assert.equal((view.high+view.low)/2,target);
  }
  assert.equal(h.trainingPitchView(null,0).target,null);
+});
+test('Changing the dynamics reference cannot reuse the previous result as the new preview',()=>{
+ const h=fixture('dynamicVoice',48),result=h.app.dynamicLastResult={mode:'dynamicVoice',root:48,finishedAt:1000};
+ assert.equal(h.trainingOverlaySession(),result);
+ h.app.trainingSettings.root=69;assert.equal(h.trainingOverlaySession(),null);
+ assert.equal(h.trainingPitchView(h.trainingOverlaySession(),2000).target,69);
+ const live=h.app.training={mode:'dynamicVoice',root:48,active:true};assert.equal(h.trainingOverlaySession(),live,'active session owns its target until stopped');
 });
 test('Live target readout shows actual cents, stale silence, and no hidden ear answer',()=>{
  const h=fixture('sustainVoice',48),s={mode:'sustainVoice',root:48,history:[{t:1000,midi:60}]};
