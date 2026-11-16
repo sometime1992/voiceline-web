@@ -33,7 +33,8 @@ async function connect(){
   const result=await request('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true,userGesture:true});
   if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));return result.result.value;
  };
- await waitFor(()=>evaluate("document.querySelectorAll('#keyboard .white-key').length>0"),'app ready');
+ await waitFor(()=>evaluate("document.readyState==='complete'&&!!window.VoiceLineI18n&&VoiceLineI18n.language===(localStorage.getItem('voiceline-language-v1')||'ko')&&document.documentElement.lang===VoiceLineI18n.language&&document.querySelector('#keyboard .white-key')?.getBoundingClientRect().height>50"),'initialized app and restored language');
+ await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
  return {evaluate,close:()=>ws.close()};
 }
 const dbRead=`async function readStore(name){return new Promise((resolve,reject)=>{const r=indexedDB.open('voiceline-local-v2',4);r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result,tx=db.transaction(name),q=tx.objectStore(name).getAll();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);tx.oncomplete=()=>db.close();};});}`;
@@ -64,6 +65,7 @@ const snapshot=`(async()=>{${dbRead};return {settings:Object.fromEntries(['voice
  })()`);
  c.close();text('shell','am','force-stop',pkg);c=await connect();
  const before=await c.evaluate(snapshot);
+ assert.equal(before.settings['voiceline-language-v1'],'en','Local90 must finish restoring its saved language before the update');
  const audioPath='files/voiceline-recordings/'+recording.nativeFileId+'.wav';
  const oldAudio=adb('exec-out','run-as',pkg,'cat',audioPath),audioHash=sha(oldAudio);
  assert.equal(oldAudio.subarray(0,4).toString(),'RIFF');assert.ok(oldAudio.length>44);
