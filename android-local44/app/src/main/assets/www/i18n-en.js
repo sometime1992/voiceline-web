@@ -2,6 +2,18 @@
 // Offline English catalog. Keys are the existing Korean presentation strings.
 // User names and stored training values are never translated or rewritten.
 (function(root){const catalog={
+ "피아노 음원 출처·라이선스": "Piano sample credits and licenses",
+ "Salamander Grand Piano · Alexander Holm · CC BY 3.0": "Salamander Grand Piano · Alexander Holm · CC BY 3.0",
+ "유튜브에서 Naruvium Studio 채널 보기": "Visit Naruvium Studio on YouTube",
+ "YouTube 채널로 이동 · 외부 앱에서 열림": "Opens the YouTube channel in another app",
+ "VoiceLine · 저작권 확인": "VoiceLine · Copyright check",
+ "녹음 외부 저장·공유 전 확인": "Copyright check before saving or sharing",
+ "녹음에 다른 사람의 노래·가사·반주·음원이 포함되어 있다면 외부 저장·공유에 필요한 권리가 있는지 확인해야 합니다. 앱에서 녹음했다고 해서 그 권리가 생기지는 않습니다.": "Songs, lyrics and backing tracks in this recording may belong to others. Confirm your rights before saving or sharing externally. Recording them does not grant these rights.",
+ "이 녹음에 포함된 모든 콘텐츠를 직접 제작했거나, 예정된 저장·공유에 필요한 권리·허락을 보유하고 있음을 확인합니다.": "I created all content in this recording or have all permissions necessary for this external save or share.",
+ "선택은 저장되지 않으며 매번 확인합니다. 권리가 불명확하다면 취소하고 앱 안에서만 녹음을 보관하세요.": "This choice is not saved and is required each time. If unsure, cancel and keep your recording inside the app.",
+ "확인 후 계속": "Confirm and continue",
+ "외부 저장·공유를 취소했습니다.": "External save or share cancelled.",
+
  "선택한 조합의 세분 클릭이 너무 빠릅니다. BPM·기준 음표·세분을 조절해 주세요.": "The subdivision clicks are too fast. Adjust the BPM, beat unit or subdivision.",
  "미디어 소리를 시작하지 못했습니다. 다시 시작해 주세요.": "Audio could not start. Please try again.",
  "오디오가 중단되었습니다. 다시 시작해 주세요.": "Audio was interrupted. Please start again.",

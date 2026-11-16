@@ -146,6 +146,8 @@ public class MainActivity extends Activity {
         @android.webkit.JavascriptInterface public void openSupport() { openApprovedPage(PUBLIC_SUPPORT_URL); }
         @android.webkit.JavascriptInterface public void openHomepage() { openApprovedPage(PUBLIC_HOME_URL); }
         @android.webkit.JavascriptInterface public void openYouTubeChannel() { openApprovedPage("https://www.youtube.com/@naruvium-studio"); }
+        @android.webkit.JavascriptInterface public void openPianoSampleSource() { openApprovedPage("https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio"); }
+        @android.webkit.JavascriptInterface public void openPianoSampleLicense() { openApprovedPage("https://creativecommons.org/licenses/by/3.0/"); }
         @android.webkit.JavascriptInterface public void openTrainingSource(String id) {
             if (id == null) return;
             switch (id) {

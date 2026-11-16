@@ -1,10 +1,10 @@
-name: VoiceLine Local89 - clean piano APK
+name: VoiceLine Local90 - clean piano APK
 on:
   push:
     branches: [build/android-apk]
     paths:
       - android-local44/**
-      - .github/workflows/build-local89-clean-apk.yml
+      - .github/workflows/build-local90-clean-apk.yml
   workflow_dispatch:
 permissions:
   contents: write
@@ -32,6 +32,12 @@ jobs:
           grep -q 'id="studioYoutubeLink"' android-local44/app/src/main/assets/www/index.html
           ! grep -q 'song-practice.js' android-local44/app/src/main/assets/www/index.html
           ! grep -q 'songGraphOverlay' android-local44/app/src/main/assets/www/index.html
+          grep -q 'id="recordRightsDialog"' android-local44/app/src/main/assets/www/index.html
+          grep -q 'id="pianoCreditsOpen"' android-local44/app/src/main/assets/www/index.html
+          grep -q 'requestRecordingRightsConsent(operation)' android-local44/app/src/main/assets/www/piano.js
+          ! grep -q 'YouTube 로고' android-local44/app/src/main/assets/www/index.html
+          node --check android-local44/app/src/main/assets/www/i18n-en.js
+          node --test android-local44/local_tests/local90-copyright.test.cjs
           test ! -e android-local44/app/src/main/assets/www/song-practice.js
           test ! -e android-local44/app/src/main/assets/www/song-practice.css
           test ! -e android-local44/app/src/main/java/com/voiceline/app/SongPlaybackBridge.java
@@ -64,8 +70,8 @@ jobs:
           apk="$(find android-local44/app/build/outputs/apk/ciDebug -name '*.apk' -print -quit)"
           test -s "$apk"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep "name='com.voiceline.app.local18.ci45'"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep "versionCode='112'"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep "versionName='2.0.0-local89-ci'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep "versionCode='113'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" | grep "versionName='2.0.0-local90-ci'"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | tee dist/signing.txt
           grep -qi "$(cat ci/android-debug-cert.sha256)" dist/signing.txt
           python3 - "$apk" <<'PY'
@@ -79,14 +85,17 @@ jobs:
                   assert name not in names, name
               assert b'id="keyboard"' in z.read('assets/www/index.html')
               assert b'id="studioYoutubeLink"' in z.read('assets/www/index.html')
+              assert b'id="recordRightsDialog"' in z.read('assets/www/index.html')
+              assert b'id="pianoCreditsOpen"' in z.read('assets/www/index.html')
+              assert b'requestRecordingRightsConsent(operation)' in z.read('assets/www/piano.js')
               assert b'songGraphOverlay' not in z.read('assets/www/index.html')
           PY
-          cp "$apk" dist/VoiceLine-Local89-Clean-CI.apk
-          sha256sum dist/VoiceLine-Local89-Clean-CI.apk > dist/SHA256SUMS.txt
-          (cd dist && zip -q VoiceLine-Local89-Clean-CI.zip VoiceLine-Local89-Clean-CI.apk)
+          cp "$apk" dist/VoiceLine-Local90-Safer-CI.apk
+          sha256sum dist/VoiceLine-Local90-Safer-CI.apk > dist/SHA256SUMS.txt
+          (cd dist && zip -q VoiceLine-Local90-Safer-CI.zip VoiceLine-Local90-Safer-CI.apk)
       - uses: actions/upload-artifact@v4
         with:
-          name: VoiceLine-Local89-Clean-APK
+          name: VoiceLine-Local90-Safer-APK
           path: dist/
           retention-days: 7
       - name: Release direct-download APK
@@ -94,10 +103,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          tag=voiceline-local89-clean-ci
+          tag=voiceline-local90-rights-ci
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title 'VoiceLine Local89 - Original Piano UI, Song Feature Removed' \
-              --notes 'Song following, external audio/MR import, song pitch extraction and native song playback have been removed. All original piano, recording, vibrato, metronome and exercises remain. Naruvium YouTube link stays at the bottom of the menu. Same CI signing certificate as previous Local88, versionCode 112. Copyright provenance audit: see android-local44/docs/local89-copyright-review.md. No guarantee of zero third-party rights risk.' \
-              dist/VoiceLine-Local89-Clean-CI.apk dist/VoiceLine-Local89-Clean-CI.zip dist/SHA256SUMS.txt
+              --title 'VoiceLine Local90 - Original Piano UI, Song Feature Removed' \
+              --notes 'Song following, external audio/MR import, song pitch extraction and native song playback have been removed. All original piano, recording, vibrato, metronome and exercises remain. Naruvium YouTube link stays at the bottom of the menu. Same CI signing certificate as previous Local89, versionCode 113. Credits and rights checks added. Copyright provenance audit: see android-local44/docs/local90-copyright-review.md. No guarantee of zero third-party rights risk.' \
+              dist/VoiceLine-Local90-Safer-CI.apk dist/VoiceLine-Local90-Safer-CI.zip dist/SHA256SUMS.txt
           fi

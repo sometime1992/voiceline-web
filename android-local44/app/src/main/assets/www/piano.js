@@ -2866,12 +2866,39 @@ $('stopButton').addEventListener('click',async()=>{
  try{await stopActivity();$('stopButton').hidden=true;$('mainButton').classList.remove('recording');$('mainButton').textContent=TRAINING_MODES.has(app.mode)?(app.mode==='practice'?'연습 시작':'훈련 시작'):app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';}
  finally{app.busy=false;updateMicToggle();}
 });
+// A fresh, unchecked consent prompt is required before each outward save or share.
+let recordingRightsPending=null,recordingRightsFocus=null;
+function finishRecordingRightsConsent(approved){
+ const resolve=recordingRightsPending;recordingRightsPending=null;
+ $('recordRightsDialog').hidden=true;
+ $('recordRightsAgree').checked=false;$('recordRightsConfirm').disabled=true;
+ const focus=recordingRightsFocus;recordingRightsFocus=null;
+ if(focus?.isConnected&&!focus.disabled)focus.focus();
+ else if(!$('recordToolsDialog').hidden)$('recordToolsClose').focus();
+ if(resolve)resolve(Boolean(approved));
+}
+function requestRecordingRightsConsent(operation){
+ if(recordingRightsPending)return Promise.resolve(false);
+ const share=operation==='share',en=window.VoiceLineI18n?.language==='en';
+ $('recordRightsTitle').textContent=en
+  ?share?'Copyright check before sharing':'Copyright check before external save'
+  :share?'녹음 공유 전 저작권 확인':'녹음 외부 저장 전 저작권 확인';
+ $('recordRightsExplanation').textContent=en
+  ?share?'Sharing sends this recording to another app. Songs, lyrics, performances and backing tracks may have separate owners. Recording them does not grant distribution rights.'
+        :'Saving to another location makes an external copy. Songs, lyrics, performances and backing tracks may have separate owners. Recording them does not grant copying or distribution rights.'
+  :share?'외부 앱으로 녹음을 공유합니다. 노래·가사·연주·반주의 권리가 각각 다를 수 있으며, 녹음했다고 해서 배포 권리가 생기지는 않습니다.'
+        :'외부에 녹음 파일 사본을 만듭니다. 노래·가사·연주·반주의 권리가 각각 다를 수 있으며, 녹음했다고 해서 복제·배포 권리가 생기지는 않습니다.';
+ $('recordRightsAgree').checked=false;$('recordRightsConfirm').disabled=true;
+ recordingRightsFocus=document.activeElement;
+ return new Promise(resolve=>{recordingRightsPending=resolve;modalOpen('recordRightsDialog');$('recordRightsAgree').focus();});
+}
 function modalOpen(name){
  if(name==='infoDialog'){app.historyGeneration=(app.historyGeneration||0)+1;closeActiveAudio();}
  $(name).hidden=false;const focus=$(name).querySelector('.close-btn');focus?.focus();
  if(name==='menuDialog')$('menuOpen').setAttribute('aria-expanded','true');
 }
 function modalClose(name){
+ if(name==='recordRightsDialog'){finishRecordingRightsConsent(false);return;}
  if(name==='historyDeleteDialog'){historyDeleteCancelAction?.();return;}
  if(name==='trainingResultDialog'){hideTrainingResult();return;}
  $(name).hidden=true;
@@ -2892,6 +2919,13 @@ $('menuOpen').addEventListener('click',()=>modalOpen('menuDialog'));
 $('menuClose').addEventListener('click',()=>modalClose('menuDialog'));
 $('infoClose').addEventListener('click',()=>modalClose('infoDialog'));
 $('recordToolsClose').addEventListener('click',()=>modalClose('recordToolsDialog'));
+$('recordRightsCancel').addEventListener('click',()=>finishRecordingRightsConsent(false));
+$('recordRightsConfirm').addEventListener('click',()=>{
+ if($('recordRightsAgree').checked)finishRecordingRightsConsent(true);
+});
+$('recordRightsAgree').addEventListener('change',()=>{
+ $('recordRightsConfirm').disabled=!$('recordRightsAgree').checked;
+});
 $('warmupSettingsClose').addEventListener('click',()=>modalClose('warmupSettingsDialog'));
 $('warmupSettingsSave').addEventListener('click',()=>saveWarmupOptions());
 $('warmupSettingsReset').addEventListener('click',()=>saveWarmupOptions(true));
@@ -2921,7 +2955,7 @@ for(const [index,tab] of ['rhythm','presets'].entries()){
 }
 $('metroSettingsClose').addEventListener('click',()=>modalClose('metronomeSettingsDialog'));
 $all('.modal-backdrop').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)modalClose(el.id);}));
-function topDialog(){return ['planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'].find(id=>!$(id).hidden)||null;}
+function topDialog(){return ['recordRightsDialog','planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'].find(id=>!$(id).hidden)||null;}
 function closeTopDialog(){const top=topDialog();if(!top)return false;if(top==='planDialog'&&window.VoiceLinePlansUI?.back())return true;modalClose(top);return true;}
 document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&closeTopDialog()){e.preventDefault();e.stopPropagation();return;}
@@ -3045,7 +3079,7 @@ function showHelp(){
   ['가로·세로 화면','휴대폰의 자동 회전 설정에 따라 가로·세로로 사용할 수 있습니다. 세로에서는 건반 1옥타브와 두 줄 설정을, 가로에서는 건반 2옥타브와 넓은 그래프를 표시합니다. 회전해도 녹음과 훈련 시간은 이어지고 누르고 있던 건반과 BPM 길게 누르기는 해제됩니다. 기록·긴 설명·키보드가 열린 작은 화면에서는 필요한 스크롤을 사용할 수 있습니다.'],
   ['측정 가능한 음역','음정 측정과 훈련 목표는 '+noteLabel(PITCH_RANGE.minMidi)+' ~ '+noteLabel(PITCH_RANGE.maxMidi)+' 범위를 사용합니다. 높은 시작음의 패턴과 슬라이드는 아래쪽으로 전환할 수 있습니다.'],
   ['나의 기록과 개인정보','녹음 파일과 모든 보컬 훈련·음정 측정 기록은 기기 내부에만 보관합니다. 나의 기록은 녹음·연습 탭으로 나뉩니다. 녹음 탭에서 전체 재생·구간 이동·삭제와 저장 실패한 녹음 다시 저장을 할 수 있습니다. 앱 중단으로 복구한 녹음은 마지막으로 저장된 구간까지 포함합니다. 앱 삭제나 데이터 초기화 시 함께 삭제됩니다.'],
-  ['피아노 음원 및 저작권','피아노 연주 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT). 그랜드 피아노 녹음: Salamander Grand Piano / Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 음원과 라이브러리는 APK에 포함되어 오프라인에서도 연주할 수 있습니다.'],
+  ['피아노 음원 및 저작권','Salamander Grand Piano (Yamaha C5) 녹음 28개: Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 보이스라인은 원본 MP3를 포함하고 건반 재생 시 음높이·속도·음량·엔벨로프를 조정합니다. 원저작자는 VoiceLine을 보증·후원하지 않습니다. 피아노 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT).'],
   ['통화와 오디오 중단','통화·다른 앱의 오디오 사용·마이크 연결 장치 변경으로 입력이 중단되면 연습과 채점을 멈추고 진행 중인 녹음을 저장합니다. 사용자가 마이크 권한을 허용하는 창은 시작 과정으로 처리합니다. 중단 원인이 사라져도 자동으로 다시 시작하지 않으며 시작 버튼을 눌러 재개합니다.'],
   ['마이크와 피아노 소리','피아노와 메트로놈 소리가 마이크에 들어가면 음정·박자 판정에 영향을 줄 수 있습니다. 이어폰을 권장합니다. 마이크를 끄거나 앱을 벗어나면 활동을 종료하고 녹음을 저장합니다. 음정 측정에는 기기 입력 지연과 주변 소음의 영향이 있을 수 있습니다.'],
   ['녹음 공유와 저작권','직접 제작했거나 필요한 이용 허락을 받은 녹음만 공개 공유하세요. 녹음에 포함된 곡·가사·반주의 권리는 별도로 확인해야 합니다.'],
@@ -3066,6 +3100,21 @@ function showOpenSourceLicenses(){
  }
  modalOpen('infoDialog');
 }
+function showPianoCredits(){
+ $('infoTitle').textContent='피아노 음원 출처·저작권';const b=$('infoBody');b.replaceChildren();
+ plain(b,'h3','','Salamander Grand Piano (Yamaha C5)');
+ plain(b,'p','','저작자: Alexander Holm · 라이선스: Creative Commons Attribution 3.0 Unported (CC BY 3.0)');
+ plain(b,'p','','사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 VoiceLine 후원·보증은 없습니다.');
+ plain(b,'p','','원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio');
+ plain(b,'p','','라이선스: https://creativecommons.org/licenses/by/3.0/');
+ plain(b,'p','','피아노 엔진: @tonejs/piano 및 Tone.js (Yotam Mann), MIT');
+ const link=(label,fn)=>{const a=plain(b,'button','privacy-policy-help',label);a.type='button';a.onclick=fn;};
+ link('원본 음원 출처 열기',()=>window.VoiceLinePublicLinks?.openPianoSampleSource?.());
+ link('CC BY 3.0 원문 열기',()=>window.VoiceLinePublicLinks?.openPianoSampleLicense?.());
+ link('전체 오픈소스 고지',showOpenSourceLicenses);
+ modalOpen('infoDialog');
+}
+$('pianoCreditsOpen')?.addEventListener('click',()=>{modalClose('menuDialog');showPianoCredits();});
 // Use an app-designed confirmation instead of window.confirm(). Android WebView
 // prefixes native JS confirms with https://appassets.androidplatform.net, a URL
 // that is not relevant to the user and cannot be hidden within confirm().
@@ -3229,6 +3278,8 @@ async function renderRecoverableRecordings(body,isCurrent){
 async function exportRecordingFile(record,operation,onProgress=notify){
  if(app.record||app.recordSaving||app.stopPromise)throw Error('현재 녹음을 중지하고 저장한 뒤 파일을 내보내 주세요.');
  if(!window.VoiceLineDocuments)throw Error('파일 기능을 준비하지 못했습니다. 앱을 다시 열어 주세요.');
+ if(!['save','share'].includes(operation))throw Error('지원하지 않는 파일 내보내기 작업입니다.');
+ if(!await requestRecordingRightsConsent(operation))return {status:'cancelled',detail:'외부 저장·공유를 취소했습니다.'};
  const result=await window.VoiceLineDocuments.perform(record,operation,window.VoiceLineRecordingTools.filename(record),onProgress);
  if(result.detail)notify(result.detail);return result;
 }

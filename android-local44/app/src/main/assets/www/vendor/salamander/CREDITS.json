@@ -37,5 +37,9 @@
     "Ds7v8.mp3",
     "Fs7v8.mp3",
     "A7v8.mp3"
-  ]
+  ],
+  "usageInVoiceLine": "VoiceLine bundles 28 original MP3 note samples (velocity layer 8) for offline keyboard playback. The playback engine interpolates/transposes pitch and controls sample gain and envelope; original sample MP3 bytes are retained.",
+  "changes": "Playback pitch/speed, gain and release envelope are adjusted by the playback engine. Audio source samples are not edited or re-encoded.",
+  "noEndorsement": "Alexander Holm and upstream projects do not endorse VoiceLine. Attribution does not imply sponsorship.",
+  "copyrightNotice": "Salamander Grand Piano (Yamaha C5) — Alexander Holm — Creative Commons Attribution 3.0 Unported."
 }

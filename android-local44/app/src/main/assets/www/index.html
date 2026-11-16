@@ -185,10 +185,11 @@
    <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
    <button data-screen="privacy" class="menu-tile privacy-menu-tile"><span class="tile-icon">ⓘ</span><span><strong>개인정보처리방침</strong><small>마이크·녹음·기록 및 개발자 문의</small></span></button>
   </div>
+  <button type="button" id="pianoCreditsOpen" class="piano-credits-open"><strong>피아노 음원 출처·라이선스</strong><small>Salamander Grand Piano · Alexander Holm · CC BY 3.0</small></button>
   <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version" id="appVersion">버전 2.0.0</span></p>
   <a id="studioYoutubeLink" class="studio-youtube-footer" href="https://www.youtube.com/@naruvium-studio" rel="noopener noreferrer" aria-label="Naruvium Studio 유튜브 채널 열기">
-    <svg viewBox="0 0 90 64" width="36" height="26" role="img" aria-label="YouTube 로고"><rect x="2" y="8" width="86" height="48" rx="14" fill="#FF0033"/><path d="M38 21 L38 43 L58 32 Z" fill="#FFFFFF"/></svg>
-    <span><strong>Naruvium Studio</strong><small>유튜브 채널 바로가기</small></span>
+    <span aria-hidden="true" class="studio-youtube-external">↗</span>
+    <span><strong>유튜브에서 Naruvium Studio 채널 보기</strong><small>YouTube 채널로 이동 · 외부 앱에서 열림</small></span>
   </a>
  </section>
 </div>
@@ -202,6 +203,19 @@
   <p class="record-tools-info">파일로 저장은 선택한 위치에 원본 형식으로 복사합니다. 앱 안의 녹음도 유지됩니다.</p>
   <div class="record-tools-bottom"><p id="recordToolsStatus" role="status" aria-live="polite"></p><button type="button" id="recordDelete" class="record-danger">녹음 삭제</button></div>
  </section>
+</div>
+<!-- Confirm every outward export/share. In-app recordings require no rights declaration. -->
+<div id="recordRightsDialog" class="modal-backdrop record-rights-backdrop" hidden>
+  <section class="modal record-rights-modal" role="dialog" aria-modal="true" aria-labelledby="recordRightsTitle" aria-describedby="recordRightsExplanation">
+    <div class="modal-heading"><div><span class="eyebrow">VoiceLine · 저작권 확인</span><h2 id="recordRightsTitle">녹음 외부 저장·공유 전 확인</h2></div></div>
+    <p id="recordRightsExplanation">녹음에 다른 사람의 노래·가사·반주·음원이 포함되어 있다면 외부 저장·공유에 필요한 권리가 있는지 확인해야 합니다. 앱에서 녹음했다고 해서 그 권리가 생기지는 않습니다.</p>
+    <label for="recordRightsAgree" class="record-rights-check"><input type="checkbox" id="recordRightsAgree"><span>이 녹음에 포함된 모든 콘텐츠를 직접 제작했거나, 예정된 저장·공유에 필요한 권리·허락을 보유하고 있음을 확인합니다.</span></label>
+    <p class="record-rights-hint">선택은 저장되지 않으며 매번 확인합니다. 권리가 불명확하다면 취소하고 앱 안에서만 녹음을 보관하세요.</p>
+    <div class="record-rights-actions">
+      <button type="button" id="recordRightsCancel">취소</button>
+      <button type="button" id="recordRightsConfirm" disabled>확인 후 계속</button>
+    </div>
+  </section>
 </div>
 <div id="guideSettingsDialog" class="modal-backdrop guide-settings-backdrop" hidden>
  <section class="modal guide-settings-modal" role="dialog" aria-modal="true" aria-labelledby="guideSettingsTitle">

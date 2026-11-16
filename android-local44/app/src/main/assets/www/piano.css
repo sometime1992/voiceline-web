@@ -554,3 +554,21 @@
 .studio-youtube-footer span{display:flex;flex-direction:column;gap:3px;min-width:0}
 .studio-youtube-footer strong{font-size:13px}
 .studio-youtube-footer small{font-size:11px;color:#c7b6d6}
+
+/* Local90: explicit sample credit and neutral external-channel link. */
+.piano-credits-open{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;margin:12px 0 0;padding:9px 12px;background:#242239;border:1px solid #706382;border-radius:10px;color:#eee7ff;cursor:pointer;text-align:center}
+.piano-credits-open strong{font-size:12px}.piano-credits-open small{font-size:10px;color:#c5bcdd}
+.piano-credits-open:hover,.piano-credits-open:focus-visible{background:#34304e;outline-offset:2px}
+.studio-youtube-external{font-size:22px;font-weight:bold;color:#eee7ff;flex:none;padding:0 4px}
+.record-rights-backdrop{z-index:88}
+.record-rights-modal{width:min(540px,94vw);max-height:calc(100dvh - 28px);overflow:auto;padding:clamp(14px,2vw,24px);border:1px solid #9c86b8}
+.record-rights-modal h2{font-size:clamp(18px,2.5vw,23px)}
+.record-rights-modal p{color:#e1d8ef;font-size:13px;line-height:1.6}
+.record-rights-check{display:flex;gap:11px;align-items:flex-start;margin:13px 0 8px;padding:13px;border:1px solid #9c8fb5;background:#2b283b;border-radius:11px;font-size:13px;line-height:1.55;color:#fff;cursor:pointer}
+.record-rights-check input{width:20px;height:20px;flex:none;accent-color:#73ddc7;margin-top:1px}
+.record-rights-hint{font-size:11px!important;color:#c6c0d8!important}
+.record-rights-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:12px}
+.record-rights-actions button{border:1px solid #a79abb;border-radius:10px;padding:9px 17px;background:#49405c;color:#fff;font-weight:700;min-height:42px}
+.record-rights-actions button:last-child{background:#246f67;border-color:#56dfcf}
+.record-rights-actions button:disabled{opacity:.45;cursor:not-allowed}
+.record-rights-actions button:focus-visible{outline:2px solid #fff;outline-offset:3px}
