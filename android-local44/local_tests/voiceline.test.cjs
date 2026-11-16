@@ -755,10 +755,10 @@ test('Local31: description control is beside mode title and header never scrolls
  assert.match(js,/const fullIntro=Object\.values\(MODES\)\.some\(info=>info\[1\]===msg\)/);
  assert.match(js,/const shortText=fullIntro\?'준비 · 설명 버튼에서 방법 확인':msg/);
 });
-test('All eleven exercise and piano modes have individual guidance',()=>{
+test('All twelve including song practice have individual guidance',()=>{
  const piece=snippet('const MODE_GUIDES={','let modeGuideReturnFocus=', '\nMODE_GUIDES');
  const guides=runInContext(piece,{Math});
- const modes=['piano','pitch','record','vibrato','practice','sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice','metronome'];
+ const modes=['piano','pitch','record','vibrato','practice','sustainVoice','earVoice','dynamicVoice','warmupVoice','guideVoice','metronome','song'];
  assert.deepEqual(Object.keys(guides).sort(),modes.sort());
  for(const mode of modes){
   assert.ok(guides[mode].intro.length>10,mode+' intro');
