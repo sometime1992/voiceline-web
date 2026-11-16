@@ -32,14 +32,21 @@ and bilingual UI checks remain in the Android workflow.
 
 ## Asset rights evidence
 
-`asset-provenance.json` records known sources and hashes. An unknown field is
-left unknown. The current icon is preserved; its original creation, purchase or
-permission record still needs to be associated with the asset. Selecting an
-image is not itself evidence of reproduction or distribution rights.
+`asset-provenance.json` records known sources and hashes. Local93 located the
+2026-10-30 generated original in the owner's files. RGBA pixels in icon-192.png,
+icon-512.png and favicon.png exactly match LANCZOS resizes of that 1254px source.
+The file identity, generation metadata and original hash are retained. This
+establishes the creation chain; it does not assert exclusivity of AI output or
+guarantee absence of all third-party claims.
 
-The pitch detector is implemented in `piano.js` as `pitchYin`; source-code
-history is not replaced by an unsupported claim of independent authorship.
-Keep a record of any external implementation reused or adapted.
+Local93 replaces the estimator core in `piano.js#pitchYin` with an explicitly
+attributed adaptation of yinjs 0.1.0 (Adriano Di Giovanni, MIT). The exact upstream
+source, commit, file hashes, full license and adaptation notes are retained in
+`vendor/yinjs/`, and the complete notice is included in offline app credits.
+VoiceLine retains its input-level gates and adds bounded CMND, invalid-input
+rejection, confidence checking and interpolation. Tests cover all selectable
+notes across 16, 44.1 and 48kHz inputs. Do not describe this as a clean-room or
+entirely independently authored implementation.
 
 The recording-sharing help explains that song, lyric and backing-track rights
 must be checked separately. It does not grant permissions to users. The

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "reviewDate": "2026-11-15",
-  "application": "VoiceLine Local86",
+  "reviewDate": "2026-11-16",
+  "application": "VoiceLine Local93",
   "assets": [
     {
       "path": "vendor/salamander/C1v8.mp3",
@@ -230,31 +230,137 @@
     {
       "path": "icon-192.png",
       "sha256": "4e06e98a6f4222c16ab256c17374f311f42966caab85a1a62fc7640243d9b789",
-      "creator": null,
-      "license": null,
-      "source": "User-selected image recorded in Local22 change history.",
-      "rightsEvidenceStatus": "pending_original_creation_or_permission_record"
+      "creator": "AI-generated for the user in ChatGPT",
+      "license": "User output rights under applicable OpenAI terms; no exclusivity asserted",
+      "source": {
+        "library_file_id": "libfile_1d3d48849f588191935bb609e2256e1d",
+        "name": "네온 글래스 AI 음악 아이콘.png",
+        "created_at": "2026-10-30T12:13:28.911053Z",
+        "model_generated": true,
+        "sha256": "d48fac28645f1061c9b3e18ed6e1f116ed00edb2ef630a9c6f057b17673cca50",
+        "size": [
+          1254,
+          1254
+        ]
+      },
+      "rightsEvidenceStatus": "generated_original_located_and_pixel_verified",
+      "verification": "RGBA pixels exactly equal original resized with Pillow LANCZOS to packaged dimensions",
+      "termsUrl": "https://openai.com/policies/terms-of-use/"
     },
     {
       "path": "icon-512.png",
       "sha256": "a3928133a72fdb8a37b771f5a19002a6a27b144939d4b536c0f4a8b18ad1b56c",
-      "creator": null,
-      "license": null,
-      "source": "User-selected image recorded in Local22 change history.",
-      "rightsEvidenceStatus": "pending_original_creation_or_permission_record"
+      "creator": "AI-generated for the user in ChatGPT",
+      "license": "User output rights under applicable OpenAI terms; no exclusivity asserted",
+      "source": {
+        "library_file_id": "libfile_1d3d48849f588191935bb609e2256e1d",
+        "name": "네온 글래스 AI 음악 아이콘.png",
+        "created_at": "2026-10-30T12:13:28.911053Z",
+        "model_generated": true,
+        "sha256": "d48fac28645f1061c9b3e18ed6e1f116ed00edb2ef630a9c6f057b17673cca50",
+        "size": [
+          1254,
+          1254
+        ]
+      },
+      "rightsEvidenceStatus": "generated_original_located_and_pixel_verified",
+      "verification": "RGBA pixels exactly equal original resized with Pillow LANCZOS to packaged dimensions",
+      "termsUrl": "https://openai.com/policies/terms-of-use/"
     },
     {
       "path": "favicon.png",
       "sha256": "f40c459028abbfb5d36890946d33d2f096915435ad02033fcef5d3682e044b58",
-      "creator": null,
-      "license": null,
-      "source": "User-selected image recorded in Local22 change history.",
-      "rightsEvidenceStatus": "pending_original_creation_or_permission_record"
+      "creator": "AI-generated for the user in ChatGPT",
+      "license": "User output rights under applicable OpenAI terms; no exclusivity asserted",
+      "source": {
+        "library_file_id": "libfile_1d3d48849f588191935bb609e2256e1d",
+        "name": "네온 글래스 AI 음악 아이콘.png",
+        "created_at": "2026-10-30T12:13:28.911053Z",
+        "model_generated": true,
+        "sha256": "d48fac28645f1061c9b3e18ed6e1f116ed00edb2ef630a9c6f057b17673cca50",
+        "size": [
+          1254,
+          1254
+        ]
+      },
+      "rightsEvidenceStatus": "generated_original_located_and_pixel_verified",
+      "verification": "RGBA pixels exactly equal original resized with Pillow LANCZOS to packaged dimensions",
+      "termsUrl": "https://openai.com/policies/terms-of-use/"
     },
     {
       "path": "piano.js#pitchYin",
-      "source": "Repository implementation and edit history. External implementation provenance has not been independently established.",
-      "rightsEvidenceStatus": "review_external_code_history_if_reused"
+      "source": "https://github.com/adriano-di-giovanni/yinjs/tree/b1a257e811a21d665ab5bcf4de7bc3762c6f3d04",
+      "rightsEvidenceStatus": "pinned_MIT_upstream_and_full_notice_included",
+      "license": "MIT",
+      "creator": "Adriano Di Giovanni (upstream); VoiceLine adaptation",
+      "changes": [
+        "Retained VoiceLine input-level gates, downsampling and pitch bounds.",
+        "Bounded the upstream difference window and lag search.",
+        "Computed cumulative normalization in one pass with explicit zero/invalid-input handling.",
+        "Added confidence rejection and parabolic interpolation."
+      ]
+    }
+  ],
+  "androidIconAssets": [
+    {
+      "path": "app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "sha256": "5499795a1e224876d12ca0c7090cb5a11b913a2b1232a9912affadea048b2109",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "sha256": "3a83b31139646f8b31f5895044bdf4a5363df03d74c16200191fe26e049cedeb",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "sha256": "6da764c1778ee14d424e43d5908c14a36a9eda5fccfe5364060f67ae29a41cb1",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "sha256": "5334cbe7a2472eca23ec1f48ad1da35bdbddbbb6eb6990b37b4f63aab6b90478",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "sha256": "b97b95620146411f3daaa3f71946c8da131113061ba5a5ef79b65e2448d0f2c5",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "sha256": "dbaf4c7a4072b82ed185c63e0ad666a401fb32421660635b91e0edc6d847b4b4",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/ic_launcher_monochrome.png",
+      "sha256": "8f1fb02a86c2dc1aad0c68cce029640aa53522448b10c5c416f2aa700b287ae5",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/ic_launcher_foreground.png",
+      "sha256": "3a06b8e2a25b05eb60fbdc7613b81a745db5524c26ec03ec0ec212a31b12e5f5",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "sha256": "4e06e98a6f4222c16ab256c17374f311f42966caab85a1a62fc7640243d9b789",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "sha256": "444665babe336a10e6ffa857b4e91a2e50ec911e433ad4f996376a354aa73914",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "sha256": "4edda7dda6c9a90f58e11f47bc38c8c2f94805b67479f0609ea51a034d1ef504",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
+    },
+    {
+      "path": "app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "sha256": "45f7114070a2a6c37c6238447e3808e5f520d4ccf9f10fe76b2da92c8c761026",
+      "source": "Same Local22 generated icon family; original and exact web-size derivatives verified above"
     }
   ]
 }

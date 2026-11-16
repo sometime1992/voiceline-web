@@ -771,6 +771,10 @@ $('octaveUp').addEventListener('click',()=>{app.base=clamp(app.base+12,24,108-(a
 // Convert 44.1kHz microphone input to 22.05kHz before estimating periodicity.
 // The original 768-sample window only covered 17ms of sound; sustained lower
 // notes and breathier voices could intermittently fail, although audio recorded.
+// YIN estimator core adapted from yinjs 0.1.0, Adriano Di Giovanni (MIT).
+// Pinned upstream source and full license: vendor/yinjs/UPSTREAM.json and LICENSE.
+// VoiceLine bounds the lag/window, computes CMND in one pass, validates confidence
+// and interpolates the minimum. Input-level gates remain app-specific.
 function pitchYin(s,sr,recording=false,sensitivity='sensitive'){
  if(!s||s.length<1024||!Number.isFinite(sr)||sr<=0)return null;
  if(sr>=32000&&s.length>=2048){
@@ -793,29 +797,39 @@ function pitchYin(s,sr,recording=false,sensitivity='sensitive'){
  const hi=Math.min(Math.floor(sr/PITCH_RANGE.minHz),Math.floor(s.length/2)-2);
  const win=Math.min(1024,s.length-hi-1);
  if(win<256||hi<=lo)return null;
- const a=new Float32Array(hi+1);
- for(let tau=1;tau<=hi;tau++){
-  let diff=0;
-  for(let j=0;j<win;j++){
-   const v=s[j]-s[j+tau];diff+=v*v;
+ // yinjs difference(), restricted to the requested vocal pitch range.
+ const difference=new Float32Array(hi+1);
+ for(let lag=0;lag<=hi;lag++){
+  let summation=0;
+  for(let sample=0;sample<win;sample++){
+   const delta=s[sample]-s[sample+lag];summation+=delta*delta;
   }
-  a[tau]=diff;
+  if(!Number.isFinite(summation))return null;
+  difference[lag]=summation;
  }
- let running=0,best=-1,minValue=1,minIndex=-1;
- for(let tau=1;tau<=hi;tau++){
-  running+=a[tau];a[tau]=running>0?a[tau]*tau/running:1;
-  if(tau>=lo&&a[tau]<minValue){minValue=a[tau];minIndex=tau;}
+ // yinjs cumulativeMeanNormalizedDifference(), with a running sum and an
+ // explicit zero-lag value (upstream divides 0/0 there).
+ const normalized=new Float32Array(hi+1);normalized[0]=1;
+ let summation=0;
+ for(let lag=1;lag<=hi;lag++){
+  summation+=difference[lag];
+  normalized[lag]=summation>0?difference[lag]*lag/summation:1;
  }
+ // yinjs absoluteThreshold() and bestLocalEstimate(), bounded so that no
+ // uncomputed zero-filled array tail can be selected as a pitch candidate.
  const threshold=recording?.18:.15;
- for(let tau=lo;tau<hi;tau++){
-  if(a[tau]<threshold){
-   while(tau+1<hi&&a[tau+1]<a[tau])tau++;
-   best=tau;break;
+ let best=-1,minimum=1,minimumLag=-1;
+ for(let lag=lo;lag<=hi;lag++){
+  if(normalized[lag]<minimum){minimum=normalized[lag];minimumLag=lag;}
+  if(normalized[lag]<threshold){
+   best=lag;
+   while(best<hi&&normalized[best+1]<normalized[best])best++;
+   break;
   }
  }
- if(best<0){if(minValue>(recording?.29:.21))return null;best=minIndex;}
+ if(best<0){if(minimum>(recording?.29:.21))return null;best=minimumLag;}
  if(best<=1||best>=hi)return null;
- const l=a[best-1],c=a[best],r=a[best+1],den=l-2*c+r;
+ const l=normalized[best-1],c=normalized[best],r=normalized[best+1],den=l-2*c+r;
  const shift=Math.abs(den)>1e-9?clamp((l-r)/(2*den),-1,1):0;
  const hz=sr/(best+shift);
  if(!Number.isFinite(hz)||hz<PITCH_RANGE.minHz||hz>PITCH_RANGE.maxHz||c>(recording?.30:.24))return null;

@@ -83,6 +83,37 @@ async function inspectLiveResult(page,mode,leaks){
    }else assert.equal(await page.locator('#customTimingOpen').count(),0);
    checks.push(mode+' English screen, guide, presets and 150% layouts');
   }
+  await page.locator('#menuOpen').click();await page.locator('#pianoCreditsOpen').click();await settle(page);
+  assert.equal(await page.locator('#infoTitle').textContent(),'Piano sample credits and copyright');
+  leaks.push(...(await leftovers(page)).map(x=>({screen:'piano credits',...x})));
+  assert.deepEqual(await page.locator('.piano-credits-actions button').allTextContents(),['Open sample source','Open CC BY 3.0 license','All open-source notices']);
+  await page.screenshot({path:path.join(out,'english-piano-credits.png')});
+  await page.locator('.piano-credits-actions button').last().click();await settle(page);
+  assert.equal(await page.locator('#infoTitle').textContent(),'Open-source licenses');
+  assert.ok((await page.locator('.license-text').allTextContents()).some(t=>t.includes('Copyright (c) 2018 Adriano Di Giovanni')));
+  await page.locator('#infoClose').click();checks.push('complete English piano attribution and pinned MIT estimator notice');
+  // A synthetic, private browser recording exercises actual file controls. No
+  // outward save/share call is allowed before fresh consent on each attempt.
+  await page.evaluate(async()=>{
+   const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('voiceline-local-v2',4);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+   const record={id:'release-language-recording',title:'English QA recording',timestamp:Date.now(),date:'2026-11-16',duration:1,mime:'audio/wav',blob:new Blob([new Uint8Array(46)],{type:'audio/wav'}),size:46,pitchTrack:[]};
+   await new Promise((resolve,reject)=>{const tx=db.transaction(['recordings','recordingsMeta'],'readwrite');tx.objectStore('recordings').put(record);const {blob,pitchTrack,...meta}=record;tx.objectStore('recordingsMeta').put(meta);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();
+   window.__exportCalls=0;window.__originalPerform=VoiceLineDocuments.perform;VoiceLineDocuments.perform=async()=>{window.__exportCalls++;return {status:'cancelled',detail:'Sharing cancelled.'};};
+  });
+  await page.locator('#menuOpen').click();await page.locator('[data-screen=history]').click();await settle(page);
+  await page.locator('.record-more').first().click();await settle(page);
+  for(const [button,title]of [['#recordSaveFile','Copyright check before external save'],['#recordShare','Copyright check before sharing']]){
+   await page.locator(button).click();await settle(page);
+   assert.equal(await page.locator('#recordRightsTitle').textContent(),title);
+   assert.equal(await page.locator('#recordRightsAgree').isChecked(),false);assert.equal(await page.locator('#recordRightsConfirm').isDisabled(),true);
+   leaks.push(...(await leftovers(page)).map(x=>({screen:'recording rights '+button,...x})));
+   await page.screenshot({path:path.join(out,button==='#recordShare'?'english-share-rights.png':'english-save-rights.png')});
+   await page.locator('#recordRightsAgree').check();assert.equal(await page.locator('#recordRightsConfirm').isEnabled(),true);
+   await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>window.__exportCalls),0);
+  }
+  await page.locator('#recordToolsClose').click();await page.locator('#infoClose').click();
+  await page.evaluate(()=>{VoiceLineDocuments.perform=window.__originalPerform;});
+  checks.push('English export/share warnings, unchecked consent, disabled approval and cancellation without external copy');
   for(const screen of ['help','privacy','history']){
    await page.locator('#menuOpen').click();await page.locator('[data-screen="'+screen+'"]').click();await settle(page);
    leaks.push(...(await leftovers(page)).map(x=>({screen,...x})));

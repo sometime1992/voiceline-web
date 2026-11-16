@@ -40,5 +40,11 @@
     "license": "CC BY 3.0",
     "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
     "text": "Creator: Alexander Holm\nTitle: Salamander Grand Piano (Yamaha C5)\nLicense: Creative Commons Attribution 3.0 Unported (CC BY 3.0)\nLicense text: https://creativecommons.org/licenses/by/3.0/\nOriginal piano recordings: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio\nVoiceLine includes 28 unmodified MP3 note recordings at velocity layer 8 for offline playback. During playback, pitch/speed, gain and release envelope are adjusted; the sample files themselves are not re-encoded. Alexander Holm and upstream publishers do not endorse or sponsor VoiceLine."
+  },
+  {
+    "name": "yinjs",
+    "license": "MIT",
+    "source": "https://github.com/adriano-di-giovanni/yinjs/tree/b1a257e811a21d665ab5bcf4de7bc3762c6f3d04",
+    "text": "MIT License\n\nCopyright (c) 2018 Adriano Di Giovanni\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
   }
 ]

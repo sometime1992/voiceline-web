@@ -1,10 +1,6 @@
 name: VoiceLine Local92 - credits button spacing
 on:
-  push:
-    branches: [build/android-apk]
-    paths:
-      - android-local44/**
-      - .github/workflows/build-local92-apk.yml
+  # Archived: current builds use build-local93-apk.yml.
   workflow_dispatch:
 permissions:
   contents: write

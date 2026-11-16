@@ -1,0 +1,20 @@
+{
+  "name": "yinjs",
+  "version": "0.1.0",
+  "commit": "b1a257e811a21d665ab5bcf4de7bc3762c6f3d04",
+  "source": "https://github.com/adriano-di-giovanni/yinjs/tree/b1a257e811a21d665ab5bcf4de7bc3762c6f3d04",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2018 Adriano Di Giovanni",
+  "upstreamFiles": {
+    "yin.js": "d1ca5cb3fa761a3b2a0ee6f3b0b22ad407b8d154a377312fbb13fde91de140f1",
+    "LICENSE": "4749e87030a1aa798dbbf109be436f459bad012c6a98179d74a357841fe2c519"
+  },
+  "usedBy": "piano.js#pitchYin",
+  "changes": [
+    "Retained VoiceLine input-level gates, downsampling and pitch bounds.",
+    "Bounded the upstream difference window and lag search.",
+    "Computed cumulative normalization in one pass with explicit zero/invalid-input handling.",
+    "Added confidence rejection and parabolic interpolation."
+  ],
+  "upstreamLoadedAsScript": false
+}
