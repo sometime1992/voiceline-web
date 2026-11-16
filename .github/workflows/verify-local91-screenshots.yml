@@ -1,0 +1,60 @@
+name: VoiceLine Local91 native Korean screenshot verification
+on:
+  push:
+    branches: [build/android-apk]
+    paths:
+      - .github/workflows/verify-local91-screenshots.yml
+      - .github/verification/verify-local91-screenshots.cjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bilingual-screenshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Get the immutable published Local90 and Local91 APKs
+        shell: bash
+        run: |
+          mkdir -p release-review dist
+          curl --fail --location --retry 3 -o release-review/previous-Local90-CI.apk \
+            https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local90-rights-ci/VoiceLine-Local90-Safer-CI.apk
+          curl --fail --location --retry 3 -o dist/VoiceLine-Local91-CI.apk \
+            https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local91-target-pitch-ci/VoiceLine-Local91-CI.apk
+          curl --fail --location --retry 3 -o dist/APK_VERIFIED.json \
+            https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local91-target-pitch-ci/APK_VERIFIED.json
+          echo '200d8369ff85aac3c20164d07adf497e74627a47f70d2f9c061b5ef362a772ae  release-review/previous-Local90-CI.apk' | sha256sum --check
+          echo '99805127a1a8f17d95d00df93ff5c5428b6a360028d6ef32b965e99f691e50e2  dist/VoiceLine-Local91-CI.apk' | sha256sum --check
+      - name: Enable accelerated Android emulator
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Recheck Local90 update and Korean screen after native frame stabilization
+        timeout-minutes: 14
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: node .github/verification/verify-local91-screenshots.cjs
+      - name: Preserve screenshot and data retention evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-Local91-Updated-Native-Language-Evidence
+          path: android-upgrade-report/
+          retention-days: 14
