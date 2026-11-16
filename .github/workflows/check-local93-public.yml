@@ -1,0 +1,42 @@
+name: VoiceLine Local93 public release endpoints
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/check-local93-public.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check public privacy, support and studio URLs
+        run: |
+          python3 <<'PY'
+          import urllib.request,json
+          from pathlib import Path
+          rows=[]
+          for url,required in [
+            ('https://naruvium.com/apps/voiceline/privacy.html',['VoiceLine','개인정보처리방침','grand4870@gmail.com']),
+            ('https://naruvium.com/support.html?app=voiceline#contact',['VoiceLine','grand4870@gmail.com']),
+            ('https://naruvium.com/',['Naruvium'])
+          ]:
+              try:
+                  request=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (VoiceLine release review)'})
+                  with urllib.request.urlopen(request,timeout=30) as r:
+                      status=r.status;body=r.read().decode('utf-8')
+                  missing=[value for value in required if value not in body]
+                  rows.append({'url':url,'status':status,'missing':missing,'bytes':len(body.encode()),'passed':status==200 and not missing})
+              except Exception as e:rows.append({'url':url,'error':str(e),'passed':False})
+          Path('PUBLIC_ENDPOINTS.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps(rows,ensure_ascii=False))
+          assert all(r['passed'] for r in rows),'Public release URL check failed'
+          PY
+      - name: Keep endpoint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-Local93-Public-Endpoints
+          path: PUBLIC_ENDPOINTS.json
+          retention-days: 14
