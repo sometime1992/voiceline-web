@@ -1,0 +1,40 @@
+name: Publish VoiceLine Local87 direct APK
+on:
+  push:
+    branches: [build/android-apk]
+    paths:
+      - .github/workflows/publish-local87-direct.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Fetch the already verified Local87 CI build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh run download 43785036418 --repo "$GITHUB_REPOSITORY" --name VoiceLine-Local87-OriginalUI-Song-APK --dir dist
+          test -s dist/VoiceLine-Local87-Song-CI.apk
+          echo 'd0dd8e6c32b71774a5c65c5d90f4e3debfa0f851a365c96cff460b86b9f5077b  dist/VoiceLine-Local87-Song-CI.apk' | sha256sum --check
+          cd dist
+          zip -j VoiceLine-Local87-Song-CI.zip VoiceLine-Local87-Song-CI.apk
+      - name: Create public stable direct-download release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag='voiceline-local87-ci'
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Release already exists; validating instead of overwriting.'
+          else
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target '0a5d0f8013471a6e3d3fd7216c1bdacc43760446' \
+              --title 'VoiceLine Local87 - Original Piano UI + Offline Song Practice' \
+              --notes 'Built from the full Local86 piano-first Android source. Adds the offline local-song pitch practice screen and Naruvium Studio YouTube link without removing existing piano, recording, metronome, vibrato, or routines. Uses the same CI application ID and signing certificate as Local86 (versionCode 110). Approximate pitch from a full mixed song does not reliably isolate vocals. Do not uninstall a previous Local86 CI app to preserve local recordings.' \
+              dist/VoiceLine-Local87-Song-CI.apk dist/VoiceLine-Local87-Song-CI.zip dist/SHA256SUMS.txt
+          fi
