@@ -2872,6 +2872,7 @@ function modalOpen(name){
  if(name==='menuDialog')$('menuOpen').setAttribute('aria-expanded','true');
 }
 function modalClose(name){
+ if(name==='songDialog'){window.VoiceLineSongPractice?.closeIfOpen?.();return;}
  if(name==='historyDeleteDialog'){historyDeleteCancelAction?.();return;}
  if(name==='trainingResultDialog'){hideTrainingResult();return;}
  $(name).hidden=true;

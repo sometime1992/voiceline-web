@@ -1,7 +1,7 @@
 name: VoiceLine Local87 Original UI Song APK
 on:
   push:
-    branches: [feature/voiceline-local87-song]
+    branches: [feature/voiceline-local87-song, build/android-apk]
     paths:
       - android-local44/**
       - .github/workflows/build-local87-song-apk.yml
