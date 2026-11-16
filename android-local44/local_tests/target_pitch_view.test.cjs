@@ -66,3 +66,11 @@ test('Sensitivity and target descriptions localize without changing their values
   const en=i18n.t(text,'en');assert.doesNotMatch(en,/[가-힣]/,en);assert.equal(i18n.t(text,'ko'),text);
  }
 });
+test('Studio link accessibility and the complete piano attribution are English without losing credit or license URLs',()=>{
+ const html=fs.readFileSync(web+'/index.html','utf8'),label=html.match(/id="studioYoutubeLink"[^>]*aria-label="([^"]+)"/)[1];
+ assert.equal(i18n.t(label,'en'),'Open the Naruvium Studio YouTube channel');
+ const credit=source.match(/\['피아노 음원 및 저작권','([^']+)'\]/)[1],english=i18n.t(credit,'en');
+ assert.doesNotMatch(english,/[가-힣]/);
+ for(const text of ['Alexander Holm','CC BY 3.0','https://creativecommons.org/licenses/by/3.0/','https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio','Yotam Mann','MIT'])assert.ok(english.includes(text),text);
+ assert.equal(i18n.t(credit,'ko'),credit);
+});

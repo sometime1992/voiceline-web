@@ -933,6 +933,8 @@
  "메트로놈 시작": "Start",
  "감도": "Sensitivity",
  "마이크 감도": "Mic sensitivity",
+ "Naruvium Studio 유튜브 채널 열기": "Open the Naruvium Studio YouTube channel",
+ "Salamander Grand Piano (Yamaha C5) 녹음 28개: Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 보이스라인은 원본 MP3를 포함하고 건반 재생 시 음높이·속도·음량·엔벨로프를 조정합니다. 원저작자는 VoiceLine을 보증·후원하지 않습니다. 피아노 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT).": "Salamander Grand Piano (Yamaha C5), 28 recordings: Alexander Holm, CC BY 3.0. Original: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio. License: https://creativecommons.org/licenses/by/3.0/. VoiceLine includes the original MP3s and adjusts pitch, playback rate, volume and envelopes for keyboard playback. The original creator does not endorse or sponsor VoiceLine. Piano engine: @tonejs/piano and Tone.js (Yotam Mann, MIT).",
  "🎤 감도 표준": "🎤 Sensitivity: Standard",
  "🎤 감도 민감": "🎤 Sensitivity: Sensitive",
  "🎤 감도 최대": "🎤 Sensitivity: High",

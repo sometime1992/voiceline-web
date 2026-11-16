@@ -87,4 +87,4 @@ const snapshot=`(async()=>{${dbRead};return {settings:Object.fromEntries(['voice
  c.close();
  const result={status:'passed',source_commit:process.env.GITHUB_SHA,apk_sha256:facts.apk_sha256,package:pkg,from_version:'2.0.0-local90-ci',to_version:'2.0.0-local91-ci',version_code:114,updated_without_uninstall:true,settings_preserved:true,routine_preserved:true,practice_event_preserved:true,recording_metadata_preserved:true,actual_native_recording_preserved:true,recording_sha256:audioHash,recording_bytes:oldAudio.length,native_bilingual_labels:true};
  fs.writeFileSync(path.join(out,'UPDATE_VERIFIED.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
-})().catch(e=>{fs.writeFileSync(path.join(out,'failure.txt'),String(e.stack||e));console.error(e);process.exitCode=1;});
+})().catch(e=>{fs.writeFileSync(path.join(out,'failure.txt'),String(e.stack||e));console.error(e);process.exit(1);});

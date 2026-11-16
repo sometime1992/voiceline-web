@@ -32,6 +32,7 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - name: Run complete offline regression tests
+        shell: bash
         run: npm test --prefix android-local44 | tee unit-tests.txt
       - name: Prepare Chromium and Korean fonts
         run: |
