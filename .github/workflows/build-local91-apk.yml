@@ -41,12 +41,25 @@ jobs:
           echo "NODE_PATH=$RUNNER_TEMP/voiceline-browser/node_modules" >> "$GITHUB_ENV"
           echo "CHROME_BIN=$(command -v google-chrome || command -v chromium)" >> "$GITHUB_ENV"
       - name: Verify target graphs and microphone accessibility in both languages
+        id: target_pitch
+        continue-on-error: true
         timeout-minutes: 8
         run: node ci/check-target-pitch.cjs
+      - name: Keep target graph inspection evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-Local91-Target-UI
+          path: target-pitch-report/
+          retention-days: 7
       - name: Verify all English screens and large text
+        id: language
+        continue-on-error: true
         timeout-minutes: 10
         run: node ci/check-language.cjs
       - name: Verify original piano layout and every training mode
+        id: layout
+        continue-on-error: true
         timeout-minutes: 12
         run: node ci/check-piano-layout.cjs
       - name: Ensure Android SDK
@@ -91,6 +104,16 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: node ci/verify-local91-update.cjs
+      - name: Require every browser regression check to pass
+        if: always()
+        env:
+          TARGET_RESULT: ${{ steps.target_pitch.outcome }}
+          LANGUAGE_RESULT: ${{ steps.language.outcome }}
+          LAYOUT_RESULT: ${{ steps.layout.outcome }}
+        run: |
+          test "$TARGET_RESULT" = success
+          test "$LANGUAGE_RESULT" = success
+          test "$LAYOUT_RESULT" = success
       - name: Prepare verified downloads
         run: |
           cp android-upgrade-report/UPDATE_VERIFIED.json dist/
