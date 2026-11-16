@@ -79,10 +79,10 @@ async function centerLine(page){
       if(mode==='sustainVoice'||mode==='dynamicVoice'){
        assert.equal(await page.locator('#trainingPitchGuide').isVisible(),true);
        assert.match(await page.locator('#trainingPitchTarget').textContent(),new RegExp(root===48?'C3':root===69?'A4':'C6'));
-       assert.match(await page.locator('#trainingPitchTarget').textContent(),new RegExp(mode==='sustainVoice'?'±35cent':'±55cent'));
+       assert.match(await page.locator('#trainingPitchTarget').textContent(),new RegExp(mode==='sustainVoice'?'±35\\s*cent':'±55\\s*cent'));
        if(mode==='sustainVoice'){
         const line=await centerLine(page);assert.ok(line.pixels>25,JSON.stringify(line));assert.ok(Math.abs(line.y-line.expected)<2,JSON.stringify(line));
-        assert.match(await page.locator('#trainingGraph').getAttribute('aria-label'),/±200cent/);
+        assert.match(await page.locator('#trainingGraph').getAttribute('aria-label'),/±200\s*cent/);
        }
       }else if(mode==='earVoice')assert.equal(await page.locator('#trainingPitchGuide').isVisible(),false,'no listening answer');
      }
