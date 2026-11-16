@@ -2,6 +2,7 @@
 // Offline English catalog. Keys are the existing Korean presentation strings.
 // User names and stored training values are never translated or rewritten.
 (function(root){const catalog={
+ "분리 보컬 파일을 추가한 경우에만 ±50cent 기준 참고 일치율을 표시합니다. 혼합 원곡만 있으면 보컬의 정확한 음정이나 정답을 판단할 수 없어 점수를 표시하지 않습니다. 자동 음원 분리 AI는 이 버전에 포함되지 않습니다. 원곡 추출 피치는 연습 모드를 종료하면 폐기되며 다시 선택해 분석해야 합니다.": "An approximate match within ±50 cents is shown only for a supplied isolated-vocal file. A mixed original cannot reliably reveal the correct vocal notes, so it is not scored. Automatic AI vocal separation is not included. Extracted reference pitch is discarded when song practice ends; import and analyze again next time.",
  "기존 보이스라인의 피아노 건반 위에서 원곡의 기준 피치와 내 목소리를 비교하는 기능입니다.": "Compare a song reference and your live singing pitch above the original VoiceLine piano keyboard.",
  "① 상단 「원곡 선택」에서 기기에 저장된 파일을 고릅니다. 본인이 사용·변환할 권리가 있는 음원만 이용해 주세요.": "① Choose a local audio file with the Song file button. Use only audio that you are authorized to process.",
  "② 「피치 분석」을 누릅니다. 가수와 반주가 섞인 원곡에서는 반주 음정을 보컬 음정으로 잘못 탐지할 수 있습니다.": "② Tap Analyze pitch. With a mixed song, instruments may be mistaken for the lead vocal.",

@@ -54,6 +54,16 @@ public final class SongPlaybackBridge {
             else if("mr".equals(role)){instrumentalUri=selected;prepareSelected();}
         });
     }
+    /** Discard in-memory document URIs and decoded audio at the end of song mode. */
+    @JavascriptInterface public void clearSession(){
+        activity.runOnUiThread(()->{
+            if(disposed)return;
+            originalUri=null;
+            instrumentalUri=null;
+            pendingRole="original";
+            prepare(null);
+        });
+    }
     @JavascriptInterface public void clearMR(){
         activity.runOnUiThread(()->{instrumentalUri=null;prepareSelected();});
     }

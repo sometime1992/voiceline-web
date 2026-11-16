@@ -157,3 +157,6 @@
  .song-overlay-header{min-height:20px}
  .song-graph-overlay #songStatus{min-height:19px;padding:2px 6px}
 }
+
+/* Author display rules must not override the hidden state of the shared piano overlay. */
+.song-graph-overlay[hidden],.song-empty-stage[hidden],.song-settings-backdrop[hidden]{display:none!important}

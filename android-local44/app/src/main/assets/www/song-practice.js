@@ -106,6 +106,17 @@ function detectPitchYIN(samples, sampleRate) {
   function leave(){
     stopPractice();active=false;dialog.hidden=true;
     if(!settings.hidden)settings.hidden=true;
+    // End the session: revoke sources and clear extracted pitches from RAM.
+    song.token++;song.analysing=false;song.reference=[];song.points=[];
+    song.duration=0;song.file=null;song.stem=null;song.mr=null;
+    song.loopStart=null;song.loopEnd=null;song.loopEnabled=false;
+    originalInput.value='';vocalInput.value='';mrInput.value='';
+    $song('songLoopEnabled').checked=false;
+    audio.pause();audio.removeAttribute('src');audio.load();
+    if(song.url){URL.revokeObjectURL(song.url);song.url=null;}
+    native()?.clearSession?.();
+    progress.value=0;analyseButton.disabled=true;
+    resetScore();refreshPickers();
   }
   function refreshBadge(){
     statusBadge.textContent=song.stem?tx('분리 보컬 기준','Isolated vocal'):
@@ -128,11 +139,11 @@ function detectPitchYIN(samples, sampleRate) {
   }
   function mountControls(container){
     controls=container;
-    container.innerHTML='<button type="button" id="songChooseOriginal">① 원곡 선택</button>'+
+    container.innerHTML='<button type="button" id="songChooseOriginal">'+tx('① 원곡 선택','① Select audio')+'</button>'+
       '<strong id="songTrackName" class="song-track-name">선택된 원곡 없음</strong>'+
-      '<button type="button" id="songAnalyzeTop">② 피치 분석</button>'+
+      '<button type="button" id="songAnalyzeTop">'+tx('② 피치 분석','② Analyze pitch')+'</button>'+
       '<progress id="songProgressTop" max="100" value="0" aria-label="분석 진행률"></progress>'+
-      '<span class="song-rights-note">사용 권한이 있는 로컬 음원만 선택</span>';
+      '<span class="song-rights-note">'+tx('권리 확인 음원만 · 피치는 종료 시 폐기','Authorized audio only · notes discarded on exit')+'</span>';
     $song('songChooseOriginal').addEventListener('click',()=>originalInput.click());
     $song('songAnalyzeTop').addEventListener('click',()=>analyseButton.click());
     $song('songTrackName').textContent=song.file?song.file.name:tx('선택된 원곡 없음','No song selected');
@@ -187,7 +198,7 @@ function detectPitchYIN(samples, sampleRate) {
       helpButton:'ⓘ 사용법',settingsButton:'⚙ 설정·반복',
       referenceLegend:'━ 민트: 분리 보컬 기준 (회색: 혼합음 추정)',micLegend:'━ 보라: 내 목소리',
       target:'기준 음정',actual:'내 음정',difference:'음정 차이',match:'참고 일치율',
-      warning:'혼합 원곡은 정확한 보컬 피치를 제공하지 못합니다. AI 보컬 분리와 MR 자동 생성은 포함되지 않습니다. 이용 권한이 확인된 로컬 음원만 사용하세요.'},
+      warning:'혼합 원곡은 정확한 보컬 피치를 제공하지 못합니다. AI 보컬 분리와 MR 자동 생성은 포함되지 않습니다. 권리가 확인된 로컬 음원만 사용하세요. 추출된 피치는 이 연습을 종료하면 폐기합니다.'},
     en:{songTitle:'Sing with a Song',songSubtitle:'Compare pitch over the piano',
       youtubeSubtitle:'Open YouTube channel',settingsTitle:'Song settings · Loops',
       settingsIntro:'Select isolated vocals or MR; set the loop.',
@@ -197,7 +208,7 @@ function detectPitchYIN(samples, sampleRate) {
       helpButton:'ⓘ Guide',settingsButton:'⚙ Settings',
       referenceLegend:'━ Mint: isolated vocal (grey: mixed estimate)',micLegend:'━ Purple: my voice',
       target:'Reference',actual:'My pitch',difference:'Pitch difference',match:'Approx. match',
-      warning:'Mixed songs do not reliably reveal vocal pitch. AI vocal separation and automatic MR generation are not included. Use authorized local audio only.'}
+      warning:'Mixed songs do not reliably reveal vocal pitch. AI vocal separation and automatic MR generation are not included. Use authorized local files only. Extracted pitch is discarded when you exit song practice.'}
   };
   function updateLanguage(){
     const words=songTranslations[window.VoiceLineI18n?.language==='en'?'en':'ko'];
@@ -222,37 +233,11 @@ function detectPitchYIN(samples, sampleRate) {
   };
   const say = (message) => {status.textContent=message;};
   const fmt = (s) => seconds(s*1000);
-  const signature = file => file ? [file.name,file.size,file.lastModified].join(':') : '-';
-  const key = () => 'reference-1:' + signature(song.file) + ':' + signature(song.stem);
-  let dbPromise = null;
-  function database(){
-    if(!('indexedDB' in window))return Promise.resolve(null);
-    if(!dbPromise)dbPromise=new Promise(resolve=>{
-      try{
-        const request=indexedDB.open('voiceline-song-references',1);
-        request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains('analyses'))request.result.createObjectStore('analyses');};
-        request.onsuccess=()=>resolve(request.result);
-        request.onerror=()=>resolve(null);
-        request.onblocked=()=>resolve(null);
-      }catch(_){resolve(null);}
-    });
-    return dbPromise;
-  }
-  async function readCache(cacheKey){
-    const db=await database();if(!db)return null;
-    return new Promise(resolve=>{
-      try{
-        const tx=db.transaction('analyses','readonly');
-        const req=tx.objectStore('analyses').get(cacheKey);
-        req.onsuccess=()=>resolve(req.result||null);
-        req.onerror=()=>resolve(null);
-      }catch(_){resolve(null);}
-    });
-  }
-  async function writeCache(cacheKey,value){
-    const db=await database();if(!db)return;
-    try{const tx=db.transaction('analyses','readwrite');tx.objectStore('analyses').put(value,cacheKey);}catch(_){}
-  }
+  // Privacy-first: never persist reconstructed song melodies or voice reference notes.
+  // Best-effort migration of caches written by Local87/Local88, without touching
+  // the distinct VoiceLine recordings/history database.
+  try { if ('indexedDB' in window) indexedDB.deleteDatabase('voiceline-song-references'); }
+  catch (_) { /* Storage may be unavailable; no new persistent data is created. */ }
   function resetScore(){
     song.points=[];song.lastCapture=0;song.comparisons=0;song.hits=0;song.recorded=false;
     $song('songScore').textContent='--';
@@ -292,26 +277,17 @@ function detectPitchYIN(samples, sampleRate) {
     stopPractice();
     song.file=fresh;song.stem=null;song.mr=null;vocalInput.value='';mrInput.value='';
     updateFallbackAudio();resetReference();current=0;playing=false;
-    await reuseCache();
+    await refreshAfterSelection();
   }
   async function vocalChanged(){
     if(!song.file){say(tx('원곡을 먼저 선택하세요.','Choose original first.'));return;}
     song.stem=vocalInput.files?.[0]||null;
-    resetReference();await reuseCache();
+    resetReference();await refreshAfterSelection();
   }
-  async function reuseCache(){
+  async function refreshAfterSelection(){
     refreshPickers();
     if(!song.file)return;
-    const token=song.token,signature=key();
-    say(tx('② 피치 분석을 누르세요. 분리 보컬을 선택하면 더 신뢰할 수 있습니다.','② Analyze pitch. Isolated vocals improve reliability.'));
-    const cached=await readCache(signature);
-    if(token!==song.token||key()!==signature)return;
-    if(cached&&Array.isArray(cached.reference)&&cached.reference.length){
-      song.reference=cached.reference;song.duration=cached.duration||0;progress.value=100;
-      say(song.stem?tx('분리 보컬 기준 그래프를 불러왔습니다.','Vocal reference restored.'):
-       tx('혼합음 추정 그래프를 불러왔습니다. 정확한 가수 음정은 아닙니다.','Mixed-song estimate restored; not reliable vocal pitch.'));
-    }
-    refreshPickers();
+    say(tx('② 피치 분석을 누르세요. 음정 데이터는 이번 연습 중에만 보관됩니다.','② Analyze pitch. Notes are kept only during this practice session.'));
   }
   originalInput.addEventListener('click',()=>native()?.selectRole('original'));
   vocalInput.addEventListener('click',()=>native()?.selectRole('vocal'));
@@ -396,7 +372,7 @@ function detectPitchYIN(samples, sampleRate) {
       if(valid===0)say('안정적으로 검출된 음정이 없습니다. 보컬만 분리한 파일을 사용해 주세요.');
       else{
         say((song.stem?'보컬 기준 분석':'원곡 혼합 음원 추정 분석')+' 완료 · 유효 구간 '+Math.round(valid/points.length*100)+'%. '+(song.stem?'기준 음정을 확인하며 연습하세요.':'반주 음정을 보컬로 잘못 판단할 수 있습니다.'));
-        await writeCache(key(),{reference:points,duration:buffer.duration});
+        // Reference points remain only in JavaScript memory until leaving song mode.
       }
     }catch(e){
       if(token===song.token)say('분석 실패: '+(e&&e.message?e.message:'이 형식의 음원을 읽지 못했습니다.'));
@@ -531,7 +507,7 @@ function detectPitchYIN(samples, sampleRate) {
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
-  window.addEventListener('pagehide',()=>{stopPractice();song.token++;if(song.url)URL.revokeObjectURL(song.url);});
+  window.addEventListener('pagehide',()=>{stopPractice();song.token++;song.reference=[];song.points=[];song.file=null;song.stem=null;song.mr=null;if(song.url)URL.revokeObjectURL(song.url);native()?.clearSession?.();});
   refreshBadge();refreshButtons();
   say(tx('① 원곡 선택 → ② 음정 분석 → ③ 마이크+노래 시작','① Select song → ② Analyze pitch → ③ Sing'));
 })();
