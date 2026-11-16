@@ -9,7 +9,6 @@ import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
-import android.webkit.ValueCallback;
 import android.webkit.ConsoleMessage;
 import android.util.Log;
 import android.webkit.WebSettings;
@@ -33,18 +32,15 @@ import java.util.Map;
 
 public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
-    private static final int SONG_AUDIO_PICKER_REQUEST = 3304;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private static final String PUBLIC_PRIVACY_URL = "https://naruvium.com/apps/voiceline/privacy.html";
     private static final String PUBLIC_SUPPORT_URL = "https://naruvium.com/support.html?app=voiceline#contact";
     private static final String PUBLIC_HOME_URL = "https://naruvium.com/";
     private WebView web;
     private PermissionRequest pendingAudioRequest;
-    private ValueCallback<Uri[]> pendingSongFileChooser;
     private WebViewAssetLoader assetLoader;
     private NativeMicBridge nativeMic;
     private AudioSessionGuard audioSession;
-    private SongPlaybackBridge songPlayer;
     private RecordingDocuments recordingDocuments;
     private android.window.OnBackInvokedCallback backCallback;
 
@@ -79,8 +75,6 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(nativeMic, "VoiceLineNative");
         web.addJavascriptInterface(new PublicAppLinks(), "VoiceLinePublicLinks");
         web.addJavascriptInterface(audioSession,"VoiceLineAudioSession");
-        songPlayer=new SongPlaybackBridge(this,audioSession);
-        web.addJavascriptInterface(songPlayer,"VoiceLineSongPlayer");
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16, 15, 27));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -107,8 +101,7 @@ public class MainActivity extends Activity {
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setAllowFileAccess(false);
-        // The system picker grants only the selected audio URI; file:// and universal access remain blocked.
-        settings.setAllowContentAccess(true);
+        settings.setAllowContentAccess(false);
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
@@ -129,23 +122,6 @@ public class MainActivity extends Activity {
                 if (msg.messageLevel() == ConsoleMessage.MessageLevel.ERROR || msg.messageLevel() == ConsoleMessage.MessageLevel.WARNING)
                     Log.w("VoiceLineWeb", msg.sourceId() + ":" + msg.lineNumber() + " " + msg.message());
                 return true;
-            }
-            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> result, FileChooserParams params) {
-                if (pendingSongFileChooser != null) pendingSongFileChooser.onReceiveValue(null);
-                pendingSongFileChooser = result;
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("audio/*");
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                try {
-                    startActivityForResult(intent, SONG_AUDIO_PICKER_REQUEST);
-                    return true;
-                } catch (android.content.ActivityNotFoundException error) {
-                    pendingSongFileChooser = null;
-                    result.onReceiveValue(null);
-                    Log.w("VoiceLineWeb", "Audio picker unavailable", error);
-                    return true;
-                }
             }
             @Override public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> handleWebPermission(request));
@@ -268,15 +244,6 @@ public class MainActivity extends Activity {
         });
     }
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
-        if (requestCode == SONG_AUDIO_PICKER_REQUEST) {
-            if (resultCode == RESULT_OK && data!=null && data.getData()!=null && songPlayer!=null) songPlayer.onFileChosen(data.getData());
-            if (pendingSongFileChooser != null) {
-                ValueCallback<Uri[]> callback = pendingSongFileChooser;
-                pendingSongFileChooser = null;
-                callback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode,data));
-            }
-            return;
-        }
         if(recordingDocuments!=null&&recordingDocuments.onActivityResult(requestCode,resultCode,data))return;
         super.onActivityResult(requestCode,resultCode,data);
     }
@@ -293,7 +260,6 @@ public class MainActivity extends Activity {
         super.onSaveInstanceState(state);
     }
     @Override protected void onPause() {
-        if(songPlayer!=null)songPlayer.pauseFromActivity();
         // The permission prompt belongs to the pending start, not an interruption.
         // Calls and other activities must stop even if onStop never follows.
         if(audioSession!=null&&!(nativeMic!=null&&nativeMic.isPermissionPending())&&pendingAudioRequest==null)
@@ -306,7 +272,6 @@ public class MainActivity extends Activity {
         if (nativeMic != null) nativeMic.stopFromActivity();
     }
     @Override protected void onStop() {
-        if(songPlayer!=null)songPlayer.pauseFromActivity();
         if(audioSession!=null)audioSession.foreground(false);
         pauseCapture();
         super.onStop();
@@ -319,17 +284,15 @@ public class MainActivity extends Activity {
             "window.VoiceLineLifecycle&&window.VoiceLineLifecycle.onResume()", null);
     }
     @Override protected void onDestroy() {
-        if (pendingSongFileChooser != null) { pendingSongFileChooser.onReceiveValue(null); pendingSongFileChooser = null; }
         if (Build.VERSION.SDK_INT >= 33 && backCallback != null) {
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
             backCallback = null;
         }
-        if(songPlayer!=null){songPlayer.dispose();songPlayer=null;}
         if(recordingDocuments!=null)recordingDocuments.dispose();
         if(audioSession!=null)audioSession.dispose();
         if (nativeMic != null) nativeMic.dispose();
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}
-        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.removeJavascriptInterface("VoiceLineAudioSession");web.removeJavascriptInterface("VoiceLineSongPlayer");web.loadUrl("about:blank");web.destroy();web = null;}
+        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.removeJavascriptInterface("VoiceLineAudioSession");web.loadUrl("about:blank");web.destroy();web = null;}
         super.onDestroy();
     }
 }

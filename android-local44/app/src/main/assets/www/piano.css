@@ -547,3 +547,10 @@
 
 /* Offline license texts follow system font size and wrap in the existing help dialog. */
 .license-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6;font-size:.82rem}
+
+.studio-youtube-footer{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0 0;padding:10px 13px;min-height:48px;border:1px solid #665c7d;border-radius:12px;background:#25233a;color:#f4efff;text-decoration:none}
+.studio-youtube-footer:focus-visible,.studio-youtube-footer:hover{background:#34304e;outline-offset:2px}
+.studio-youtube-footer svg{display:block;flex:none}
+.studio-youtube-footer span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.studio-youtube-footer strong{font-size:13px}
+.studio-youtube-footer small{font-size:11px;color:#c7b6d6}
