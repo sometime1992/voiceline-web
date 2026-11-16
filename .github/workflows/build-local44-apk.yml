@@ -1,13 +1,7 @@
 name: VoiceLine Local86 APK
 
 on:
-  push:
-    branches: [build/android-apk]
-    paths:
-      - android-local44/**
-      - ci/**
-      - store-kit/**
-      - .github/workflows/build-local44-apk.yml
+  # Archived Local86 pipeline; current Android builds use build-local91-apk.yml.
   workflow_dispatch:
 
 permissions:

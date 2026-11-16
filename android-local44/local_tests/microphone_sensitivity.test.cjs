@@ -85,9 +85,9 @@ test('Local64 explicit sensitivity changes persist without restarting or splitti
  const button={addEventListener:(name,fn)=>listeners[name]=fn,setAttribute:(k,v)=>attrs[k]=v};
  const code=constants+chunk('function updateMicSensitivityControl(){',"$('micSensitivity').addEventListener('click',()=>{")+'\n({applyMicSensitivity,updateMicSensitivityControl})';
  const api=vm.runInNewContext(code,{app,$:()=>button,localStorage:{setItem:(k,v)=>storage.set(k,v)}});api.updateMicSensitivityControl();
- assert.equal(button.textContent,'감도 민감');
+ assert.equal(button.textContent,'🎤 감도 민감');
  for(const [value,label] of [['high','최대'],['standard','표준'],['sensitive','민감']]){
-  api.applyMicSensitivity(value);assert.equal(app.micSensitivity,value);assert.equal(button.textContent,'감도 '+label);
+  api.applyMicSensitivity(value);assert.equal(app.micSensitivity,value);assert.equal(button.textContent,'🎤 감도 '+label);
   assert.equal(storage.get('voiceline-mic-sensitivity-v1'),value);
   assert.match(attrs['aria-label'],new RegExp(label));
   assert.equal(app.record,record);assert.equal(app.training,training);assert.equal(app.mic,true);
@@ -101,7 +101,7 @@ test('Local45 sensitivity remains usable when a settings write is blocked',()=>{
  const apply=vm.runInNewContext(constants+chunk('function updateMicSensitivityControl(){',"$('micSensitivity').addEventListener('click',()=>{")+'\napplyMicSensitivity',{
   app,$:()=>button,localStorage:{setItem(){throw Error('blocked')}}
  });
- assert.doesNotThrow(()=>apply('high'));assert.equal(app.micSensitivity,'high');assert.equal(button.textContent,'감도 최대');
+ assert.doesNotThrow(()=>apply('high'));assert.equal(app.micSensitivity,'high');assert.equal(button.textContent,'🎤 감도 최대');
  apply('__proto__');assert.equal(app.micSensitivity,'high');
 });
 test('Local45 the selected sensitivity reaches both native and browser graph detection',()=>{

@@ -382,7 +382,8 @@ function keyboardDetectedMidi(now=performance.now()){
 }
 function syncKeyColors(now=performance.now()){
  const detected=keyboardDetectedMidi(now);
- const target=app.exercise?.active?app.exercise.target:app.training?.active?app.training.target:app.mode==='vibrato'?app.vibratoRoot:null;
+ const target=app.exercise?.active?app.exercise.target:app.mode==='vibrato'?app.vibratoRoot:
+  ['sustainVoice','dynamicVoice'].includes(app.mode)?(app.training?.root??app.trainingSettings?.root):app.training?.active?app.training.target:null;
  for(const key of $all('#keyboard [data-midi]')){
    const m=Number(key.dataset.midi);
    key.classList.toggle('pressed',app.owners.has(m));
@@ -1400,6 +1401,7 @@ function renderVibratoOverlay(now=performance.now(),force=false){
  app.vibratoProgress=feedback.cycles;
  const hint=$('vibratoFeedback');if(hint){hint.textContent=feedback.label;hint.setAttribute('aria-live',preparation?'off':'polite');}
  $('vibratoTargetLabel').textContent='기준음 '+noteLabel(app.vibratoRoot)+' · 최근 3초';
+ canvas.setAttribute('aria-label','기준음 '+noteLabel(app.vibratoRoot)+' · 표시 범위 ±110cent · 기준음 대비 센트 차이');
  $('vibratoCenter').textContent=data?(data.centerOffsetCents>0?'+':'')+Math.round(data.centerOffsetCents)+' ¢':'—';
  $('vibratoDepth').textContent=data?'±'+Math.round(data.depthCents)+' ¢':'—';
  $('vibratoRate').textContent=data?.rate!==null&&data?' '+data.rate.toFixed(1)+' Hz':'—';
@@ -1910,7 +1912,7 @@ function trainingSelect(c,id,title,options,value,convert){
  select.value=String(value);select.disabled=Boolean(app.training?.active);
  select.addEventListener('change',()=>{
   app.trainingSettings[convert]=Number(select.value);saveTrainingSettings();
-  if(convert==='root')syncKeyColors();
+  if(convert==='root'){syncKeyColors();renderTrainingOverlay(performance.now(),true);}
  });
  label.append(select);c.append(label);
 }
@@ -2203,6 +2205,26 @@ function syncTrainingOverlay(){
  el.classList.toggle('warmup-mode',app.mode==='warmupVoice');
  if(!el.hidden||guide)renderTrainingOverlay(performance.now(),true);
 }
+// Display coordinates only: never narrow the detector or change scoring.
+function trainingPitchView(a,now){
+ const mode=a?.mode||app.mode;
+ let target=null;
+ if(['sustainVoice','dynamicVoice'].includes(mode))target=a?.root??app.trainingSettings.root;
+ else if(mode==='earVoice'&&a&&now>=a.start&&now<a.start+a.duration&&trainingPhase(a,now-a.start)==='answer')target=trainingTargetAt(a,now-a.start);
+ const tolerance=mode==='dynamicVoice'?SCORE_RULES.dynamicTolerance:SCORE_RULES.sustainTolerance;
+ return Number.isFinite(target)?{target,low:target-2,high:target+2,tolerance}:
+  {target:null,low:PITCH_RANGE.minMidi,high:PITCH_RANGE.maxMidi,tolerance};
+}
+function updateTrainingPitchGuide(a,now,view){
+ const row=$('trainingPitchGuide'),label=$('trainingPitchTarget'),offset=$('trainingPitchOffset');
+ row.hidden=!Number.isFinite(view.target);
+ if(row.hidden){label.textContent='';offset.textContent='';return;}
+ label.textContent='목표 '+noteLabel(view.target)+' · ±'+view.tolerance+'cent';
+ const last=a?.history?.at(-1),fresh=Number.isFinite(last?.midi)&&now-last.t>=0&&now-last.t<=250;
+ const cents=fresh?Math.round((last.midi-view.target)*100):null;
+ offset.textContent=cents===null?'목소리 대기':(cents>0?'+':'')+cents+'cent';
+ offset.dataset.match=cents===null?'':Math.abs(cents)<=view.tolerance?'near':'away';
+}
 function renderTrainingOverlay(now=performance.now(),force=false){
  if(app.mode==='practice'||app.mode==='guideVoice'){renderGuideTraining(now,force);return;}
  const el=$('trainingOverlay');if(!el||el.hidden)return;
@@ -2214,6 +2236,8 @@ function renderTrainingOverlay(now=performance.now(),force=false){
  updateVocalPreparation('trainingPreparation',a,viewNow);
  updateWarmupGuide(a,now);
  const dynamic=app.mode==='dynamicVoice';
+ const pitchView=trainingPitchView(a,viewNow);
+ updateTrainingPitchGuide(a,viewNow,pitchView);
  $('dynamicGuide').hidden=!dynamic;el.classList.toggle('dynamic-mode',dynamic);$('trainingInfo').hidden=dynamic;
  $('dynamicAnnouncement').hidden=!dynamic;
  $('dynamicReadout').hidden=!dynamic;$('dynamicLegend').hidden=!dynamic;
@@ -2245,33 +2269,38 @@ function renderTrainingOverlay(now=performance.now(),force=false){
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
  const x0=63,x1=w-9,y0=8,y1=h-16,points=(a?.history||[]).filter(p=>p.t>=now-6000);
  if(x1<=x0||y1<=y0)return;
- const audioLevel=a?.mode==='dynamicVoice';
- const levelTop=Math.max(.012,a?.rmsMax||0);
- const pitch=points.filter(p=>Number.isFinite(p.midi)).map(p=>p.midi);
- const root=a?.root??60;
- const low=Math.min(root-5,...pitch.map(x=>Math.floor(x)));
- const high=Math.max(root+14,...pitch.map(x=>Math.ceil(x)));
- const yy=p=>y1-clamp(audioLevel?p.rms/levelTop:(p.midi-low)/(high-low),0,1)*(y1-y0);
- for(let i=0;i<=3;i++){
-  const y=y0+(y1-y0)*i/3;
+ const {target,low,high,tolerance}=pitchView;
+ const yy=midi=>y1-(midi-low)/(high-low)*(y1-y0);
+ canvas.setAttribute('aria-label',Number.isFinite(target)?'목표 '+noteLabel(target)+' · 표시 범위 ±200cent · 허용 구간 ±'+tolerance+'cent':'정답 숨김 · 기준음 듣기');
+ if(Number.isFinite(target)){
+  ctx.fillStyle='rgba(105,236,208,.16)';
+  ctx.fillRect(x0,yy(target+tolerance/100),x1-x0,yy(target-tolerance/100)-yy(target+tolerance/100));
+ }
+ // Always label the selected note, even in a short landscape graph.
+ const ticks=Number.isFinite(target)?[target,target-2,target+2,target-1,target+1]:[36,60,84],drawn=[];
+ for(const midi of ticks){
+  const y=yy(midi);if(drawn.some(v=>Math.abs(v-y)<15))continue;drawn.push(y);
   ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.strokeStyle='rgba(225,218,247,.17)';ctx.lineWidth=1;ctx.stroke();
-  if(!audioLevel){
-   const midi=low+(high-low)*(1-i/3);
-   if(Number.isFinite(midi)){
-    ctx.fillStyle='#b8d4d0';ctx.font='9px system-ui';ctx.textAlign='right';
-    ctx.fillText((globalThis.VoiceLineI18n?.t(noteLabel(Math.round(midi)))??(noteLabel(Math.round(midi)))),x0-5,y+3,x0-10);
-   }
-  }
+  ctx.fillStyle=midi===target?'#b7ffe9':'#b8d4d0';ctx.font='9px system-ui';ctx.textAlign='right';
+  ctx.fillText((globalThis.VoiceLineI18n?.t(noteLabel(midi))??noteLabel(midi)),x0-5,clamp(y+3,9,h-3),x0-10);
+ }
+ if(Number.isFinite(target)){
+  ctx.beginPath();ctx.moveTo(x0,yy(target));ctx.lineTo(x1,yy(target));ctx.strokeStyle='#69ecd0';ctx.lineWidth=2;ctx.stroke();
  }
  ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillStyle='#bdb9d3';ctx.fillText((globalThis.VoiceLineI18n?.t('−6초')??('−6초')),x0,h-3);ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t('현재')??('현재')),x1,h-3);
 
   ctx.beginPath();let prev=null;
-  for(const p of points){if((audioLevel&&!Number.isFinite(p.rms))||(!audioLevel&&!Number.isFinite(p.midi))){prev=null;continue;}
-   const x=x0+clamp((p.t-(now-6000))/6000,0,1)*(x1-x0),y=yy(p);
+  for(const p of points){if(!Number.isFinite(p.midi)||p.midi<low||p.midi>high){prev=null;continue;}
+   const x=x0+clamp((p.t-(now-6000))/6000,0,1)*(x1-x0),y=yy(p.midi);
    if(!prev||p.t-prev>210)ctx.moveTo(x,y);else ctx.lineTo(x,y);
    prev=p.t;
   }
   ctx.strokeStyle='#d6aaff';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+ const latest=points.at(-1);
+ if(Number.isFinite(latest?.midi)&&now-latest.t<=250&&(latest.midi<low||latest.midi>high)){
+  const above=latest.midi>high,text=above?'↑ 범위 밖':'↓ 범위 밖';ctx.fillStyle='#ffd681';ctx.textAlign='right';
+  ctx.fillText(globalThis.VoiceLineI18n?.t(text)??text,x1-3,above?y0+12:y1-3);
+ }
 }
 function guideOptions(){
  if(!app.guideSettings){
@@ -2732,7 +2761,7 @@ function resetMainAction(){
 function updateMicSensitivityControl(){
  const button=$('micSensitivity');if(!button)return;
  const label=MIC_SENSITIVITIES[app.micSensitivity].label;
- button.textContent='감도 '+label;
+ button.textContent='🎤 감도 '+label;
  button.setAttribute('aria-label','마이크 감도 '+label+'. 누르면 감도 선택');
  button.title='작은 목소리는 민감 또는 최대, 주변 소리에 반응하면 표준으로 조절하세요.';
 }
@@ -2745,13 +2774,16 @@ function applyMicSensitivity(value){
  updateMicSensitivityControl();
 }
 $('micSensitivity').addEventListener('click',()=>{
- const existing=$('micSensitivityChoices');if(existing){existing.remove();return;}
+ const existing=$('micSensitivityChoices');if(existing){closeMicSensitivityChoices();return;}
  const panel=document.createElement('div');panel.id='micSensitivityChoices';panel.className='mic-sensitivity-choices';panel.setAttribute('role','group');panel.setAttribute('aria-label','마이크 감도 선택');
- for(const [value,config]of Object.entries(MIC_SENSITIVITIES)){const b=document.createElement('button');b.type='button';b.textContent=config.label;b.setAttribute('aria-pressed',String(value===app.micSensitivity));b.onclick=()=>{applyMicSensitivity(value);panel.remove();$('micSensitivity').focus();};panel.append(b);}
- $('micSensitivity').after(panel);panel.querySelector('button[aria-pressed="true"]').focus();
+ for(const [value,config]of Object.entries(MIC_SENSITIVITIES)){const b=document.createElement('button');b.type='button';b.textContent=config.label;b.setAttribute('aria-pressed',String(value===app.micSensitivity));b.onclick=()=>{applyMicSensitivity(value);closeMicSensitivityChoices();$('micSensitivity').focus();};panel.append(b);}
+ $('micSensitivity').after(panel);$('micSensitivity').setAttribute('aria-expanded','true');panel.querySelector('button[aria-pressed="true"]').focus();
 });
-document.addEventListener('pointerdown',event=>{if(!event.target.closest('#micSensitivity,#micSensitivityChoices'))$('micSensitivityChoices')?.remove();});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('micSensitivityChoices')){$('micSensitivityChoices').remove();$('micSensitivity').focus();}});
+function closeMicSensitivityChoices(){
+ $('micSensitivityChoices')?.remove();$('micSensitivity').setAttribute('aria-expanded','false');
+}
+document.addEventListener('pointerdown',event=>{if(!event.target.closest('#micSensitivity,#micSensitivityChoices'))closeMicSensitivityChoices();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('micSensitivityChoices')){closeMicSensitivityChoices();$('micSensitivity').focus();}});
 
 updateMicSensitivityControl();
 $('micToggle').addEventListener('click',async()=>{

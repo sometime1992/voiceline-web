@@ -278,6 +278,8 @@
   const targetLow=Math.min(...targets),targetHigh=Math.max(...targets);
   const nearby=points.filter(v=>Number.isFinite(v.midi)&&v.midi>=targetLow-4&&v.midi<=targetHigh+4).map(v=>v.midi);
   let low=Math.floor(Math.min(targetLow,...nearby))-1,high=Math.ceil(Math.max(targetHigh,...nearby))+1;
+  // A held note uses a stable close view, including before the first sample.
+  if(targetLow===targetHigh){low=targetLow-2;high=targetHigh+2;}
   if(high-low<4){const center=(high+low)/2;low=Math.floor(center-2);high=low+4;}
   return {position:p,from,to,low,high,points,at};
  }
@@ -336,7 +338,13 @@
   if(p.phase==='answer'&&Number.isFinite(s.last?.midi)&&t-s.last.t<=210){
    ctx.beginPath();ctx.arc(cursor,yy(s.last.midi),3.5,0,Math.PI*2);ctx.fillStyle='#efb4ff';ctx.fill();
   }
-  ctx.restore?.();ctx.font='9px system-ui';ctx.fillStyle='#c4cce0';
+  ctx.restore?.();
+  const latest=points.at(-1);
+  if(Number.isFinite(latest?.midi)&&t-latest.t<=250&&(latest.midi<low||latest.midi>high)){
+   const above=latest.midi>high,text=above?'↑ 범위 밖':'↓ 범위 밖';ctx.font='10px system-ui';ctx.fillStyle='#ffd681';ctx.textAlign='right';
+   ctx.fillText(globalThis.VoiceLineI18n?.t(text)??text,x1-3,above?y0+12:y1-3);
+  }
+  ctx.font='9px system-ui';ctx.fillStyle='#c4cce0';
   ctx.textAlign='left';ctx.fillText((globalThis.VoiceLineI18n?.t((from/1000).toFixed(1)+'초')??((from/1000).toFixed(1)+'초')),x0,h-3);
   ctx.textAlign='right';ctx.fillText((globalThis.VoiceLineI18n?.t((to/1000).toFixed(1)+'초')??((to/1000).toFixed(1)+'초')),x1,h-3);
  }

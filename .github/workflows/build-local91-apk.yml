@@ -1,0 +1,123 @@
+name: VoiceLine Local91 - microphone and target pitch
+on:
+  push:
+    branches: [build/android-apk]
+    paths:
+      - android-local44/**
+      - ci/**
+      - .github/workflows/build-local91-apk.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: voiceline-local91-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      VOICELINE_CI_KEYSTORE: ${{ github.workspace }}/.ci-signing/debug.keystore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Run complete offline regression tests
+        run: npm test --prefix android-local44 | tee unit-tests.txt
+      - name: Prepare Chromium and Korean fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          npm install --prefix "$RUNNER_TEMP/voiceline-browser" --no-audit --no-fund --ignore-scripts playwright-core@1.56.1
+          echo "NODE_PATH=$RUNNER_TEMP/voiceline-browser/node_modules" >> "$GITHUB_ENV"
+          echo "CHROME_BIN=$(command -v google-chrome || command -v chromium)" >> "$GITHUB_ENV"
+      - name: Verify target graphs and microphone accessibility in both languages
+        timeout-minutes: 8
+        run: node ci/check-target-pitch.cjs
+      - name: Verify all English screens and large text
+        timeout-minutes: 10
+        run: node ci/check-language.cjs
+      - name: Verify original piano layout and every training mode
+        timeout-minutes: 12
+        run: node ci/check-piano-layout.cjs
+      - name: Ensure Android SDK
+        run: |
+          manager=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)
+          yes | "$manager" --licenses >/dev/null || true
+          "$manager" --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Restore original CI signing key
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VOICELINE_CI_KEYSTORE }}
+          key: voiceline-ci45-debug-signing-v1
+      - name: Require original signing key
+        run: test -s "$VOICELINE_CI_KEYSTORE"
+      - name: Build and lint Local91 APK
+        working-directory: android-local44
+        run: gradle --no-daemon :app:assembleCiDebug :app:lintCiDebug
+      - name: Download exact Local90 update baseline
+        run: |
+          mkdir -p release-review dist
+          curl --fail --location --retry 3 --output release-review/previous-Local90-CI.apk https://github.com/sometime1992/voiceline-web/releases/download/voiceline-local90-rights-ci/VoiceLine-Local90-Safer-CI.apk
+          echo '200d8369ff85aac3c20164d07adf497e74627a47f70d2f9c061b5ef362a772ae  release-review/previous-Local90-CI.apk' | sha256sum --check
+          cp android-local44/app/build/outputs/apk/ciDebug/*.apk dist/VoiceLine-Local91-CI.apk
+      - name: Verify packaged source and matching Local90 signing certificate
+        run: |
+          python3 ci/verify-local91-apk.py
+          python3 ci/verify-third-party-notices.py dist/VoiceLine-Local91-CI.apk
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify real Local90 data survives Local91 installation on Android 16
+        timeout-minutes: 12
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: node ci/verify-local91-update.cjs
+      - name: Prepare verified downloads
+        run: |
+          cp android-upgrade-report/UPDATE_VERIFIED.json dist/
+          cp target-pitch-report/target-pitch.json dist/TARGET_PITCH_VERIFIED.json
+          cp layout-report/language-report.json dist/LANGUAGE_VERIFIED.json
+          cp unit-tests.txt dist/
+          sha256sum dist/VoiceLine-Local91-CI.apk > dist/SHA256SUMS.txt
+          (cd dist && zip -q VoiceLine-Local91-CI.zip VoiceLine-Local91-CI.apk)
+      - name: Keep test evidence and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-Local91-Verification
+          path: |
+            dist/
+            unit-tests.txt
+            target-pitch-report/
+            layout-report/
+            android-upgrade-report/
+            android-local44/app/build/reports/lint-results-ciDebug*
+          retention-days: 14
+      - name: Publish verified Local91
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create voiceline-local91-target-pitch-ci --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'VoiceLine Local91 - Clear mic sensitivity and target-centered training' \
+            --notes-file android-local44/docs/local91-release-notes.md \
+            dist/VoiceLine-Local91-CI.apk dist/VoiceLine-Local91-CI.zip dist/SHA256SUMS.txt \
+            dist/APK_VERIFIED.json dist/UPDATE_VERIFIED.json dist/TARGET_PITCH_VERIFIED.json dist/LANGUAGE_VERIFIED.json

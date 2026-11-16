@@ -357,7 +357,7 @@ test('Local32 service worker precaches all 28 piano recordings and preserves unr
 });
 test('Local32 Android back dismisses deletion then history; saving and pending mic block exit',async()=>{
  const $=nodes(),app={},window={addEventListener(){}};let cancelled=0;
- for(const id of ['planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'])$(id).hidden=true;
+ for(const id of ['recordRightsDialog','planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'])$(id).hidden=true;
  const document={activeElement:new Node(),addEventListener(){},removeEventListener(){}};
  const api=evaluate('let modeGuideReturnFocus=false;'+
   chunk('function modalOpen(name){',"$('menuOpen').addEventListener")+

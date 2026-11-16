@@ -51,7 +51,7 @@
     <div class="note-panel"><span class="label" id="noteHint">건반을 눌러 연주해 보세요</span><div class="note-values"><strong id="noteName">--</strong><span id="noteKorean">마이크 대기</span><span id="noteHz">-- Hz</span><span id="noteCents">-- cent</span></div></div>
     <div class="exercise-panel">
       <div class="exercise-heading">
-        <div class="mode-heading-row"><strong id="modeTitle">피아노 건반</strong><button type="button" id="modeGuideButton" class="mode-guide-button" aria-haspopup="dialog" aria-controls="infoDialog" aria-label="현재 기능 사용 설명 열기">ⓘ 설명</button><button type="button" id="micSensitivity" class="mic-sensitivity-button" aria-label="마이크 감도 민감. 누르면 감도 변경">감도 민감</button></div>
+        <div class="mode-heading-row"><strong id="modeTitle">피아노 건반</strong><button type="button" id="modeGuideButton" class="mode-guide-button" aria-haspopup="dialog" aria-controls="infoDialog" aria-label="현재 기능 사용 설명 열기">ⓘ 설명</button><button type="button" id="micSensitivity" class="mic-sensitivity-button" aria-label="마이크 감도 민감. 누르면 감도 선택" aria-expanded="false" aria-controls="micSensitivityChoices">🎤 감도 민감</button></div>
         <span id="recordStorageInfo" class="record-storage-info" hidden></span>
         <span id="modeMessage" class="mode-live-status" role="status" aria-live="off">준비 · 설명 버튼에서 방법 확인</span>
       </div>
@@ -136,6 +136,7 @@
     <section id="trainingOverlay" class="vibrato-overlay training-overlay" aria-label="보컬 훈련 실시간 분석" hidden>
       <div class="vibrato-graph-pane"><div class="vibrato-overlay-header"><strong id="trainingTitle">보컬 훈련</strong><span id="trainingInfo">훈련 시작을 누르세요</span><div id="dynamicGuide" class="dynamic-phase-plan" aria-label="약 3초, 중간 3초, 강 3초, 다시 약 3초" hidden><span data-dynamic-step="soft">약</span><span data-dynamic-step="medium">중</span><span data-dynamic-step="strong">강</span><span data-dynamic-step="softAgain">약</span></div></div>
         <div id="trainingPreparation" class="vocal-preparation" hidden><span data-prep-title></span><strong data-prep-count></strong><small data-prep-hint></small><span data-prep-announcement class="warmup-announcement" role="status" aria-live="polite"></span></div>
+        <div id="trainingPitchGuide" class="training-pitch-guide" role="group" aria-label="목표 음정 안내" hidden><span id="trainingPitchTarget"></span><strong id="trainingPitchOffset" aria-live="off"></strong></div>
         <span id="dynamicAnnouncement" class="warmup-announcement" role="status" aria-live="polite" hidden></span>
         <div id="dynamicReadout" class="dynamic-readout" hidden><div class="dynamic-current-row"><strong id="dynamicCurrent">약하게 시작하세요</strong><span id="dynamicCount">3초씩</span></div><div class="dynamic-detail-row"><span id="dynamicFeedback">첫 약 단계에서 내 소리 기준을 잡아요</span><span id="dynamicNext">약 → 중 → 강 → 약</span></div></div>
         <div id="warmupGuide" class="warmup-guide" hidden aria-label="호흡과 허밍 단계 안내">
