@@ -1,3 +1,14 @@
+# VoiceLine — 현재 작업 기준: Local91 (2026-11-16)
+
+- **작업 브랜치**: `build/android-apk` / **Android 실제 프로젝트**: `android-local44/` (과거 `android-app/`가 아님)
+- **현재 시험용 APK**: `2.0.0-local91-ci` (versionCode 114), `com.voiceline.app.local18.ci45`. [검증된 Local91 다운로드](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local91-target-pitch-ci).
+- **핵심 기능**: 가로형 피아노, 실시간 마이크 피치, 녹음·재생, 비브라토, 메트로놈, 발성 훈련, 루틴, 연습 기록. Local91은 `🎤 감도 표준/민감/최대`와 목표 음정 중심 그래프 및 한·영 화면을 개선.
+- **권리 안전 기준**: 상업용 음원 가져오기, 가수 목소리 제거, MR 변환, 원곡 따라 부르기, 음원 추출은 추가하지 않음. Salamander Grand Piano (Alexander Holm, CC BY 3.0) 출처와 라이선스는 앱 내부에 제공. 외부 저장·공유 전 별도 권리 확인을 요구.
+- **검증 이력**: 419개 Node 자동 테스트 통과. GitHub [Local91 정확한 APK/업데이트 검증](https://github.com/sometime1992/voiceline-web/actions/runs/43825133729) 성공, Local90 CI 앱의 녹음·설정·루틴·연습 기록 보존과 서명 일치 확인.
+- **추가 확인**: 실제 기기에서의 통화·잠금·이어폰·장시간 녹음 테스트와 앱 아이콘 원본 이용 허락 증빙, 일부 피치 분석 코드의 외부 구현 출처 검토는 남아 있음. 독립 Android 화면 캡처 검증은 `.github/workflows/verify-local91-screenshots.yml`에서 관리.
+
+---
+
 # VoiceLine Local80 · 나루비움 스튜디오 공식 도메인 연결
 
 공식 홈페이지는 **https://naruvium.com/**, 개발자는 **나루비움 스튜디오 / Naruvium Studio**입니다. 앱의 홈페이지·방침·고객지원 링크와 스토어 안내를 함께 변경했습니다. 새 도메인 공개 접속, Local80 빌드·Android 16 실행·기존 CI 앱 업데이트와 공식 키 서명 APK/AAB를 확인했습니다. 실제 결과는 `store-kit/naruvium-build-verification.json`을 확인하세요. 변경 범위는 `store-kit/naruvium-migration-ko.md`를 확인하세요.
