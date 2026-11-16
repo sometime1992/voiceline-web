@@ -3754,6 +3754,7 @@ if(window.ResizeObserver){
   if(graphResizeFrame)return;
   graphResizeFrame=requestAnimationFrame(()=>{
    graphResizeFrame=0;const now=performance.now();
+   globalThis.VoiceLineI18n?.render();
    renderPitchGraphOverlay(now,true);renderVibratoOverlay(now,true);renderRecordPitchOverlay(now,true);renderTrainingOverlay(now,true);
   });
  });
