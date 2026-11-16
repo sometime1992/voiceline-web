@@ -73,6 +73,42 @@
        <output id="pianoVolumeValue" for="pianoVolume">85%</output>
      </div><div class="legend"><span id="pianoSoundChip" class="piano-sound-chip" role="status">그랜드 피아노 음원 준비 중</span><button type="button" id="pianoRetry" class="piano-retry" hidden>음원 재시도</button><span class="key-legend played"></span> 터치 <span class="key-legend detected"></span> 내 음정 <span class="key-legend target"></span> 목표</div><span id="graphHiddenStatus" class="graph-hidden-status" role="status" aria-live="off" hidden></span><button type="button" id="graphToggle" class="graph-toggle" aria-controls="pitchGraphOverlay" aria-expanded="true" title="그래프를 숨겨도 마이크 측정·녹음·연습은 계속됩니다." hidden>그래프 숨기기</button></div>
     <div id="keyboard" class="keyboard" aria-label="터치하면 소리 나는 피아노 건반" role="group"></div>
+    <section id="songGraphOverlay" class="vibrato-overlay song-graph-overlay" data-i18n-ignore aria-label="원곡 음정과 내 목소리 비교 그래프" hidden>
+      <input id="songOriginal" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" hidden>
+      <button type="button" id="songAnalyse" hidden disabled>피치 분석</button>
+      <progress id="songProgress" max="100" value="0" hidden></progress>
+      <span id="songOriginalName" hidden>선택된 원곡 없음</span>
+      <div class="song-graph-pane">
+        <div class="song-overlay-header">
+          <strong id="songGraphHeading">① 원곡 선택 → ② 분석 → ③ 따라 부르기</strong>
+          <div class="song-overlay-actions">
+            <button type="button" id="songHelpOpen" data-song-text="helpButton">ⓘ 사용법</button>
+            <button type="button" id="songSettingsOpen" data-song-text="settingsButton">⚙ 설정·반복</button>
+          </div>
+        </div>
+        <p id="songStatus" class="song-status" role="status" aria-live="polite">① 상단에서 원곡 파일을 선택하세요. 보유한 MR·분리 보컬은 ⚙ 설정에서 추가하세요.</p>
+        <div class="song-graph-stage">
+          <canvas id="songCanvas" role="img" aria-label="민트색 기준 피치와 보라색 내 목소리 음정 그래프"></canvas>
+          <div id="songEmptyStage" class="song-empty-stage">원곡 파일 선택 → 음정 분석 → 노래 시작</div>
+        </div>
+        <div class="song-transport">
+          <button type="button" id="songStart" class="song-start" disabled>③ 마이크 켜고 노래 시작</button>
+          <button type="button" id="songMic" class="song-secondary" aria-pressed="false">마이크 켜기</button>
+          <button type="button" id="songPlayPause" class="song-secondary" disabled>▶ 재생</button>
+          <input id="songSeek" type="range" min="0" max="1000" value="0" step="1" aria-label="음원 재생 위치">
+          <span id="songTime" class="song-time">00:00 / 00:00</span>
+        </div>
+        <div class="song-legend"><span class="ref" data-song-text="referenceLegend">━ 기준 피치 (추정)</span><span class="actual" data-song-text="micLegend">━ 내 목소리</span><span id="songSourceBadge" class="song-source-badge">원곡 선택 전</span></div>
+      </div>
+      <div class="song-measures">
+        <div><span data-song-text="target">기준 음정</span><strong id="songTarget">--</strong></div>
+        <div><span data-song-text="actual">내 음정</span><strong id="songActual">--</strong></div>
+        <div><span data-song-text="difference">음정 차이</span><strong id="songDifference">--</strong></div>
+        <div><span data-song-text="match">참고 일치율</span><strong id="songScore">--</strong></div>
+        <p id="songResult" class="song-result">분석 후 이어폰을 착용하고 따라 부르세요.</p>
+      </div>
+      <audio id="songPlayer" preload="metadata" playsinline aria-label="원곡 음악 재생"></audio>
+    </section>
     <section id="guideVoicePanel" class="guide-voice-panel vibrato-overlay practice-graph-overlay" aria-label="음정 연습 그래프" hidden>
       <div class="guide-phrase-main">
         <div class="guide-phase-row"><strong id="guidePhaseTitle" role="status" aria-live="polite">음정 연습을 시작하세요</strong><span id="guideRoundInfo"></span></div>
@@ -183,36 +219,37 @@
    <button data-screen="dynamicVoice" class="menu-tile"><span class="tile-icon">◖</span><span><strong>발성 강약 조절</strong><small>상대적인 소리 크기 변화</small></span></button>
    <button data-screen="metronome" class="menu-tile"><span class="tile-icon">◈</span><span><strong>메트로놈</strong><small>모든 기본 박자 · 직접 설정 · 강세·세분</small></span></button>
    <button data-screen="warmupVoice" class="menu-tile"><span class="tile-icon">◎</span><span><strong>호흡·워밍업</strong><small>편안한 호흡과 허밍 안내</small></span></button>
-   <button type="button" id="songOpen" class="menu-tile" data-i18n-ignore><span class="tile-icon">♬</span><span><strong data-song-text="songTitle">원곡 따라 부르기</strong><small data-song-text="songSubtitle">내 음악 파일의 음정과 실시간 비교</small></span></button>
-   <button type="button" id="songYoutube" class="menu-tile" data-i18n-ignore><span class="tile-icon">▶</span><span><strong data-song-text="youtubeTitle">Naruvium 유튜브</strong><small data-song-text="youtubeSubtitle">Naruvium Studio 채널 보기</small></span></button>
+   <button type="button" id="songOpen" class="menu-tile" data-i18n-ignore><span class="tile-icon">♬</span><span><strong data-song-text="songTitle">원곡 따라 부르기</strong><small data-song-text="songSubtitle">건반 위 그래프로 곡을 따라 연습</small></span></button>
    <button data-screen="history" class="menu-tile"><span class="tile-icon">▤</span><span><strong>나의 기록</strong><small>측정 기록과 녹음 재생·삭제</small></span></button>
    <button data-screen="help" class="menu-tile"><span class="tile-icon">?</span><span><strong>사용법</strong><small>건반, 마이크, 연습 방법 안내</small></span></button>
    <button data-screen="privacy" class="menu-tile privacy-menu-tile"><span class="tile-icon">ⓘ</span><span><strong>개인정보처리방침</strong><small>마이크·녹음·기록 및 개발자 문의</small></span></button>
   </div>
   <p class="local-note">마이크의 소리를 서버로 보내지 않습니다. 녹음과 기록은 이 기기의 앱 저장 공간에 보관됩니다.<span class="app-version" id="appVersion">버전 2.0.0</span></p>
+  <a id="songYoutube" class="song-youtube-footer" href="https://www.youtube.com/@naruvium-studio" rel="noopener noreferrer" data-i18n-ignore aria-label="Naruvium Studio YouTube 채널">
+    <svg class="song-youtube-logo" viewBox="0 0 90 64" role="img" aria-label="YouTube 로고"><rect x="2" y="8" width="86" height="48" rx="14" fill="#FF0033"/><path d="M38 21 L38 43 L58 32 Z" fill="#FFFFFF"/></svg>
+    <span><strong>Naruvium Studio</strong><small data-song-text="youtubeSubtitle">유튜브 채널 바로가기</small></span>
+  </a>
  </section>
 </div>
-<div id="songDialog" class="modal-backdrop song-backdrop" hidden data-i18n-ignore>
- <section class="modal song-modal" role="dialog" aria-modal="true" aria-labelledby="songDialogTitle">
-  <div class="modal-heading"><div><span class="eyebrow">VoiceLine · LOCAL AUDIO</span><h2 id="songDialogTitle" data-song-text="dialogTitle">원곡 따라 부르기</h2><p data-song-text="dialogIntro">피아노·녹음·기존 연습은 그대로 유지됩니다. 이 화면에서만 음악 파일을 분석합니다.</p></div><button type="button" class="close-btn" id="songClose" aria-label="닫기">✕</button></div>
-  <div class="song-import-grid">
-    <label class="song-file"><span data-song-text="songFileTitle">원곡 파일 · 필수</span><input id="songOriginal" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"><small id="songOriginalName">선택된 파일 없음</small></label>
-    <label class="song-file"><span data-song-text="vocalFileTitle">분리된 보컬 파일 · 선택</span><input id="songVocal" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"><small id="songVocalName">보컬 파일 미선택 · 원곡에서 추정</small></label>
+
+<div id="songSettingsDialog" class="modal-backdrop song-settings-backdrop" hidden data-i18n-ignore>
+ <section class="modal song-settings-modal" role="dialog" aria-modal="true" aria-labelledby="songSettingsTitle">
+  <div class="modal-heading"><div><span class="eyebrow">VoiceLine · 노래 연습 설정</span><h2 id="songSettingsTitle" data-song-text="settingsTitle">곡 설정 · 구간 반복</h2><p data-song-text="settingsIntro">곡 전체를 들으면서 반복할 부분을 지정하거나 기준선 위치를 보정합니다.</p></div><button type="button" class="close-btn" id="songSettingsClose" aria-label="닫기">✕</button></div>
+  <div class="song-settings-grid">
+    <label class="song-file" for="songMR"><span data-song-text="mrFileTitle">MR 파일 · 선택 (보컬 없는 반주)</span><input id="songMR" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"><small id="songMRName">MR 없음 · 원곡이 재생됩니다</small></label>
+    <button type="button" id="songClearMR" class="song-clear-file" data-song-text="mrClear">MR 선택 해제</button>
+    <label class="song-file" for="songVocal"><span data-song-text="vocalFileTitle">분리된 보컬 파일 · 선택</span><input id="songVocal" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"><small id="songVocalName">보컬 파일 미선택 · 원곡에서 추정</small></label>
+    <label class="song-setting-label"><span data-song-text="transposition">기준 그래프 이동 (반음)</span><input id="songTranspose" type="number" min="-12" max="12" step="1" value="0" inputmode="numeric"></label>
+    <label class="song-setting-label"><span data-song-text="offset">동기화 보정 (ms)</span><input id="songOffset" type="number" min="-1000" max="1000" step="50" value="0" inputmode="numeric"></label>
   </div>
-  <div class="song-action-row"><button id="songAnalyse" type="button" disabled data-song-text="analyseButton">피치 분석 시작</button><progress id="songProgress" max="100" value="0" aria-label="분석 진행률"></progress></div>
-  <p class="song-status" id="songStatus" role="status">원곡을 선택하세요.</p>
-  <audio id="songPlayer" class="song-player" preload="metadata" controls aria-label="원곡 음악 재생"></audio>
   <div class="song-controls">
-    <button type="button" id="songMic" aria-pressed="false">마이크 켜기</button>
-    <label><span data-song-text="transposition">기준 그래프 이동 (반음)</span><input id="songTranspose" type="number" min="-12" max="12" step="1" value="0" inputmode="numeric"></label>
-    <label><span data-song-text="offset">동기화 보정 (ms)</span><input id="songOffset" type="number" min="-1000" max="1000" step="50" value="0" inputmode="numeric"></label>
+    <button type="button" id="songLoopA" data-song-text="loopStart">현재 위치 반복 시작</button>
+    <button type="button" id="songLoopB" data-song-text="loopEnd">현재 위치 반복 끝</button>
+    <label><input id="songLoopEnabled" type="checkbox"> <span data-song-text="loopEnable">구간 반복</span></label>
+    <span id="songLoopLabel" class="song-loop-label">구간 미지정</span>
+    <button type="button" id="songReset" data-song-text="reset">연습 초기화</button>
   </div>
-  <div class="song-controls"><button id="songLoopA" type="button" data-song-text="loopStart">반복 시작 지정</button><button id="songLoopB" type="button" data-song-text="loopEnd">반복 끝 지정</button><label><input id="songLoopEnabled" type="checkbox"><span data-song-text="loopEnable">구간 반복</span></label><span class="song-loop-label" id="songLoopLabel">구간 미지정</span><button id="songReset" type="button" data-song-text="reset">연습 초기화</button></div>
-  <div class="song-canvas-box"><canvas id="songCanvas" role="img" aria-label="민트색 원곡 추정 음정과 보라색 실시간 내 목소리 음정 그래프"></canvas></div>
-  <div class="song-legend"><span class="ref" data-song-text="referenceLegend">━ 기준 피치 (추정)</span><span class="actual" data-song-text="micLegend">━ 내 목소리</span></div>
-  <div class="song-measures"><div><span data-song-text="target">기준 음정</span><strong id="songTarget">--</strong></div><div><span data-song-text="actual">내 음정</span><strong id="songActual">--</strong></div><div><span data-song-text="difference">음정 차이</span><strong id="songDifference">--</strong></div><div><span data-song-text="match">참고 일치율</span><strong id="songScore">--</strong></div></div>
-  <p id="songResult" class="song-result">분석 후 이어폰을 착용하고 마이크로 따라 부르세요.</p>
-  <p class="song-fineprint" data-song-text="warning">반주가 섞인 원곡에서는 보컬 멜로디를 정확히 추출할 수 없습니다. 보컬 분리 AI는 포함하지 않습니다. 분석 데이터만 이 기기에 저장되고 음원은 업로드하지 않습니다. 이어폰을 권장합니다.</p>
+  <p class="song-fineprint" data-song-text="warning">반주가 섞인 원곡에서는 보컬 음정만 정확히 추출할 수 없습니다. 보컬 분리 AI는 포함되지 않습니다. 음원은 업로드되지 않습니다.</p>
  </section>
 </div>
 <div id="recordToolsDialog" class="modal-backdrop record-tools-backdrop" hidden>

@@ -30,6 +30,7 @@ const MODES={
   sustainVoice:['발성 유지 훈련','선택한 음을 편안하게 지속하며 음정의 안정도를 확인하세요.'],
   earVoice:['청음·따라 부르기','피아노 기준음을 듣고 따라 불러보세요.'],
   dynamicVoice:['발성 강약 조절','같은 음을 유지하며 소리의 상대적 강약을 바꿔보세요.'],
+  song:['원곡 따라 부르기','① 원곡 파일 선택 → ② 음정 분석 → ③ 따라 부르기'],
   warmupVoice:['호흡·워밍업','편안한 호흡과 허밍을 순서대로 진행합니다.']
 };
 const MIC_SENSITIVITY_KEY='voiceline-mic-sensitivity-v1';
@@ -1015,7 +1016,8 @@ async function startMic(){
  if(app.mic)return true;
  if(app.micStartPromise)return app.micStartPromise;
  if(app.backgrounded||document.hidden||app.lifeStopping)return false;
- if(!requestAppAudio())return false;
+ // Song playback already holds app audio focus; starting the mic must not steal focus.
+ if(app.mode!=='song'&&!requestAppAudio())return false;
  const token=++app.micGeneration;
  const cancelled=new Promise(resolve=>{app.micCancelResolve=resolve;});
  const task=Promise.race([window.VoiceLineNative?.start?startNativeMic(token):startWebMic(token),cancelled]);
@@ -1455,7 +1457,9 @@ function modeControls(){
  $('recordStorageInfo').hidden=app.mode!=='record';if(app.mode==='record')void updateRecordingStorage();
  const c=$('exerciseControls');c.replaceChildren();
  c.scrollLeft=0;
- if(app.mode==='practice'){
+ if(app.mode==='song'){
+  window.VoiceLineSongPractice?.mountControls?.(c);
+ }else if(app.mode==='practice'){
   renderGuideControls(c);
  } else if(TRAINING_MODES.has(app.mode)){
   renderTrainingControls(c);
@@ -1480,7 +1484,7 @@ function modeControls(){
  } else{
   c.innerHTML='<span class="control-note">옥타브 이동은 건반 위의 − / + 버튼을 사용하세요.</span>';
  }
- window.VoiceLinePlansUI?.controls(c,app.mode);
+ if(app.mode!=='song')window.VoiceLinePlansUI?.controls(c,app.mode);
  requestAnimationFrame(updatePracticeScrollHint);
 }
 function fillNotes(sel,selected){
@@ -2724,7 +2728,7 @@ async function stopActivity(reason='user'){
 function resetMainAction(){
  const b=$('mainButton');
  b.classList.remove('recording');
- b.textContent=TRAINING_MODES.has(app.mode)?(app.mode==='practice'?'연습 시작':'훈련 시작'):app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
+ b.textContent=app.mode==='song'?'마이크+노래 시작':TRAINING_MODES.has(app.mode)?(app.mode==='practice'?'연습 시작':'훈련 시작'):app.mode==='record'?'녹음 시작':app.mode==='practice'?'연습 시작':app.mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
  $('stopButton').hidden=true;
 }
 // Keep microphone control independent of the main activity button.
@@ -2806,24 +2810,27 @@ async function switchMode(mode,fromPlan=false){
  if(!MODES[mode])return;
  if(app.busy||app.stopPromise||app.recordSaving||app.lifeStopping)return;app.busy=true;
  try{
+  if(app.mode==='song'&&mode!=='song')window.VoiceLineSongPractice?.leave?.();
   await stopActivity(fromPlan?'plan-transition':'user');allKeysOff();hideTrainingResult();app.mode=mode;app.detected=null;
   $('modeChip').textContent=MODES[mode][0];setTitle(MODES[mode][0]);setMessage(MODES[mode][1]);
   $('noteHint').textContent='건반·마이크 대기';
   clearNote();progress(0,'준비');modeControls();
   syncPitchGraphOverlay(true);syncVibratoOverlay();syncRecordPitchOverlay();syncTrainingOverlay();syncMetronomeMode();
+  window.VoiceLineSongPractice?.onModeChange?.(mode);
   if(mode==='vibrato'){app.vibratoProgress=0;focusVibratoReference();}
-  $('mainButton').textContent=TRAINING_MODES.has(mode)?(mode==='practice'?'연습 시작':'훈련 시작'):mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
+  $('mainButton').textContent=mode==='song'?'마이크+노래 시작':TRAINING_MODES.has(mode)?(mode==='practice'?'연습 시작':'훈련 시작'):mode==='record'?'녹음 시작':mode==='practice'?'연습 시작':mode==='vibrato'?'비브라토 시작':app.mode==='metronome'?'메트로놈 시작':'마이크 켜기';
   $('mainButton').classList.remove('recording');$('stopButton').hidden=true;
   syncKeyColors();
  }finally{app.busy=false;updateMicToggle();}
 }
 $('mainButton').addEventListener('click',async()=>{
  if(window.VoiceLinePlansUI?.active){await stopActivity();resetMainAction();return;}
+ if(app.mode==='song'){await window.VoiceLineSongPractice?.togglePractice?.();return;}
  if(app.micStartPromise||app.nativeStartResolve){cancelMicStart();resetMainAction();clearNote();return;}
  if(app.busy||app.stopPromise||app.recordSaving||app.lifeStopping)return;
  if(window.VoiceLinePlansUI?.active){await stopActivity();resetMainAction();return;}
  if(window.VoiceLinePlansUI&&!app.training&&!app.vibratoStart&&!app.record&&!app.metronome?.running&&app.mode!=='piano'){unlockPlanAudio();await window.VoiceLinePlansUI.startSingle(app.mode);return;}
- if(!app.training&&!app.mic&&!app.record&&!app.vibratoStart&&!app.metronome?.running&&!requestAppAudio())return;
+ if(!app.training&&!app.mic&&!app.record&&!app.vibratoStart&&!app.metronome?.running&&app.mode!=='song'&&!requestAppAudio())return;
  app.busy=true;const b=$('mainButton');b.disabled=true;
  try{
   if(app.mode==='metronome'){
@@ -2922,7 +2929,7 @@ for(const [index,tab] of ['rhythm','presets'].entries()){
 }
 $('metroSettingsClose').addEventListener('click',()=>modalClose('metronomeSettingsDialog'));
 $all('.modal-backdrop').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)modalClose(el.id);}));
-function topDialog(){return ['planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'].find(id=>!$(id).hidden)||null;}
+function topDialog(){return ['songSettingsDialog','planDialog','historyDeleteDialog','recordToolsDialog','warmupSettingsDialog','guideSettingsDialog','trainingResultDialog','metronomeSettingsDialog','infoDialog','menuDialog'].find(id=>!$(id).hidden)||null;}
 function closeTopDialog(){const top=topDialog();if(!top)return false;if(top==='planDialog'&&window.VoiceLinePlansUI?.back())return true;modalClose(top);return true;}
 document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&closeTopDialog()){e.preventDefault();e.stopPropagation();return;}
@@ -2991,6 +2998,14 @@ const MODE_GUIDES={
  sustainVoice:{intro:'하나의 목표음을 안정적으로 유지하는 연습입니다.',steps:['기준음과 유지 시간을 선택합니다. 연습 설정에서 듣기·들이쉬기·발성·쉬기 시간과 무한 반복을 직접 정할 수 있습니다.','기준음 듣기 1.8초 → 숨 들이쉬기 3초 후 시작!에 같은 음을 유지합니다. 준비 시간은 유지 시간과 채점에 포함하지 않습니다.','음높이 그래프와 목표 음정 일치율을 확인합니다.'],rule:'기준음 ±35cent 일치율 65% 이상과 충분한 유효 발성 시간이 있어야 성공입니다.'},
  earVoice:{intro:'피아노 음을 귀로 듣고 같은 높이로 따라 부르는 청음 연습입니다.',steps:['먼저 1.5초 동안 정답 건반을 숨긴 채 피아노 음을 듣습니다.','매 음을 들은 뒤 정답 건반이 숨겨진 상태로 3초 동안 숨을 들이쉽니다. 시작!에 민트색 목표 건반을 보고 3.2초 동안 따라 부릅니다. 듣기와 호흡은 채점에서 제외합니다.','한 회차에 3·4·5개 음을 선택할 수 있습니다.'],rule:'목표음 ±35cent 일치율 65% 이상과 답변 단계의 충분한 유효 발성 시간이 필요합니다.'},
  dynamicVoice:{intro:'같은 음정을 유지하면서 선택한 강약 패턴의 민트색 목표와 보라색 내 목소리를 비교합니다.',steps:['연습 방법에서 기본 4단계·점점 크게·점점 작게·커졌다 작아지기·강약 반복·일정하게 유지·짧게 강조 중 하나를 선택합니다.','발성 시간은 빠른 선택 또는 연습 설정에서 직접 입력합니다. 단계별 시간도 각각 정할 수 있습니다. 기준음 듣기 1.8초 → 숨 들이쉬기 3초 후 시작하며, 준비 시간은 발성 시간과 채점에서 제외합니다.','첫 약 단계에서 내 소리 크기의 기준을 잡습니다. 아에이오우 음계 왕복은 음정 연습 → 모음 · 아에이오우에서 선택합니다.','점점 크게/작게는 기울어진 목표선을 부드럽게 따라갑니다. 강약 반복과 짧게 강조는 단계가 바뀌는 시점에 소리 크기를 바꿉니다. 일정하게 유지는 기준 설정 후 중간 크기를 유지합니다.','그래프의 가로축은 선택한 전체 진행 시간, 세로축은 상대 소리 크기입니다. 민트색 선·음영이 목표이고 보라색은 내 목소리입니다. 노란 세로선은 현재 위치입니다.','약 단계가 끝나면 기준은 고정됩니다. 현재 강약 방향과 남은 시간을 확인하세요.','안내음 크기를 고르고 옆의 ▶로 미리 들을 수 있습니다. 안내음 구간은 기준 설정과 채점에서 제외합니다.','그래프를 숨기거나 화면을 회전해도 선택한 패턴과 측정·채점은 유지됩니다. 완료한 그래프를 다시 확인할 수 있습니다.','휴대폰과 입 사이 거리를 고정하고 편안한 범위에서 발성하세요. 처음 약 단계에서 기준을 잡지 못하면 다시 시작합니다.'],rule:dynamicRuleText()+' (12개 이상 감지). 상대 음량만 비교하며 절대 데시벨이나 성대 상태는 측정하지 않습니다.'},
+ song:{intro:'기존 보이스라인의 피아노 건반 위에서 원곡의 기준 피치와 내 목소리를 비교하는 기능입니다.',
+  steps:['① 상단 「원곡 선택」에서 기기에 저장된 파일을 고릅니다. 본인이 사용·변환할 권리가 있는 음원만 이용해 주세요.',
+   '② 「피치 분석」을 누릅니다. 가수와 반주가 섞인 원곡에서는 반주 음정을 보컬 음정으로 잘못 탐지할 수 있습니다.',
+   '정확한 기준이 필요하면 「설정·반복」에서 분리된 보컬 파일을 선택하고 다시 분석합니다. 보유한 MR도 같은 곳에서 추가할 수 있습니다.',
+   '③ 이어폰을 연결하고 「마이크+노래 시작」을 누릅니다. 원곡 또는 추가한 MR을 재생하면서 실시간 피치를 비교합니다.',
+   '민트색 기준선과 보라색 내 목소리가 그래프에 나타납니다. 빈 구간은 감지 불가입니다. 진행 막대로 원하는 부분으로 이동하고 구간 반복을 설정할 수 있습니다.',
+   '메뉴의 「ⓘ 설명」으로 다시 연습법을 확인할 수 있습니다.'],
+  rule:'분리 보컬 파일을 추가한 경우에만 ±50cent 기준 참고 일치율을 표시합니다. 혼합 원곡만 있으면 보컬의 정확한 음정이나 정답을 판단할 수 없어 점수를 표시하지 않습니다. 자동 음원 분리 AI는 이 버전에 포함되지 않습니다.'},
  warmupVoice:{intro:'허밍을 시작할 시점을 화면과 안내음으로 알려주는 호흡·허밍 타이머입니다.',steps:['기본은 4초 들이쉬기 → 6초 내쉬기 → 6초 허밍 → 3초 쉬기입니다. 연습 설정에서 단계별 초와 소리를 바꿀 수 있습니다. 허밍은 내쉬기를 마친 다음 시작합니다.', '초록색 「지금 허밍하세요」와 딩딩 두 번의 높은 소리가 나오면 입을 가볍게 다물고 편안하게 「음~」 하세요. 설정한 허밍 시간이 지나면 다음 단계 안내에 맞춰 허밍을 멈춥니다. 쉬기 0초는 생략합니다.', '화면에 현재 단계, 남은 초, 다음 단계와 순서가 표시됩니다. 다른 단계는 짧은 안내음 한 번으로 구분합니다. 소리가 나지 않아도 화면 안내로 진행할 수 있습니다.', '원하는 세트 수 또는 무한 반복을 선택합니다. 연습 설정에서 단계별 시간도 직접 입력합니다. 설정한 쉬기 시간 후 다음 세트의 들이쉬기가 시작되며, 중단하거나 앱을 벗어나면 남은 안내음도 취소합니다.'],rule:'안내 과정을 끝까지 완료하면 성공, 도중에 끝내면 중단으로 표시합니다. 이 기능은 안내형 타이머이며 실제 호흡량이나 발성 건강을 판단하지 않습니다. 통증이나 어지러움이 있다면 중단하세요.'}
 };
 let modeGuideReturnFocus=false;
@@ -3507,8 +3522,8 @@ window.VoiceLineLifecycle={
  onResume(){app.backgrounded=false;updateMicToggle();},
  onResize(){queueResponsiveLayout();},
  onBack(){
-  if(window.VoiceLineSongPractice?.closeIfOpen?.())return true;
   if(closeTopDialog())return true;
+  if(window.VoiceLineSongPractice?.closeIfOpen?.())return true;
   if(app.recordSaving||app.stopPromise){notify('녹음을 저장하는 중입니다. 잠시 기다려 주세요.');return true;}
   if(app.micStartPromise||app.nativeStartResolve){cancelMicStart();resetMainAction();return true;}
   if(app.mic||app.training||app.exercise||app.vibratoStart||app.metronome?.running||app.metronome?.starting||window.VoiceLinePlansUI?.active){void stopActivity().finally(resetMainAction);return true;}
@@ -3523,6 +3538,7 @@ applyPianoVolume(app.pianoVolume,false);
 // A landscape view preference never changes capture, scoring or activity clocks.
 function landscapeGraphHidden(){return !app.layoutPortrait&&app.landscapeGraphHidden===true;}
 function graphPanelId(){
+ if(app.mode==='song')return 'songGraphOverlay';
  if(app.mode==='pitch')return 'pitchGraphOverlay';
  if(app.mode==='record')return 'recordPitchOverlay';
  if(app.mode==='vibrato')return 'vibratoOverlay';
@@ -3548,6 +3564,7 @@ function graphHiddenSummary(now){
    ({ready:'가이드 준비',listen:'먼저 듣기',handoff:'따라 부르기 준비',answer:'따라 부르기',rest:'잠깐 쉬세요',done:'연습 완료'}[p.phase]||'음정 연습');
   return ((cue.visible?cue.vowel:p.vowel)?'「'+(cue.visible?cue.vowel:p.vowel)+'」 · ':'')+phase+' · 목표 '+noteLabel(cue.visible?cue.firstMidi??p.midi:p.midi);
  }
+ if(app.mode==='song')return app.mic?'원곡 연습 · 마이크 측정 중':'원곡 연습 · 준비';
  if(app.mode==='vibrato')return '기준 '+noteLabel(app.vibratoRoot)+' · '+(app.mic?'측정 중':'시작 대기');
  if(app.mode==='record')return app.record?'녹음 중 · 음정 측정 유지':app.recordSaving?'녹음 저장 중':'녹음 시작 대기';
  if(['sustainVoice','earVoice','dynamicVoice'].includes(app.mode)){
@@ -3763,14 +3780,15 @@ if('serviceWorker' in navigator){
 }
 try{window.screen?.orientation?.unlock?.();}catch(_){}
 
-// Additive integration for the optional local song-practice dialog.
-// Existing modes, piano audio, native recording and saved data remain untouched.
+// The new song practice mode shares the original piano and native microphone engine.
 window.VoiceLineSongBridge=Object.freeze({
  currentMidi:()=>app.mic&&performance.now()-(app.lastTrustedPitchAt||0)<350&&Number.isFinite(app.detected)?app.detected:null,
  isMicOn:()=>Boolean(app.mic),
+ mode:()=>app.mode,
+ switchMode:mode=>switchMode(mode),
+ help:()=>showModeGuide('song'),
  startMic:async()=>{
-  if(!['piano','pitch'].includes(app.mode))await switchMode('pitch');
-  if(app.busy||app.recordSaving||app.lifeStopping)return false;
+  if(app.mode!=='song'||app.busy||app.recordSaving||app.lifeStopping)return false;
   return Boolean(await startMic());
  },
  stopMic:()=>{if(app.mic)stopMic();}

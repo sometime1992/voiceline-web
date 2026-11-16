@@ -64,3 +64,96 @@
 .song-modal .song-file{padding:8px}
 .song-modal .song-canvas-box canvas{height:120px}
 }
+
+
+/* Local88: embedded, unobscured piano-first practice. The overlay is the same
+ * placement pattern as existing VoiceLine pitch and vibrato overlays. */
+.piano-area{position:relative}
+.song-graph-overlay{
+ top:calc(33px + 5px);left:clamp(8px,1.5vw,18px);right:clamp(8px,1.5vw,18px);
+ height:clamp(175px,66%,315px);min-height:0;max-height:calc(100% - 38px);
+ display:flex;gap:9px;padding:9px 11px;
+ border:1px solid #80ddc5b3;border-radius:13px;background:rgba(18,25,45,.93);
+ z-index:14;pointer-events:auto;overflow:hidden;
+}
+.song-graph-pane{display:flex;flex:1 1 auto;flex-direction:column;gap:5px;min-width:0;min-height:0}
+.song-overlay-header{display:flex;align-items:center;justify-content:space-between;gap:9px;flex:none;min-height:24px}
+.song-overlay-header>strong{color:#b8ffea;font-size:clamp(10px,1.4vw,14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-overlay-actions{display:flex;gap:6px;flex:none}
+.song-overlay-actions button,.song-transport button,.song-clear-file{
+ min-height:31px;border-radius:8px;border:1px solid #aaa4c6;background:#3b3654;color:#fff;
+ padding:5px 10px;font-size:11px;font-weight:750;white-space:nowrap
+}
+.song-overlay-actions button:active,.song-transport button:active{background:#62567f}
+.song-transport button:disabled{opacity:.45}
+.song-graph-overlay #songStatus{
+ flex:none;margin:0;padding:3px 7px;min-height:22px;max-height:31px;
+ border:1px solid #5a6d80;border-radius:5px;
+ color:#eef7ff;font-size:clamp(10px,1.12vw,12px);
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.song-graph-stage{flex:1 1 auto;position:relative;min-height:45px;border-radius:9px;border:1px solid #44536b;background:#121b2d;overflow:hidden}
+#songCanvas{display:block;width:100%;height:100%;touch-action:none}
+.song-empty-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;
+ background:#111c30d9;color:#d4f7e7;font-size:clamp(11px,1.5vw,15px);text-align:center;pointer-events:none}
+.song-transport{display:flex;align-items:center;gap:5px;flex:none;min-width:0}
+.song-transport .song-start{background:#277d71;border-color:#63e2cd;color:#fff}
+.song-transport .song-secondary{background:#3b3952}
+.song-transport input[type=range]{flex:1 1 auto;min-width:45px;height:25px;accent-color:#6df2d9}
+.song-transport .song-time{font-size:10px;color:#e5e4f5;font-variant-numeric:tabular-nums;white-space:nowrap}
+.song-graph-overlay .song-legend{display:flex;align-items:center;gap:12px;font-size:10px;flex:none;margin:1px 0 0}
+.song-graph-overlay .song-legend .ref{color:#6ef3df}
+.song-graph-overlay .song-legend .actual{color:#e4a3ff}
+.song-source-badge{font-size:9px;color:#ece8ef;background:#34364e;border:1px solid #555c7a;border-radius:99px;padding:1px 7px}
+.song-source-badge[data-source=mixed]{color:#fddea4;border-color:#ba9856}
+.song-graph-overlay .song-measures{
+ flex:0 0 clamp(115px,20vw,190px);
+ align-content:start;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;
+}
+.song-graph-overlay .song-measures>div{border-radius:9px;padding:7px 4px;text-align:center;min-height:54px}
+.song-graph-overlay .song-measures span{font-size:10px}
+.song-graph-overlay .song-measures strong{font-size:clamp(12px,1.65vw,18px);color:#fcfaff}
+.song-graph-overlay .song-result{grid-column:span 2;padding:5px;font-size:10px;margin:0;color:#e2d4f5;line-height:1.5}
+.exercise-controls #songChooseOriginal,.exercise-controls #songAnalyzeTop{border:1px solid #63dacc;background:#1a655d;color:#fff;
+ border-radius:9px;padding:5px 10px;min-height:32px;font-size:12px;font-weight:800;white-space:nowrap}
+.exercise-controls #songAnalyzeTop{background:#494170;border-color:#a49bbf}
+.exercise-controls #songAnalyzeTop:disabled{opacity:.45}
+.exercise-controls #songTrackName{max-width:clamp(70px,13vw,220px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ color:#dbdaeb;font-size:11px;flex:none}
+.exercise-controls #songProgressTop{height:8px;width:clamp(55px,8vw,110px);accent-color:#68f0d5;flex:none}
+.exercise-controls .song-rights-note{color:#e4d8a3;font-size:10px;white-space:nowrap}
+.song-settings-modal{width:min(850px,95vw);max-height:calc(100dvh - 22px);overflow:auto}
+.song-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch}
+.song-settings-grid>.song-file{padding:9px}
+.song-settings-grid .song-setting-label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#dfddeb;background:#2c2943;border-radius:10px;padding:10px}
+.song-settings-grid input[type=number]{height:40px;width:100px;max-width:100%;border:1px solid #8c789e;background:#201b32;color:#fff;border-radius:9px;padding:8px}
+.song-settings-grid .song-clear-file{justify-self:start;align-self:center}
+.song-settings-modal .song-controls{margin:10px 0 0;gap:6px}
+.song-settings-modal .song-controls button{min-height:38px}
+.song-settings-modal .song-fineprint{margin:9px 0 0}
+.song-youtube-footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:13px;padding:10px 13px;
+ border:1px solid #60596e;border-radius:12px;color:#fff;background:#27263c;text-decoration:none;min-height:52px}
+.song-youtube-footer:hover,.song-youtube-footer:focus-visible{background:#3a3454}
+.song-youtube-logo{display:block;width:45px;height:32px;flex:none}
+.song-youtube-footer span{display:flex;flex-direction:column;gap:2px}
+.song-youtube-footer strong{font-size:14px;color:#f7f1ff}
+.song-youtube-footer small{font-size:10px;color:#c6bfd8}
+@media(max-width:700px){
+ .song-graph-overlay{left:4px;right:4px;padding:6px;gap:5px;height:clamp(150px,70%,255px)}
+ .song-overlay-header>strong{font-size:10px}
+ .song-overlay-actions button,.song-transport button{padding:4px 5px;min-height:29px;font-size:10px}
+ .song-graph-overlay .song-measures{flex-basis:94px;gap:3px}
+ .song-graph-overlay .song-measures>div{padding:5px 3px;min-height:43px}
+ .song-graph-overlay .song-measures strong{font-size:13px}
+ .song-graph-overlay .song-legend{gap:7px;font-size:9px}
+ .song-transport .song-time{font-size:9px}
+}
+@media(max-height:420px){
+ .song-graph-overlay{top:37px;height:clamp(136px,74%,227px)}
+ .song-graph-overlay .song-measures>div{min-height:38px;padding:3px}
+ .song-graph-overlay .song-measures span{font-size:9px}
+ .song-graph-overlay .song-result{font-size:9px}
+ .song-graph-overlay .song-legend{margin:0}
+ .song-overlay-header{min-height:20px}
+ .song-graph-overlay #songStatus{min-height:19px;padding:2px 6px}
+}

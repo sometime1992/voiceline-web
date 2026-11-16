@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
     private WebViewAssetLoader assetLoader;
     private NativeMicBridge nativeMic;
     private AudioSessionGuard audioSession;
+    private SongPlaybackBridge songPlayer;
     private RecordingDocuments recordingDocuments;
     private android.window.OnBackInvokedCallback backCallback;
 
@@ -78,6 +79,8 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(nativeMic, "VoiceLineNative");
         web.addJavascriptInterface(new PublicAppLinks(), "VoiceLinePublicLinks");
         web.addJavascriptInterface(audioSession,"VoiceLineAudioSession");
+        songPlayer=new SongPlaybackBridge(this,audioSession);
+        web.addJavascriptInterface(songPlayer,"VoiceLineSongPlayer");
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(16, 15, 27));
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -266,6 +269,7 @@ public class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
         if (requestCode == SONG_AUDIO_PICKER_REQUEST) {
+            if (resultCode == RESULT_OK && data!=null && data.getData()!=null && songPlayer!=null) songPlayer.onFileChosen(data.getData());
             if (pendingSongFileChooser != null) {
                 ValueCallback<Uri[]> callback = pendingSongFileChooser;
                 pendingSongFileChooser = null;
@@ -289,6 +293,7 @@ public class MainActivity extends Activity {
         super.onSaveInstanceState(state);
     }
     @Override protected void onPause() {
+        if(songPlayer!=null)songPlayer.pauseFromActivity();
         // The permission prompt belongs to the pending start, not an interruption.
         // Calls and other activities must stop even if onStop never follows.
         if(audioSession!=null&&!(nativeMic!=null&&nativeMic.isPermissionPending())&&pendingAudioRequest==null)
@@ -301,6 +306,7 @@ public class MainActivity extends Activity {
         if (nativeMic != null) nativeMic.stopFromActivity();
     }
     @Override protected void onStop() {
+        if(songPlayer!=null)songPlayer.pauseFromActivity();
         if(audioSession!=null)audioSession.foreground(false);
         pauseCapture();
         super.onStop();
@@ -318,11 +324,12 @@ public class MainActivity extends Activity {
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
             backCallback = null;
         }
+        if(songPlayer!=null){songPlayer.dispose();songPlayer=null;}
         if(recordingDocuments!=null)recordingDocuments.dispose();
         if(audioSession!=null)audioSession.dispose();
         if (nativeMic != null) nativeMic.dispose();
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}
-        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.removeJavascriptInterface("VoiceLineAudioSession");web.loadUrl("about:blank");web.destroy();web = null;}
+        if (web != null) {web.removeJavascriptInterface("VoiceLineNative");web.removeJavascriptInterface("VoiceLinePublicLinks");web.removeJavascriptInterface("VoiceLineAudioSession");web.removeJavascriptInterface("VoiceLineSongPlayer");web.loadUrl("about:blank");web.destroy();web = null;}
         super.onDestroy();
     }
 }

@@ -55,69 +55,157 @@ function detectPitchYIN(samples, sampleRate) {
 }
 
 
-  const dialog=$song('songDialog');
-  const audio = $song('songPlayer');
-  const canvas = $song('songCanvas');
-  if (!audio || !canvas) return;
-  const ctx = canvas.getContext('2d');
+  const dialog=$song('songGraphOverlay');
+  const audio=$song('songPlayer');
+  const canvas=$song('songCanvas');
+  if(!dialog||!audio||!canvas)return;
+  const ctx=canvas.getContext('2d');
   const bridge=()=>window.VoiceLineSongBridge;
-  let ownedMic=false;
-  function close(){
-    if(dialog.hidden)return false;
-    dialog.hidden=true;
-    audio.pause();
-    if(ownedMic&&bridge()?.isMicOn()){bridge().stopMic();ownedMic=false;}
-    $song('songOpen')?.focus();
-    return true;
+  const native=()=>window.VoiceLineSongPlayer;
+  const settings=$song('songSettingsDialog');
+  const statusBadge=$song('songSourceBadge');
+  const startButton=$song('songStart');
+  const playButton=$song('songPlayPause');
+  const seekInput=$song('songSeek');
+  const timeLabel=$song('songTime');
+  const stage=$song('songEmptyStage');
+  const heading=$song('songGraphHeading');
+  const lang=()=>window.VoiceLineI18n?.language==='en'?'en':'ko';
+  const tx=(ko,en)=>lang()==='en'?en:ko;
+  const clock=secs=>seconds(secs*1000);
+  let ownedMic=false,active=false,playing=false,current=0,stamp=0;
+  let controls=null,lastClock=0,lastDrawing=0,lastMeasured=0,lastPlaying=false,dragging=false,sourceFile=null;
+  function playPos(){
+    if(native())return Math.max(0,current+(playing?(performance.now()-stamp)/1000:0));
+    return audio.currentTime||0;
   }
-  window.VoiceLineSongPractice={closeIfOpen:close};
-  $song('songOpen').addEventListener('click',()=>{
+  function pause(){
+    if(native())native().pause();else audio.pause();
+    playing=false;refreshButtons();
+  }
+  function seek(sec){
+    sec=Math.max(0,Number(sec)||0);
+    if(native())native().seek(Math.round(sec*1000));else audio.currentTime=sec;
+    current=sec;stamp=performance.now();song.points=[];song.lastCapture=0;
+  }
+  async function play(){
+    if(!song.file)return false;
+    if(native()){
+      if(!native().isReady()){say(tx('선택한 음원을 준비하는 중입니다. 다시 눌러 주세요.','Preparing audio. Tap Play again.'));return false;}
+      if(!native().play()){say(tx('재생할 수 없습니다. 오디오 설정을 확인하세요.','Cannot play the selected audio.')+' '+native().error());return false;}
+      playing=true;stamp=performance.now();refreshButtons();return true;
+    }
+    try{await audio.play();playing=true;refreshButtons();return true;}
+    catch(_){say(tx('재생 버튼을 다시 눌러주세요.','Tap play again.'));return false;}
+  }
+  function stopPractice(){
+    pause();
+    if(ownedMic&&bridge()?.isMicOn())bridge().stopMic();
+    ownedMic=false;song.points=[];refreshButtons();
+  }
+  function leave(){
+    stopPractice();active=false;dialog.hidden=true;
+    if(!settings.hidden)settings.hidden=true;
+  }
+  function refreshBadge(){
+    statusBadge.textContent=song.stem?tx('분리 보컬 기준','Isolated vocal'):
+      song.file?tx('혼합 원곡 추정 · 정확도 채점 없음','Mixed song · no score'):tx('원곡 선택 전','No song');
+    statusBadge.dataset.source=song.stem?'vocal':'mixed';
+    stage.hidden=Boolean(song.reference.length&&song.reference.some(p=>p.midi!==null));
+    heading.textContent=!song.file?tx('① 원곡 선택 → ② 분석 → ③ 노래 시작','① Select song → ② Analyze → ③ Sing'):
+      song.reference.length?tx('③ 이어폰 착용 → 마이크+노래 시작','③ Headphones → Start singing'):
+      tx('② 피치 분석 → ③ 노래 시작','② Analyze → ③ Sing');
+  }
+  function refreshButtons(){
+    const micOn=Boolean(bridge()?.isMicOn());
+    $song('songMic').textContent=micOn?tx('마이크 끄기','Mic off'):tx('마이크 켜기','Mic on');
+    startButton.disabled=!song.file||!song.reference.length||song.analysing;
+    startButton.textContent=playing&&micOn?tx('■ 노래 연습 중지','■ Stop practice'):tx('③ 마이크+노래 시작','③ Mic + Start singing');
+    playButton.disabled=!song.file;
+    playButton.textContent=playing?tx('Ⅱ 일시정지','Ⅱ Pause'):tx('▶ 재생','▶ Play');
+    const main=$song('mainButton');
+    if(main&&active)main.textContent=playing&&micOn?tx('연습 중지','Stop practice'):tx('마이크+노래 시작','Start singing');
+  }
+  function mountControls(container){
+    controls=container;
+    container.innerHTML='<button type="button" id="songChooseOriginal">① 원곡 선택</button>'+
+      '<strong id="songTrackName" class="song-track-name">선택된 원곡 없음</strong>'+
+      '<button type="button" id="songAnalyzeTop">② 피치 분석</button>'+
+      '<progress id="songProgressTop" max="100" value="0" aria-label="분석 진행률"></progress>'+
+      '<span class="song-rights-note">사용 권한이 있는 로컬 음원만 선택</span>';
+    $song('songChooseOriginal').addEventListener('click',()=>originalInput.click());
+    $song('songAnalyzeTop').addEventListener('click',()=>analyseButton.click());
+    $song('songTrackName').textContent=song.file?song.file.name:tx('선택된 원곡 없음','No song selected');
+    $song('songAnalyzeTop').disabled=!song.file;
+    $song('songProgressTop').value=progress.value;
+    refreshBadge();refreshButtons();
+  }
+  function closeIfOpen(){
+    if(!active)return false;
+    leave();void bridge()?.switchMode('piano');return true;
+  }
+  async function enter(){
     $song('menuClose').click();
-    dialog.hidden=false;
-    $song('songClose').focus();
+    await bridge()?.switchMode('song');
+    if(!song.file){
+      say(tx('① 상단 원곡 선택 → ② 피치 분석 → ③ 마이크+노래 시작.','① Choose song → ② Analyze → ③ Start singing.'));
+      try{
+        if(sessionStorage.getItem('voiceline-song-help')!=='1'){
+          sessionStorage.setItem('voiceline-song-help','1');bridge()?.help();
+        }
+      }catch(_){bridge()?.help();}
+    }
+  }
+  function onModeChange(mode){active=mode==='song';dialog.hidden=!active;if(active){refreshBadge();refreshButtons();draw();}else leave();}
+  window.VoiceLineSongPractice={mountControls,closeIfOpen,onModeChange,leave,
+    togglePractice:async()=>{
+      if(playing&&bridge()?.isMicOn()){stopPractice();return;}
+      if(!song.file||!song.reference.length){say(tx('먼저 원곡을 선택하고 분석하세요.','Choose and analyze a song first.'));return;}
+      const mic=bridge()?.isMicOn()||await bridge()?.startMic();
+      if(!mic){say(tx('마이크 연결에 실패했습니다. 권한을 확인하세요.','Microphone failed. Check permission.'));return;}
+      ownedMic=true;
+      if(await play())say(song.stem?tx('분리 보컬 기준선에 맞춰 따라 부르세요.','Sing along to the vocal reference.'):
+       tx('혼합 원곡의 음정은 보컬 정확도 기준이 아닙니다.','Mixed-song pitch is not a reliable vocal reference.'));
+      refreshButtons();
+    }
+  };
+  $song('songOpen').addEventListener('click',enter);
+  $song('songHelpOpen').addEventListener('click',()=>bridge()?.help());
+  $song('songSettingsOpen').addEventListener('click',()=>{settings.hidden=false;$song('songSettingsClose').focus();});
+  $song('songSettingsClose').addEventListener('click',()=>{settings.hidden=true;$song('songSettingsOpen').focus();});
+  settings.addEventListener('click',e=>{if(e.target===settings)settings.hidden=true;});
+  $song('songYoutube').addEventListener('click',e=>{
+    if(window.VoiceLinePublicLinks?.openYouTubeChannel){e.preventDefault();window.VoiceLinePublicLinks.openYouTubeChannel();}
   });
-  $song('songClose').addEventListener('click',close);
-  dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'&&!dialog.hidden){e.preventDefault();e.stopPropagation();close();}
-  });
-  $song('songYoutube').addEventListener('click',()=>{
-    if(window.VoiceLinePublicLinks?.openYouTubeChannel)window.VoiceLinePublicLinks.openYouTubeChannel();
-    else window.open('https://www.youtube.com/@naruvium-studio','_blank','noopener,noreferrer');
-  });
-
   const songTranslations={
-    ko:{songTitle:'원곡 따라 부르기',songSubtitle:'내 음악 파일의 음정과 실시간 비교',youtubeTitle:'Naruvium 유튜브',youtubeSubtitle:'Naruvium Studio 채널 보기',
-      dialogTitle:'원곡 따라 부르기',dialogIntro:'피아노·녹음·기존 연습은 그대로 유지됩니다. 이 화면에서만 음악 파일을 분석합니다.',
-      songFileTitle:'원곡 파일 · 필수',vocalFileTitle:'분리된 보컬 파일 · 선택',analyseButton:'피치 분석 시작',
-      transposition:'기준 그래프 이동 (반음)',offset:'동기화 보정 (ms)',loopStart:'반복 시작 지정',
-      loopEnd:'반복 끝 지정',loopEnable:'구간 반복',reset:'연습 초기화',
-      referenceLegend:'━ 기준 피치 (추정)',micLegend:'━ 내 목소리',target:'기준 음정',
-      actual:'내 음정',difference:'음정 차이',match:'참고 일치율',
-      warning:'반주가 섞인 원곡에서는 보컬 멜로디를 정확히 추출할 수 없습니다. 보컬 분리 AI는 포함하지 않습니다. 분석 데이터만 이 기기에 저장되고 음원은 업로드하지 않습니다. 이어폰을 권장합니다.'},
-    en:{songTitle:'Sing with a Song',songSubtitle:'Compare your pitch with a local audio file',youtubeTitle:'Naruvium YouTube',youtubeSubtitle:'Visit Naruvium Studio',
-      dialogTitle:'Sing with a Song',dialogIntro:'The original piano, recording and training screens remain unchanged. Only this panel analyzes local music.',
-      songFileTitle:'Song file · required',vocalFileTitle:'Isolated vocal file · optional',analyseButton:'Analyze Pitch',
-      transposition:'Shift reference graph (semitones)',offset:'Timing offset (ms)',loopStart:'Set loop start',
-      loopEnd:'Set loop end',loopEnable:'Loop section',reset:'Reset practice',
-      referenceLegend:'━ Reference pitch (estimated)',micLegend:'━ My voice',target:'Reference',
-      actual:'My pitch',difference:'Pitch difference',match:'Approx. match',
-      warning:'A mixed original song cannot provide a reliably isolated vocal melody. Vocal separation AI is not included. Only computed pitch data stays on the device; audio files are never uploaded. Use headphones.'}
+    ko:{songTitle:'원곡 따라 부르기',songSubtitle:'건반 위 그래프를 보며 따라 부르기',
+      youtubeSubtitle:'유튜브 채널 바로가기',settingsTitle:'곡 설정 · 구간 반복',
+      settingsIntro:'분리 보컬 또는 MR을 선택하고 구간을 반복합니다.',
+      vocalFileTitle:'분리된 보컬 파일 (선택)',mrFileTitle:'MR 파일 (선택 · 보컬 없는 반주)',
+      mrClear:'MR 선택 해제',transposition:'기준 그래프 이동 (반음)',offset:'동기화 보정 (ms)',
+      loopStart:'반복 시작',loopEnd:'반복 끝',loopEnable:'구간 반복',reset:'연습 초기화',
+      helpButton:'ⓘ 사용법',settingsButton:'⚙ 설정·반복',
+      referenceLegend:'━ 민트: 분리 보컬 기준 (회색: 혼합음 추정)',micLegend:'━ 보라: 내 목소리',
+      target:'기준 음정',actual:'내 음정',difference:'음정 차이',match:'참고 일치율',
+      warning:'혼합 원곡은 정확한 보컬 피치를 제공하지 못합니다. AI 보컬 분리와 MR 자동 생성은 포함되지 않습니다. 이용 권한이 확인된 로컬 음원만 사용하세요.'},
+    en:{songTitle:'Sing with a Song',songSubtitle:'Compare pitch over the piano',
+      youtubeSubtitle:'Open YouTube channel',settingsTitle:'Song settings · Loops',
+      settingsIntro:'Select isolated vocals or MR; set the loop.',
+      vocalFileTitle:'Isolated vocal (optional)',mrFileTitle:'Instrumental MR (optional)',
+      mrClear:'Remove MR',transposition:'Shift reference (semitones)',offset:'Sync offset (ms)',
+      loopStart:'Loop start',loopEnd:'Loop end',loopEnable:'Loop',reset:'Reset',
+      helpButton:'ⓘ Guide',settingsButton:'⚙ Settings',
+      referenceLegend:'━ Mint: isolated vocal (grey: mixed estimate)',micLegend:'━ Purple: my voice',
+      target:'Reference',actual:'My pitch',difference:'Pitch difference',match:'Approx. match',
+      warning:'Mixed songs do not reliably reveal vocal pitch. AI vocal separation and automatic MR generation are not included. Use authorized local audio only.'}
   };
   function updateLanguage(){
-    const lang=window.VoiceLineI18n?.language==='en'?'en':'ko';
-    const translated=songTranslations[lang];
-    document.querySelectorAll('[data-song-text]').forEach(el=>{
-      const value=translated[el.dataset.songText];
-      if(value)el.textContent=value;
-    });
-    $song('songClose').setAttribute('aria-label',lang==='en'?'Close':'닫기');
+    const words=songTranslations[window.VoiceLineI18n?.language==='en'?'en':'ko'];
+    document.querySelectorAll('[data-song-text]').forEach(el=>{if(words[el.dataset.songText])el.textContent=words[el.dataset.songText];});
+    refreshBadge();refreshButtons();
   }
   window.addEventListener('voiceline-language-change',updateLanguage);
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',updateLanguage,{once:true});
-  else updateLanguage();
-
-
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',updateLanguage,{once:true});else queueMicrotask(updateLanguage);
   const originalInput = $song('songOriginal');
   const vocalInput = $song('songVocal');
   const originalName = $song('songOriginalName');
@@ -177,30 +265,68 @@ function detectPitchYIN(samples, sampleRate) {
     song.reference=[];song.duration=0;song.token++;song.analysing=false;analyseButton.disabled=!song.file;
     progress.value=0;resetScore();
   }
-  async function filesChanged(){
-    const token=++song.token;
+  const mrInput=$song('songMR'),mrName=$song('songMRName');
+  song.mr=null;
+  function updateFallbackAudio(){
     if(song.url){URL.revokeObjectURL(song.url);song.url=null;}
-    audio.pause();audio.removeAttribute('src');audio.load();
-    song.file=originalInput.files&&originalInput.files[0]||null;
-    song.stem=vocalInput.files&&vocalInput.files[0]||null;
-    originalName.textContent=song.file?song.file.name:'선택된 파일 없음';
-    vocalName.textContent=song.stem?song.stem.name:'보컬 파일 미선택 · 원곡에서 추정';
-    resetReference();
-    const activeToken=song.token;
-    if(!song.file){say('기기에 저장된 원곡 파일을 선택하세요.');return;}
-    if(song.file.size>100*1024*1024){say('파일이 100MB를 초과합니다. 더 작은 파일을 선택해 주세요.');return;}
-    song.url=URL.createObjectURL(song.file);audio.src=song.url;audio.load();
-    say('파일을 읽었습니다. 피치 분석을 눌러 기준선을 만드세요.');
-    const cached=await readCache(key());
-    if(song.token!==activeToken||token>song.token)return;
-    if(cached&&Array.isArray(cached.reference)&&cached.reference.length>0){
-      song.reference=cached.reference;song.duration=cached.duration||0;
-      progress.value=100;
-      say((song.stem?'분리된 보컬':'원곡의 혼합 음원')+' 기준 피치 그래프를 이 기기에서 불러왔습니다.');
-    }
+    audio.pause();audio.removeAttribute('src');
+    const file=song.mr||song.file;
+    if(file){song.url=URL.createObjectURL(file);audio.src=song.url;}
+    audio.load();
   }
+  function refreshPickers(){
+    originalName.textContent=song.file?song.file.name:tx('원곡 없음','No song');
+    vocalName.textContent=song.stem?song.stem.name:tx('분리 보컬 없음','No isolated vocal');
+    mrName.textContent=song.mr?song.mr.name:tx('MR 없음 · 원곡이 재생됩니다','No MR · plays original');
+    if(controls){
+      $song('songTrackName').textContent=song.file?song.file.name:tx('선택된 원곡 없음','No song selected');
+      $song('songAnalyzeTop').disabled=!song.file;
+      $song('songProgressTop').value=progress.value;
+    }
+    refreshBadge();refreshButtons();
+  }
+  async function filesChanged(){
+    const oldFile=song.file;
+    const fresh=originalInput.files?.[0]||null;
+    if(!fresh||fresh.size>100*1024*1024){say(tx('100MB 이하 원곡을 선택하세요.','Select a song under 100 MB.'));return;}
+    stopPractice();
+    song.file=fresh;song.stem=null;song.mr=null;vocalInput.value='';mrInput.value='';
+    updateFallbackAudio();resetReference();current=0;playing=false;
+    await reuseCache();
+  }
+  async function vocalChanged(){
+    if(!song.file){say(tx('원곡을 먼저 선택하세요.','Choose original first.'));return;}
+    song.stem=vocalInput.files?.[0]||null;
+    resetReference();await reuseCache();
+  }
+  async function reuseCache(){
+    refreshPickers();
+    if(!song.file)return;
+    const token=song.token,signature=key();
+    say(tx('② 피치 분석을 누르세요. 분리 보컬을 선택하면 더 신뢰할 수 있습니다.','② Analyze pitch. Isolated vocals improve reliability.'));
+    const cached=await readCache(signature);
+    if(token!==song.token||key()!==signature)return;
+    if(cached&&Array.isArray(cached.reference)&&cached.reference.length){
+      song.reference=cached.reference;song.duration=cached.duration||0;progress.value=100;
+      say(song.stem?tx('분리 보컬 기준 그래프를 불러왔습니다.','Vocal reference restored.'):
+       tx('혼합음 추정 그래프를 불러왔습니다. 정확한 가수 음정은 아닙니다.','Mixed-song estimate restored; not reliable vocal pitch.'));
+    }
+    refreshPickers();
+  }
+  originalInput.addEventListener('click',()=>native()?.selectRole('original'));
+  vocalInput.addEventListener('click',()=>native()?.selectRole('vocal'));
+  mrInput.addEventListener('click',()=>native()?.selectRole('mr'));
   originalInput.addEventListener('change',filesChanged);
-  vocalInput.addEventListener('change',filesChanged);
+  vocalInput.addEventListener('change',vocalChanged);
+  mrInput.addEventListener('change',()=>{
+    const file=mrInput.files?.[0];if(!file||file.size>100*1024*1024)return;
+    stopPractice();song.mr=file;updateFallbackAudio();refreshPickers();
+    say(tx('선택한 MR을 재생합니다. 정확한 기준 피치는 분리 보컬 파일에서 분석하세요.','Playing selected MR. Use isolated vocals for reference pitch.'));
+  });
+  $song('songClearMR').addEventListener('click',()=>{
+    stopPractice();song.mr=null;mrInput.value='';
+    native()?.clearMR();updateFallbackAudio();refreshPickers();
+  });
   function pitchAt(milliseconds){
     const ref=song.reference;
     if(!ref.length)return null;
@@ -232,7 +358,7 @@ function detectPitchYIN(samples, sampleRate) {
       const frame=new Float32Array(windowLength);
       const total=Math.max(0,Math.floor((buffer.duration-0.21)/0.12));
       const points=[];
-      const voicedThreshold=song.stem?0.77:0.89;
+      const voicedThreshold=song.stem?0.77:0.93;
       for(let k=0;k<=total;k++){
         if(token!==song.token)return;
         const time=0.11+k*0.12;
@@ -280,45 +406,43 @@ function detectPitchYIN(samples, sampleRate) {
     }
   }
   analyseButton.addEventListener('click',runAnalysis);
-  micButton.addEventListener('click',async()=>{
-    if(bridge()?.isMicOn()){bridge().stopMic();ownedMic=false;return;}
-    const started=await bridge()?.startMic();
-    if(started){ownedMic=true;say('마이크가 켜졌습니다. 이어폰을 착용하고 원곡을 재생해 주세요.');}
-    else say('마이크를 시작하지 못했습니다. 다른 연습을 중단하고 마이크 권한을 확인하세요.');
+  async function toggleMic(){
+    if(bridge()?.isMicOn()){
+      if(ownedMic)bridge().stopMic();
+      ownedMic=false;say(tx('마이크를 껐습니다. 음악 재생은 유지됩니다.','Microphone off; music continues.'));
+    }else{
+      const okay=await bridge()?.startMic();ownedMic=Boolean(okay);
+      say(okay?tx('마이크를 켰습니다. 음악을 재생하고 따라 부르세요.','Microphone on. Play music to sing along.'):
+        tx('마이크 연결 실패. 권한을 확인하세요.','Microphone failed. Check permissions.'));
+    }
+    refreshButtons();
+  }
+  micButton.addEventListener('click',toggleMic);
+  startButton.addEventListener('click',()=>window.VoiceLineSongPractice.togglePractice());
+  playButton.addEventListener('click',async()=>{if(playing)pause();else await play();refreshButtons();});
+  seekInput.addEventListener('input',()=>{dragging=true;const total=native()?.duration()/1000||audio.duration||song.duration||0;timeLabel.textContent=clock(total*Number(seekInput.value)/1000)+' / '+clock(total);});
+  seekInput.addEventListener('change',()=>{
+    const total=native()?.duration()/1000||audio.duration||song.duration||0;
+    seek(total*Number(seekInput.value)/1000);dragging=false;
   });
-  $song('songLoopA').addEventListener('click',()=>{
-    song.loopStart=audio.currentTime;say('반복 시작 지점: '+fmt(song.loopStart));
-    $song('songLoopLabel').textContent='시작 '+fmt(song.loopStart);
-  });
+  $song('songLoopA').addEventListener('click',()=>{song.loopStart=playPos();$song('songLoopLabel').textContent=tx('시작 ','Start ')+fmt(song.loopStart);});
   $song('songLoopB').addEventListener('click',()=>{
-    if(song.loopStart===null){say('먼저 반복 시작 지점을 지정하세요.');return;}
-    if(audio.currentTime<=song.loopStart+0.2){say('종료 지점은 시작 지점보다 뒤에 있어야 합니다.');return;}
-    song.loopEnd=audio.currentTime;
-    $song('songLoopLabel').textContent=fmt(song.loopStart)+' ~ '+fmt(song.loopEnd);
-    say('반복 구간을 지정했습니다. 반복 사용 버튼을 켜세요.');
+    if(song.loopStart===null){say(tx('먼저 반복 시작을 지정하세요.','Set loop start first.'));return;}
+    if(playPos()<=song.loopStart+.3){say(tx('시작점 이후에서 반복 끝을 지정하세요.','Set the end after the start.'));return;}
+    song.loopEnd=playPos();$song('songLoopLabel').textContent=fmt(song.loopStart)+' – '+fmt(song.loopEnd);
   });
   $song('songLoopEnabled').addEventListener('change',e=>{
     song.loopEnabled=e.target.checked;
     if(song.loopEnabled&&(song.loopStart===null||song.loopEnd===null)){
-      song.loopEnabled=false;e.target.checked=false;say('시작·종료 지점을 먼저 지정하세요.');
+      song.loopEnabled=false;e.target.checked=false;say(tx('먼저 시작과 끝을 지정하세요.','Set loop points first.'));
     }
   });
   $song('songReset').addEventListener('click',()=>{
-    audio.pause();audio.currentTime=0;song.loopStart=null;song.loopEnd=null;song.loopEnabled=false;
-    $song('songLoopEnabled').checked=false;$song('songLoopLabel').textContent='구간 미지정';
-    resetScore();say('연습 위치와 비교 기록을 초기화했습니다.');
+    stopPractice();seek(0);song.loopStart=song.loopEnd=null;song.loopEnabled=false;
+    $song('songLoopEnabled').checked=false;$song('songLoopLabel').textContent=tx('구간 미지정','No loop');
+    resetScore();say(tx('연습을 초기화했습니다.','Practice reset.'));
   });
-  audio.addEventListener('seeked',()=>{song.points=[];song.lastCapture=0;});
-  audio.addEventListener('play',()=>{
-    if(audio.currentTime<0.3)resetScore();
-    song.played=true;
-  });
-  audio.addEventListener('ended',()=>{
-    if(!song.recorded&&song.comparisons>=5){
-      const percent=Math.round(song.hits/song.comparisons*100);
-      result.textContent='연습 완료 · 참고 일치율 '+percent+'%';song.recorded=true;
-    }
-  });
+  audio.addEventListener('ended',()=>{playing=false;refreshButtons();});
   function draw(){
     const rect=canvas.getBoundingClientRect();
     if(rect.width<2||rect.height<2)return;
@@ -328,14 +452,14 @@ function detectPitchYIN(samples, sampleRate) {
     }
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h);
-    const now=audio.currentTime*1000;
+    const now=playPos()*1000;
     const left=w<400?50:65,right=12,top=18,bottom=27,pw=w-left-right,ph=h-top-bottom;
-    const win=12000,begin=now-win*0.68;
+    const win=8000,begin=now-win*0.64;
     const x=t=>left+(t-begin)/win*pw;
     const referenceMidis=song.reference.filter(p=>Math.abs(p.t-now)<6000&&p.midi!==null).map(p=>p.midi+Number($song('songTranspose').value||0));
     const actualMidis=song.points.filter(p=>Math.abs(p.t-now)<6000&&p.midi!==null).map(p=>p.midi);
     const notes=referenceMidis.concat(actualMidis);
-    const center=notes.length?median(notes):64,span=24,lo=center-span/2,hi=center+span/2;
+    const center=notes.length?median(notes):64,span=18,lo=center-span/2,hi=center+span/2;
     const y=m=>top+(hi-m)/(hi-lo)*ph;
     ctx.save();ctx.beginPath();ctx.rect(left,top,pw,ph);ctx.clip();
     for(let n=Math.ceil(lo);n<=hi;n+=2){
@@ -355,51 +479,59 @@ function detectPitchYIN(samples, sampleRate) {
     }
     const transpose=Number($song('songTranspose').value||0);
     const offset=Number($song('songOffset').value||0);
-    line(song.reference.map(p=>({t:p.t-offset,midi:p.midi===null?null:p.midi+transpose})),'#74e0e2',3);
-    line(song.points,'#c198ff',3);
-    ctx.strokeStyle='#e5d4ff';ctx.setLineDash([3,5]);ctx.beginPath();
+    line(song.reference.map(p=>({t:p.t-offset,midi:p.midi===null?null:p.midi+transpose})),song.stem?'#65F5DF':'#9AAFC6',song.stem?3.5:2.1);
+    line(song.points,'#E4A3FF',3.5);
+    ctx.strokeStyle='#FFD782';ctx.setLineDash([3,5]);ctx.beginPath();
     ctx.moveTo(x(now),top);ctx.lineTo(x(now),h-bottom);ctx.stroke();ctx.setLineDash([]);
     ctx.restore();
-    ctx.fillStyle='#d7c9e7';ctx.font='11px system-ui';ctx.textAlign='right';
+    ctx.fillStyle='#d7c9e7';ctx.font='12px system-ui';ctx.textAlign='right';
     for(let n=Math.ceil(lo/4)*4;n<=hi;n+=4){const yy=y(n);if(yy>top+10&&yy<h-bottom-8)ctx.fillText(noteLabel(n),left-7,yy+4);}
     ctx.textAlign='center';ctx.fillStyle='#bfb3d2';
     [-8,-4,0,4].forEach(s=>{const xx=x(now+s*1000);if(xx>left+15&&xx<w-right-15)ctx.fillText(s===0?'현재':s+'s',xx,h-7);});
   }
   function animate(now){
-    if(song.loopEnabled&&song.loopEnd!==null&&!audio.paused&&audio.currentTime>=song.loopEnd){
-      audio.currentTime=song.loopStart;song.points=[];resetScore();
+    if(active){
+      if(native()&&now-lastClock>140){
+        current=native().position()/1000;stamp=now;playing=native().isPlaying();lastClock=now;
+        const p=$song('songProgressTop');if(p)p.value=progress.value;
+        const err=native().error();
+        if(err&&song.file&&!playing)say(tx('음원 재생 오류: ','Playback error: ')+err);
+      }else if(!native()){
+        current=audio.currentTime;playing=!audio.paused;
+      }
+      const pos=playPos();
+      if(song.loopEnabled&&song.loopEnd!==null&&playing&&pos>=song.loopEnd){
+        seek(song.loopStart);song.points=[];resetScore();
+      }
+      const total=native()?.duration()/1000||audio.duration||song.duration||0;
+      timeLabel.textContent=clock(pos)+' / '+clock(total);
+      if(!dragging)seekInput.value=total>0?String(Math.round(clamp(pos/total,0,1)*1000)):'0';
+      if(playing&&bridge()?.isMicOn()&&song.reference.length&&now-lastMeasured>=110){
+        lastMeasured=now;
+        const actual=bridge()?.currentMidi()??null;
+        const milliseconds=pos*1000;
+        song.points.push({t:milliseconds,midi:actual});
+        if(song.points.length>1200)song.points.shift();
+        const target=pitchAt(milliseconds);
+        $song('songTarget').textContent=target===null?'—':noteLabel(target);
+        $song('songActual').textContent=actual===null?'—':noteLabel(actual);
+        $song('songDifference').textContent=target!==null&&actual!==null?Math.round((actual-target)*100)+' ¢':'—';
+        if(song.stem&&target!==null&&actual!==null){
+          song.comparisons++;if(Math.abs(actual-target)*100<=50)song.hits++;
+          $song('songScore').textContent=Math.round(song.hits/song.comparisons*100)+'%';
+          result.textContent=tx('분리 보컬 기준 · 참고 일치율 (±50센트)','Isolated vocals · approx. match (±50 cents)');
+        }else{
+          $song('songScore').textContent=tx('채점 안 함','No score');
+          if(!song.stem)result.textContent=tx('혼합 원곡의 음정은 보컬 채점 기준으로 사용할 수 없습니다.','Mixed music cannot be scored as vocal pitch.');
+        }
+      }
+      if(lastPlaying!==playing){lastPlaying=playing;refreshButtons();}
+      if(now-lastDrawing>45){draw();lastDrawing=now;}
     }
-    const currentTime=audio.currentTime*1000;
-    if(!dialog.hidden&&bridge()?.isMicOn()&&!audio.paused&&song.reference.length&&now-song.lastCapture>=110){
-      song.lastCapture=now;
-      const actual=bridge()?.currentMidi()??null;
-      song.points.push({t:currentTime,midi:actual});
-      if(song.points.length>1200)song.points.shift();
-      const target=pitchAt(currentTime);
-      $song('songTarget').textContent=target===null?'--':noteLabel(target);
-      $song('songActual').textContent=actual===null?'--':noteLabel(actual);
-      if(target!==null&&actual!==null){
-        const difference=Math.round((actual-target)*100);
-        $song('songDifference').textContent=(difference>0?'+':'')+difference+' ¢';
-        song.comparisons++;if(Math.abs(difference)<=50)song.hits++;
-        $song('songScore').textContent=Math.round(song.hits/song.comparisons*100)+'%';
-        result.textContent=(song.stem?'분리 보컬 기준':'원곡 추정 기준')+' · ±50센트 이내 음정 일치 비율 (박자·발성 평가 아님)';
-      }else $song('songDifference').textContent='--';
-    }
-    const microphoneOn=Boolean(bridge()?.isMicOn());
-    if(song.lastMicStatus!==microphoneOn){
-      song.lastMicStatus=microphoneOn;
-      micButton.textContent=microphoneOn?'마이크 끄기':'마이크 켜기';
-      micButton.setAttribute('aria-pressed',microphoneOn?'true':'false');
-    }
-    if(!dialog.hidden&&now-song.lastFrame>=45){draw();song.lastFrame=now;}
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
-  window.addEventListener('pagehide',()=>{
-    audio.pause();if(ownedMic&&bridge()?.isMicOn())bridge().stopMic();song.token++;
-    if(song.url)URL.revokeObjectURL(song.url);
-  });
-
-  say('원곡을 선택하세요. 모든 피치 분석은 기기에서만 진행됩니다.');
+  window.addEventListener('pagehide',()=>{stopPractice();song.token++;if(song.url)URL.revokeObjectURL(song.url);});
+  refreshBadge();refreshButtons();
+  say(tx('① 원곡 선택 → ② 음정 분석 → ③ 마이크+노래 시작','① Select song → ② Analyze pitch → ③ Sing'));
 })();
