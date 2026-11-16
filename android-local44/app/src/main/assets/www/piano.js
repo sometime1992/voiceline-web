@@ -2268,9 +2268,9 @@ function renderTrainingOverlay(now=performance.now(),force=false){
  $('trainingMetric3').textContent=a&&a.low!==null?noteLabel(a.low)+' ~ '+noteLabel(a.high):'—';
  $('trainingMetric4').textContent=a?Math.max(0,Math.ceil((a.duration-Math.max(0,now-a.start))/1000))+'초':'—';
  if(preparation)$('trainingInfo').textContent=preparation.title+' · '+preparation.seconds+'초 · '+preparation.hint;
- if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){const model=a?.dynamicModel||window.VoiceLineDynamics.create({start:viewNow,duration:dynamicSeconds()*1000,pattern:app.trainingSettings.dynamicPattern,segmentSeconds:window.VoiceLinePlansUI?.timing('dynamicVoice').customStages?window.VoiceLinePlansUI.timing('dynamicVoice').stages:null});$('dynamicLegend').querySelector('small').textContent='상대 소리 크기 · '+model.duration/1000+'초';globalThis.VoiceLineI18n?.render(el);window.VoiceLineDynamics.draw(canvas,model,viewNow);return;}}
+ if(dynamic){updateDynamicGuide(a,viewNow);if(window.VoiceLineDynamics){const model=a?.dynamicModel||window.VoiceLineDynamics.create({start:viewNow,duration:dynamicSeconds()*1000,pattern:app.trainingSettings.dynamicPattern,segmentSeconds:window.VoiceLinePlansUI?.timing('dynamicVoice').customStages?window.VoiceLinePlansUI.timing('dynamicVoice').stages:null});$('dynamicLegend').querySelector('small').textContent='상대 소리 크기 · '+model.duration/1000+'초';globalThis.VoiceLineI18n?.render(force?document.body:el);window.VoiceLineDynamics.draw(canvas,model,viewNow);return;}}
  // Measure the final localized layout, rather than transient Korean labels.
- globalThis.VoiceLineI18n?.render(el);
+ globalThis.VoiceLineI18n?.render(force?document.body:el);
  const rect=canvas.getBoundingClientRect();
  if(!rect.width||!rect.height)return;
  const dpr=Math.min(window.devicePixelRatio||1,2),w=rect.width,h=rect.height;
