@@ -1,0 +1,102 @@
+name: VoiceLine Local93 exact production verification
+on:
+  push:
+    branches: [build/android-apk]
+    paths: [.github/workflows/verify-local93-production.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      QEMU_AUDIO_DRV: alsa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Reuse the exact built and reviewed Local93 files
+        run: |
+          gh run download 43861161181 --repo "$GITHUB_REPOSITORY" --name VoiceLine-Local93-Review --dir reviewed
+          git fetch --depth=1 origin 89e68cdaf295a6e20da4670693e4d1feeeadac32
+          git diff --exit-code 89e68cdaf295a6e20da4670693e4d1feeeadac32 HEAD -- android-local44
+          python3 <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('reviewed')
+          facts=json.loads((root/'dist/APK_VERIFIED.json').read_text())
+          assert facts['source_commit']=='89e68cdaf295a6e20da4670693e4d1feeeadac32'
+          assert facts['version_code']==116 and facts['same_signing_certificate']
+          assert facts['apk_sha256']==hashlib.sha256((root/'dist/VoiceLine-Local93-CI.apk').read_bytes()).hexdigest()=='2ea9c25cd128dc58317f399c91e90de61ffcee862e9a465b4dab8837d7758a8f'
+          for name in ['android-upgrade-report/UPDATE_VERIFIED.json','android-smoke/RECORDING_PLAYBACK.json','target-pitch-report/target-pitch.json']:
+              assert json.loads((root/name).read_text())['status']=='passed',name
+          language=json.loads((root/'layout-report/language-report.json').read_text())
+          assert not language['errors'] and not language['leaks'] and not language['layoutProblems']
+          assert len(json.loads((root/'layout-report/geometry.json').read_text()))==63
+          print('Exact APK, completed browser checks, native update and full WAV playback evidence verified')
+          PY
+      - name: Validate the exact production bundle and regenerate runtime APK
+        run: |
+          python3 -m pip install --user --disable-pip-version-check Pillow==11.0.0
+          jar="$RUNNER_TEMP/bundletool-all-1.18.2.jar"
+          curl --fail --location --retry 3 --output "$jar" https://github.com/google/bundletool/releases/download/1.18.2/bundletool-all-1.18.2.jar
+          echo "378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584  $jar" | sha256sum --check
+          java -jar "$jar" validate --bundle=reviewed/dist/VoiceLine-2.0.0-UNSIGNED-REVIEW.aab
+          keytool -genkeypair -keystore "$RUNNER_TEMP/runtime-only.keystore" -alias runtime -storepass android -keypass android -dname 'CN=VoiceLine Runtime Review' -keyalg RSA -validity 1
+          java -jar "$jar" build-apks --bundle=reviewed/dist/VoiceLine-2.0.0-UNSIGNED-REVIEW.aab --output="$RUNNER_TEMP/runtime.apks" --mode=universal --ks="$RUNNER_TEMP/runtime-only.keystore" --ks-key-alias=runtime --ks-pass=pass:android --key-pass=pass:android
+          mkdir -p release-review
+          unzip -p "$RUNNER_TEMP/runtime.apks" universal.apk > release-review/release-runtime-review.apk
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify real production pixels and Korean and English cold starts
+        timeout-minutes: 9
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb shell wm size 1080x1920
+            adb shell wm density 420
+            adb shell wm user-rotation lock 0
+            adb logcat -c
+            python3 ci/check-release93-runtime.py
+      - name: Finalize exact-file verification
+        run: |
+          python3 <<'PY'
+          import json,os
+          from pathlib import Path
+          prod=json.loads(Path('production-smoke/PRODUCTION_SMOKE.json').read_text())
+          assert prod['status']=='passed' and prod['nonblank_screen_pixels']
+          facts=json.loads(Path('reviewed/dist/APK_VERIFIED.json').read_text())
+          facts.update({'final_verification_commit':os.environ['GITHUB_SHA'],'original_build_run':43861161181,'production_runtime':'passed','korean_and_english_cold_start':'passed','browser_language_and_layout':'passed','native_update_and_recording_retention':'passed','native_recording_playback':'passed'})
+          Path('FINAL_VERIFIED.json').write_text(json.dumps(facts,indent=2)+'\n')
+          PY
+      - name: Keep production verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceLine-Local93-Production-Verified
+          path: |
+            production-smoke/
+            FINAL_VERIFIED.json
+          retention-days: 14
+      - name: Publish verified Local93 APK
+        run: |
+          gh release create voiceline-local93-release-audit-ci --repo "$GITHUB_REPOSITORY" --target 89e68cdaf295a6e20da4670693e4d1feeeadac32 \
+            --title 'VoiceLine Local93 - Language, rights and stability review' \
+            --notes-file android-local44/docs/local93-release-notes.md \
+            reviewed/dist/VoiceLine-Local93-CI.apk reviewed/dist/VoiceLine-Local93-CI.zip reviewed/dist/SHA256SUMS.txt reviewed/dist/APK_VERIFIED.json FINAL_VERIFIED.json
+
