@@ -325,7 +325,7 @@
 
 /* Six added voice-training cards, adaptive for small landscape phones. */
 .training-overlay{border-color:#80d7ef9a;background:rgba(20,22,42,.84)}
-.training-overlay canvas{display:block;flex:1 1 auto;width:100%;height:100%;min-height:0}
+.training-overlay canvas{display:block;flex:1 1 0%;width:100%;height:0;min-height:0}
 .training-overlay .vibrato-metric strong{font-size:clamp(13px,1.65vw,20px);overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .training-overlay .vibrato-overlay-header{min-height:17px}
 .training-control-hint{flex:0 0 auto;white-space:nowrap}
