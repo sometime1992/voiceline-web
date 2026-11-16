@@ -63,6 +63,10 @@ const snapshot=`(async()=>{${dbRead};return {settings:Object.fromEntries(['voice
   const plan=window.VoiceLinePracticePlans.normalize({routines:[{id:'local90-retained-routine',name:'Local90 retained routine',steps:[{mode:'sustainVoice',params:{training:{root:69}}}]}]});localStorage.setItem('voiceline-plans-v1',JSON.stringify(plan));
   window.VoiceLineI18n.setLanguage('en');return true;
  })()`);
+ assert.equal(await c.evaluate("localStorage.getItem('voiceline-language-v1')"),'en');
+ // WebView batches localStorage disk writes. Let the established Local90
+ // settings commit and background the Activity before testing a cold restart.
+ await delay(6000);text('shell','input','keyevent','KEYCODE_HOME');await delay(500);
  c.close();text('shell','am','force-stop',pkg);c=await connect();
  const before=await c.evaluate(snapshot);
  assert.equal(before.settings['voiceline-language-v1'],'en','Local90 must finish restoring its saved language before the update');
@@ -87,6 +91,6 @@ const snapshot=`(async()=>{${dbRead};return {settings:Object.fromEntries(['voice
  await waitFor(()=>c.evaluate("document.querySelector('#micSensitivity').textContent==='🎤 감도 최대'"),'native Korean label');
  fs.writeFileSync(path.join(out,'local91-updated-korean-sustain.png'),adb('exec-out','screencap','-p'));
  c.close();
- const result={status:'passed',source_commit:process.env.GITHUB_SHA,apk_sha256:facts.apk_sha256,package:pkg,from_version:'2.0.0-local90-ci',to_version:'2.0.0-local91-ci',version_code:114,updated_without_uninstall:true,settings_preserved:true,routine_preserved:true,practice_event_preserved:true,recording_metadata_preserved:true,actual_native_recording_preserved:true,recording_sha256:audioHash,recording_bytes:oldAudio.length,native_bilingual_labels:true};
+ const result={status:'passed',source_commit:facts.source_commit,verification_commit:process.env.GITHUB_SHA,apk_sha256:facts.apk_sha256,package:pkg,from_version:'2.0.0-local90-ci',to_version:'2.0.0-local91-ci',version_code:114,updated_without_uninstall:true,settings_preserved:true,routine_preserved:true,practice_event_preserved:true,recording_metadata_preserved:true,actual_native_recording_preserved:true,recording_sha256:audioHash,recording_bytes:oldAudio.length,native_bilingual_labels:true};
  fs.writeFileSync(path.join(out,'UPDATE_VERIFIED.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
 })().catch(e=>{fs.writeFileSync(path.join(out,'failure.txt'),String(e.stack||e));console.error(e);process.exit(1);});
