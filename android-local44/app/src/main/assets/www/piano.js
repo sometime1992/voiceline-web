@@ -3506,6 +3506,7 @@ window.VoiceLineLifecycle={
  onResume(){app.backgrounded=false;updateMicToggle();},
  onResize(){queueResponsiveLayout();},
  onBack(){
+  if(window.VoiceLineSongPractice?.closeIfOpen?.())return true;
   if(closeTopDialog())return true;
   if(app.recordSaving||app.stopPromise){notify('녹음을 저장하는 중입니다. 잠시 기다려 주세요.');return true;}
   if(app.micStartPromise||app.nativeStartResolve){cancelMicStart();resetMainAction();return true;}
@@ -3760,5 +3761,18 @@ if('serviceWorker' in navigator){
   }
 }
 try{window.screen?.orientation?.unlock?.();}catch(_){}
+
+// Additive integration for the optional local song-practice dialog.
+// Existing modes, piano audio, native recording and saved data remain untouched.
+window.VoiceLineSongBridge=Object.freeze({
+ currentMidi:()=>app.mic&&performance.now()-(app.lastTrustedPitchAt||0)<350&&Number.isFinite(app.detected)?app.detected:null,
+ isMicOn:()=>Boolean(app.mic),
+ startMic:async()=>{
+  if(!['piano','pitch'].includes(app.mode))await switchMode('pitch');
+  if(app.busy||app.recordSaving||app.lifeStopping)return false;
+  return Boolean(await startMic());
+ },
+ stopMic:()=>{if(app.mic)stopMic();}
+});
 
 })();
