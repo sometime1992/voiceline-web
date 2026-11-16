@@ -8,8 +8,8 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 35
-        versionCode 16
-        versionName '1.5.0'
+        versionCode 15
+        versionName '1.4.0'
     }
 
     buildTypes {
@@ -35,7 +35,6 @@ tasks.register('syncWebAssets', Copy) {
     from(rootProject.projectDir.parentFile) {
         include 'index.html', 'styles.css', 'training-guide.css', 'vibrato-breath.css', 'readability.css', 'ui-v13.css', 'diagnostics.css', 'ui-v14.css'
         include 'app.js', 'training-plus.js', 'vibrato-breath.js', 'ui-v13.js', 'diagnostics.js', 'ui-v14.js', 'sw.js', 'manifest.webmanifest'
-        include 'song-practice.js', 'song-practice.css'
         include 'favicon.svg', 'icon.svg', 'icon-192.png', 'icon-512.png'
     }
     into('src/main/assets/www')

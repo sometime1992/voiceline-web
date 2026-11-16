@@ -1,15 +1,12 @@
 package com.voiceline.app;
 
 import android.Manifest;
-import android.content.Intent;
-import android.content.ActivityNotFoundException;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
-import android.webkit.ValueCallback;
 import android.webkit.ConsoleMessage;
 import android.util.Log;
 import android.webkit.WebSettings;
@@ -30,11 +27,9 @@ import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
-    private static final int AUDIO_FILE_REQUEST = 132;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private WebView web;
     private PermissionRequest pendingAudioRequest;
-    private ValueCallback<Uri[]> pendingFileChooser;
     private WebViewAssetLoader assetLoader;
 
     @Override public void onCreate(Bundle state) {
@@ -78,8 +73,7 @@ public class MainActivity extends Activity {
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setAllowFileAccess(false);
-        // The system file picker grants access only to the audio URI chosen by the user.
-        settings.setAllowContentAccess(true);
+        settings.setAllowContentAccess(false);
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         web.setWebViewClient(new WebViewClient() {
@@ -88,17 +82,8 @@ public class MainActivity extends Activity {
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                // Never navigate the microphone-enabled WebView away from packaged assets.
-                if ("appassets.androidplatform.net".equals(uri.getHost())) return false;
-                String host = uri.getHost();
-                boolean youtube = ("https".equals(uri.getScheme()) &&
-                    ("youtube.com".equals(host) || "www.youtube.com".equals(host) ||
-                     "m.youtube.com".equals(host) || "youtu.be".equals(host)));
-                if (youtube) {
-                    try {startActivity(new Intent(Intent.ACTION_VIEW,uri));}
-                    catch (ActivityNotFoundException ignored) {Log.w("VoiceLineWeb", "No YouTube link handler");}
-                }
-                return true;
+                // Do not navigate to an untrusted origin from the microphone-enabled app.
+                return !"appassets.androidplatform.net".equals(uri.getHost());
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
@@ -106,21 +91,6 @@ public class MainActivity extends Activity {
                 if (msg.messageLevel() == ConsoleMessage.MessageLevel.ERROR || msg.messageLevel() == ConsoleMessage.MessageLevel.WARNING)
                     Log.w("VoiceLineWeb", msg.sourceId() + ":" + msg.lineNumber() + " " + msg.message());
                 return true;
-            }
-            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
-                if (pendingFileChooser != null) pendingFileChooser.onReceiveValue(null);
-                pendingFileChooser = callback;
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("audio/*");
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                try {startActivityForResult(intent, AUDIO_FILE_REQUEST);return true;}
-                catch (ActivityNotFoundException e) {
-                    pendingFileChooser = null;
-                    callback.onReceiveValue(null);
-                    Log.w("VoiceLineWeb", "No audio file picker", e);
-                    return true;
-                }
             }
             @Override public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> handleWebPermission(request));
@@ -151,15 +121,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == AUDIO_FILE_REQUEST && pendingFileChooser != null) {
-            ValueCallback<Uri[]> callback = pendingFileChooser;
-            pendingFileChooser = null;
-            callback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
-        }
-    }
-
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grants) {
         super.onRequestPermissionsResult(requestCode, permissions, grants);
         if (requestCode == AUDIO_PERMISSION_REQUEST && pendingAudioRequest != null) {
@@ -181,7 +142,6 @@ public class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         if (pendingAudioRequest != null) {pendingAudioRequest.deny();pendingAudioRequest = null;}
-        if (pendingFileChooser != null) {pendingFileChooser.onReceiveValue(null);pendingFileChooser = null;}
         if (web != null) {web.loadUrl("about:blank");web.destroy();web = null;}
         super.onDestroy();
     }
