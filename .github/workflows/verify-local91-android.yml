@@ -50,8 +50,22 @@ jobs:
           with zipfile.ZipFile(apk) as z:
               assert z.testzip() is None
               assets=Path('android-local44/app/src/main/assets')
+              generated={'www/third-party-notices.js','www/THIRD-PARTY-NOTICES.txt'}
               for p in assets.rglob('*'):
-                  if p.is_file():assert z.read('assets/'+p.relative_to(assets).as_posix())==p.read_bytes(),str(p)
+                  if p.is_file() and p.relative_to(assets).as_posix() not in generated:
+                      assert z.read('assets/'+p.relative_to(assets).as_posix())==p.read_bytes(),str(p)
+              # Gradle regenerates these two files from legal/third-party-base.json.
+              # Verify that exact generated data, including the complete native notice.
+              def notice_script(text):
+                  start=text.index('const notices=')+len('const notices=')
+                  end=text.index(';if(typeof module=',start)
+                  return text[:start],json.loads(text[start:end]),text[end:]
+              prefix,source_notices,suffix=notice_script((assets/'www/third-party-notices.js').read_text())
+              actual_prefix,actual_notices,actual_suffix=notice_script(z.read('assets/www/third-party-notices.js').decode())
+              expected_notices=json.loads(Path('android-local44/legal/third-party-base.json').read_text())+[source_notices[-1]]
+              assert actual_prefix==prefix and actual_suffix==suffix and actual_notices==expected_notices
+              expected_text='VoiceLine — Third-party software and sound recordings\n\n'+'\n\n'.join(n['name']+'\n'+n['license']+'\n'+n['source']+'\n\n'+n['text'] for n in expected_notices).rstrip()+'\n'
+              assert z.read('assets/www/THIRD-PARTY-NOTICES.txt').decode()==expected_text
           target=json.loads(Path('verified/target-pitch-report/target-pitch.json').read_text())
           assert target['status']=='passed' and target['errors']==[] and len(target['checks'])==2
           language=json.loads(Path('verified/layout-report/language-report.json').read_text())
@@ -74,7 +88,12 @@ jobs:
           for apk in dist/VoiceLine-Local91-CI.apk release-review/previous-Local90-CI.apk; do
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk" | grep -i "$(cat ci/android-debug-cert.sha256)"
           done
-          python3 ci/verify-third-party-notices.py dist/VoiceLine-Local91-CI.apk
+          python3 - <<'PY'
+          import runpy,zipfile
+          verify=runpy.run_path('ci/verify-third-party-notices.py')['verify']
+          with zipfile.ZipFile('dist/VoiceLine-Local91-CI.apk') as z:
+              print('Verified',verify(lambda name:z.read('assets/www/'+name)),'runtime component licenses in the exact APK')
+          PY
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
