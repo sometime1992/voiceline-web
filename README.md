@@ -1,12 +1,12 @@
-# VoiceLine — 현재 작업 기준: Local92 (2026-11-16)
+# VoiceLine — 현재 작업 기준: Local93 (2026-11-16)
 
-- **작업 브랜치**: `build/android-apk` / **Android 실제 프로젝트**: `android-local44/` (과거 `android-app/`가 아님)
-- **현재 시험용 APK**: `2.0.0-local92-ci` (versionCode 115), `com.voiceline.app.local18.ci45`. [검증된 Local92 다운로드](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local92-credits-spacing-ci).
-- **핵심 기능**: 가로형 피아노, 실시간 마이크 피치, 녹음·재생, 비브라토, 메트로놈, 발성 훈련, 루틴, 연습 기록. Local92는 피아노 출처 안내의 버튼 간격을 12px로 확보하고 작은 화면에서 세로 배치합니다. Local91의 마이크 감도 표시와 목표 음정 중심 그래프를 포함합니다.
-- **권리 안전 기준**: 상업용 음원 가져오기, 가수 목소리 제거, MR 변환, 원곡 따라 부르기, 음원 추출은 추가하지 않음. Salamander Grand Piano (Alexander Holm, CC BY 3.0) 출처와 라이선스는 앱 내부에 제공. 외부 저장·공유 전 별도 권리 확인을 요구.
-- **Local92 검증**: 419개 Node 자동 검사, 한·영 작은 화면/큰 글자/가로 화면 8가지 배치, APK 빌드·lint·서명·포함 파일·라이선스 검사 통과. [빌드와 검증 결과](https://github.com/sometime1992/voiceline-web/actions/runs/43854911088). 기존 CI 앱의 패키지와 서명 인증서를 유지합니다. 이번 배치 검증은 Chromium에서 수행했습니다.
-- **업데이트 검증 이력**: [Local91 실제 Android 검증](https://github.com/sometime1992/voiceline-web/actions/runs/43825133729)에서 Local90 녹음·설정·루틴·연습 기록 보존을 확인했습니다. Local91 네이티브 화면 캡처는 `.github/workflows/verify-local91-screenshots.yml`에서 관리합니다.
-- **추가 확인**: 실제 기기에서의 통화·잠금·이어폰·장시간 녹음 테스트와 앱 아이콘 원본 이용 허락 증빙, 일부 피치 분석 코드의 외부 구현 출처 검토는 남아 있음.
+- **작업 브랜치**: `build/android-apk` / **Android 실제 프로젝트**: `android-local44/`.
+- **현재 시험용 APK**: `2.0.0-local93-ci` (116), `com.voiceline.app.local18.ci45`. [검증된 다운로드](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local93-release-audit-ci). 기존 Local92 CI 앱 위에 삭제 없이 업데이트합니다.
+- **정식 제출 후보**: `com.voiceline.app`, `2.0.0` (116), targetSdk 36 / minSdk 26. 정식 AAB를 기존 업로드 인증서로 서명하고 검증했습니다. 실제 Play Console 패키지·인증서·사용한 버전 코드와 계정별 필수 테스트·심사는 별도 확인합니다. 정식 앱과 CI 앱은 저장 공간을 공유하지 않습니다.
+- **이번 개선**: 영어 피아노 출처·저작권·내보내기 안내 누락과 일부 문장을 보완했습니다. Local92의 12px 버튼 간격과 모바일 세로 배치를 포함합니다. 아이콘 생성 원본과 축소 이미지의 픽셀 일치를 확인했고 `docs/asset-provenance.json`에 근거를 기록했습니다. 음정 계산 핵심은 고정한 MIT yinjs 원본을 기준으로 정리해 수정 내역과 전체 고지를 포함합니다.
+- **검증**: 422개 자동 검사, 영어 화면 17개 통합 그룹, 63가지 건반 배치, 한·영 목표 그래프, APK/AAB·lint·서명·라이선스 검사를 통과했습니다. Android 16에서 실제 Local92 녹음·설정·루틴·연습 기록의 덮어 설치 보존, 백그라운드 녹음 저장, WAV 재생·탐색·중단·재개, 비디버그 정식 구성의 한·영 실행·언어 저장을 확인했습니다. [최종 검증 파일 배포](https://github.com/sometime1992/voiceline-web/actions/runs/43864931710).
+- **검증 경계**: 실제 Galaxy의 전화·Bluetooth·이어폰·장시간 녹음과 다른 Android 버전의 전체 실기기 검사는 남아 있습니다. 저작권 분쟁 부존재 또는 스토어 승인을 보증하지 않습니다. 과거 Local87 등 다른 APK는 이번 판정 대상이 아닙니다.
+- **권리 안전 기준**: 원곡/MR 가져오기·보컬 분리·음원 추출·원곡 따라 부르기는 제외합니다. CC BY 3.0 피아노 출처와 MIT/0BSD/Apache 고지를 오프라인으로 제공하며 외부 저장·공유 때마다 권리를 확인합니다.
 
 ---
 

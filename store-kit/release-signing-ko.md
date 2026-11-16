@@ -1,22 +1,16 @@
-# VoiceLine 정식 업로드 파일과 서명키
+# VoiceLine Local93 정식 업로드 파일과 서명키
 
-나루비움 도메인을 반영한 Local80 정식 APK·AAB는 기존 업로드 키로 서명했고 코드 96입니다. CI APK는 기존 CI 인증서와 패키지를 유지하며 코드 97입니다. 정식·CI 설치 파일의 버전·인증서·네이티브 URL과 내장 자산을 확인했습니다. 이전 Local79 정식 AAB는 코드 95이며 별도 산출물입니다.
+2026-11-16 기준 정식 제출 후보는 `VoiceLine-2.0.0-Local93-Upload.aab`, 패키지 `com.voiceline.app`, 버전 `2.0.0`, 코드 `116`입니다. 기존 업로드 키로 서명했고 인증서 SHA-256이 `upload-certificate-sha256.txt`의 값과 일치함을 확인했습니다. 서명 후에도 번들의 기존 엔트리와 검증한 APK의 오프라인 자산이 유지됩니다.
 
-정식 제출 대상은 `com.voiceline.app`, 버전 `2.0.0`, 코드 `96`입니다. Play Console에 이미 앱을 만들었다면 패키지 이름을 먼저 대조하세요. 패키지 이름의 예약·사용 가능 여부는 콘솔에서 확인해야 합니다.
+시험용 `VoiceLine-Local93-CI.apk`는 `com.voiceline.app.local18.ci45`, `2.0.0-local93-ci` (116)이며 기존 CI 인증서를 유지합니다. Local92에서 삭제 없이 업데이트하고 녹음·설정·루틴·연습 기록이 보존되는 것을 Android 16에서 확인했습니다. 정식 구성의 비디버그 화면과 한·영 전환·재시작 후 언어 유지도 별도로 검사했습니다.
 
-## 이번 제공 파일
+Play Console에 실제 등록한 패키지·업로드 인증서와 버전 코드 사용 이력은 직접 대조해야 합니다. 116보다 큰 코드가 이미 사용됐다면 코드를 올리고 다시 빌드합니다. 실제 Galaxy 테스트와 계정별 출시 요건·심사는 별도입니다. 전체 검토는 Local93 결과 보고서와 검증 JSON을 확인하세요.
 
-- `VoiceLine-2.0.0-Upload.aab`: 소유자 업로드 키로 서명한 정식 코드의 AAB. Play Console에 올릴 파일입니다.
-- `VoiceLine-Upload-Key-Backup.zip`: 업로드 키와 공개 인증서의 비공개 백업입니다. 스토어 이미지나 공개 릴리스 ZIP에 포함하지 않습니다.
-- `VoiceLine-Upload-Key-Passwords.txt`: 백업 키를 여는 비밀번호입니다. 키 백업과 분리해 안전하게 보관합니다.
-- `VoiceLine-Upload-Certificate.pem`: 공개 인증서입니다. 개인 키가 아니며, 인증서 등록이 필요할 때 사용할 수 있습니다.
-- `VoiceLine-Local80-CI.apk`: 기존 CI45 패키지의 테스트 앱을 업데이트하는 APK입니다. Android 16 에뮬레이터에서 Local77에서 Local80으로 삭제 없이 업데이트하고 비공개 테스트 파일이 보존되는 것을 확인했습니다. 실제 휴대폰 녹음·연습 기록은 업데이트 후 확인하세요. 스토어 제출 파일은 AAB를 사용합니다.
-
-CI에 만든 `release-runtime-review.apk`는 에뮬레이터 실행 확인에만 쓰는 임시 테스트 서명 파일입니다. 위 정식 AAB와 구분해야 합니다.
+기존 `VoiceLine-Upload-Key-Backup.zip`과 `VoiceLine-Upload-Key-Passwords.txt`의 키를 계속 사용하며 새 키를 만들지 않습니다. 배포 파일에 개인 키나 비밀번호를 넣지 않습니다.
 
 ## 이후 업데이트
 
-업로드 키를 매번 새로 만들지 마세요. 제공된 백업을 사용합니다. Local80도 기존 업로드 인증서로 서명해야 합니다. 이후 정식 버전은 Play Console에서 이미 사용한 코드보다 큰 버전 코드를 사용해야 합니다. 현재 정식 구성은 96입니다.
+업로드 키를 매번 새로 만들지 마세요. 제공된 백업을 사용합니다. 새 버전도 기존 업로드 인증서로 서명해야 합니다. 이후 정식 버전은 Play Console에서 이미 사용한 코드보다 큰 버전 코드를 사용해야 합니다. 현재 정식 구성은 116입니다.
 
 Android Studio의 **Build → Generate Signed App Bundle / APK → Android App Bundle → release**에서 백업의 `voiceline-upload.p12`와 별도 비밀번호를 선택합니다. 별칭은 `voiceline-upload`입니다. 업로드 키를 저장소 안에 복사하거나 Git에 커밋하지 마세요.
 
