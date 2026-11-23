@@ -1,4 +1,4 @@
-NaruPitch — Third-party software and sound recordings
+VocalRefit — Third-party software and sound recordings
 
 @tonejs/piano
 MIT
@@ -163,7 +163,7 @@ Title: Salamander Grand Piano (Yamaha C5)
 License: Creative Commons Attribution 3.0 Unported (CC BY 3.0)
 License text: https://creativecommons.org/licenses/by/3.0/
 Original piano recordings: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio
-NaruPitch includes 28 unmodified MP3 note recordings at velocity layer 8 for offline playback. During playback, pitch/speed, gain and release envelope are adjusted; the sample files themselves are not re-encoded. Alexander Holm and upstream publishers do not endorse or sponsor NaruPitch.
+VocalRefit includes 28 unmodified MP3 note recordings at velocity layer 8 for offline playback. During playback, pitch/speed, gain and release envelope are adjusted; the sample files themselves are not re-encoded. Alexander Holm and upstream publishers do not endorse or sponsor VocalRefit.
 
 yinjs
 MIT

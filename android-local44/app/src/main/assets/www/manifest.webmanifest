@@ -1,6 +1,6 @@
 {
-  "name": "NaruPitch",
-  "short_name": "NaruPitch",
+  "name": "VocalRefit",
+  "short_name": "VocalRefit",
   "description": "건반을 연주하며 음정 측정, 녹음, 비브라토 및 음정 연습",
   "lang": "ko",
   "start_url": "./",
