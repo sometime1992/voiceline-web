@@ -1,4 +1,4 @@
-const CACHE='voiceline-v1.4.0';
+const CACHE='voiceline-v1.4.0-vocalrefit';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./training-plus.js','./training-guide.css','./vibrato-breath.js','./vibrato-breath.css','./readability.css','./ui-v13.css','./ui-v13.js','./diagnostics.js','./diagnostics.css','./ui-v14.css','./ui-v14.js','./favicon.svg','./icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});

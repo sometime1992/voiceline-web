@@ -1,6 +1,6 @@
 {
-  "name": "보이스라인 | 실시간 보컬 연습",
-  "short_name": "보이스라인",
+  "name": "VocalRefit",
+  "short_name": "VocalRefit",
   "description": "실시간 음정 측정 및 발성 연습",
   "lang": "ko",
   "start_url": "./",

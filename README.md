@@ -1,4 +1,4 @@
-# VoiceLine — 현재 작업 기준: Local93 (2026-11-16)
+# VocalRefit — 현재 작업 기준: Local93 (2026-11-16)
 
 - **작업 브랜치**: `build/android-apk` / **Android 실제 프로젝트**: `android-local44/`.
 - **현재 시험용 APK**: `2.0.0-local93-ci` (116), `com.voiceline.app.local18.ci45`. [검증된 다운로드](https://github.com/sometime1992/voiceline-web/releases/tag/voiceline-local93-release-audit-ci). 기존 Local92 CI 앱 위에 삭제 없이 업데이트합니다.

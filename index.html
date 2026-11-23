@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#100f1c">
-<meta name="description" content="피아노 건반을 연주하며 음정을 측정하고 연습하는 보이스라인">
-<title>보이스라인 · VOICE LINE</title>
+<meta name="description" content="피아노 건반을 연주하며 음정을 측정하고 연습하는 VocalRefit">
+<title>VocalRefit</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="piano.css">
@@ -15,7 +15,7 @@
 <body>
 <div id="app" class="app">
 <header class="toolbar">
-  <div class="brand" aria-label="보이스라인">VOICE<span>LINE</span><small>보이스라인</small></div>
+  <div class="brand" aria-label="VocalRefit">Vocal<span>Refit</span></div>
   <div class="toolbar-center"><span id="modeChip">피아노 연주</span><button type="button" id="micToggle" class="mic-toggle" aria-label="마이크 켜기" aria-pressed="false" title="피아노 소리가 마이크에 들어가면 음정 인식이 달라질 수 있습니다.">
      <span id="micChip" role="status">마이크 꺼짐</span><span id="micToggleAction" aria-hidden="true">켜기</span>
     </button></div>
@@ -50,7 +50,7 @@
 </section>
 <div id="menuDialog" class="modal-backdrop" hidden>
  <section class="modal menu-modal" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
-  <div class="modal-heading"><div><span class="eyebrow">VOICE LINE</span><h1 id="menuTitle">연습 메뉴</h1><p>원하는 기능을 선택하면 피아노 화면에 바로 적용됩니다.</p></div><button type="button" class="close-btn" id="menuClose" aria-label="메뉴 닫기">✕</button></div>
+  <div class="modal-heading"><div><span class="eyebrow">VocalRefit</span><h1 id="menuTitle">연습 메뉴</h1><p>원하는 기능을 선택하면 피아노 화면에 바로 적용됩니다.</p></div><button type="button" class="close-btn" id="menuClose" aria-label="메뉴 닫기">✕</button></div>
   <div class="menu-grid">
    <button data-screen="pitch" class="menu-tile"><span class="tile-icon">♬</span><span><strong>음정 측정하기</strong><small>내가 부르는 음을 건반에서 확인</small></span></button>
    <button data-screen="record" class="menu-tile"><span class="tile-icon">●</span><span><strong>녹음하기</strong><small>목소리를 녹음하고 기기에 보관</small></span></button>
@@ -64,11 +64,11 @@
 </div>
 <div id="infoDialog" class="modal-backdrop" hidden>
  <section class="modal info-modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
-   <div class="modal-heading"><div><span class="eyebrow">VOICE LINE</span><h2 id="infoTitle">나의 기록</h2></div><button type="button" class="close-btn" id="infoClose" aria-label="닫기">✕</button></div>
+   <div class="modal-heading"><div><span class="eyebrow">VocalRefit</span><h2 id="infoTitle">나의 기록</h2></div><button type="button" class="close-btn" id="infoClose" aria-label="닫기">✕</button></div>
    <div id="infoBody" class="info-body"></div>
  </section>
 </div>
-<div id="portrait" class="portrait-notice" role="status"><div class="rotate-icon">▱</div><strong>가로 화면으로 돌려주세요</strong><p>보이스라인은 넓은 피아노 건반을 위해 가로 화면으로 사용합니다.</p></div>
+<div id="portrait" class="portrait-notice" role="status"><div class="rotate-icon">▱</div><strong>가로 화면으로 돌려주세요</strong><p>VocalRefit은 넓은 피아노 건반을 위해 가로 화면으로 사용합니다.</p></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </div>
 </body>

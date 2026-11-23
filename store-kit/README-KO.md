@@ -1,4 +1,4 @@
-# VoiceLine Google Play 준비 자료 · Local80
+# VocalRefit Google Play 준비 자료 · Local80
 
 나루비움 도메인을 반영한 Local80 빌드가 완료됐습니다. CI APK는 기존 인증서를 유지하고 Android 16에서 Local77 위에 삭제 없이 업데이트해 비공개 테스트 파일 보존을 확인했습니다. 정식 APK와 AAB는 기존 업로드 키로 서명하고 버전·서명·네이티브 URL·내장 자산 59개를 확인했습니다. 현재 검증은 `naruvium-build-verification.json`, 빌드 및 변경 범위는 `naruvium-migration-ko.md`를 확인하세요. 이전 Local79 보고서는 해당 이전 산출물의 기록입니다.
 
@@ -15,8 +15,8 @@
 | --- | --- |
 | 개발자 표시명 | 나루비움 스튜디오 |
 | 홈페이지 | https://naruvium.com/ |
-| VoiceLine 개인정보처리방침 | https://naruvium.com/apps/voiceline/privacy.html |
-| VoiceLine 고객지원 | https://naruvium.com/support.html?app=voiceline#contact |
+| VocalRefit 개인정보처리방침 | https://naruvium.com/apps/voiceline/privacy.html |
+| VocalRefit 고객지원 | https://naruvium.com/support.html?app=voiceline#contact |
 | 지원 이메일 | grand4870@gmail.com |
 
 설치 확인은 `VoiceLine-Local80-CI.apk`로 진행합니다. CI 버전은 `2.0.0-local80-ci (97)`이며 기존 CI 테스트 앱을 삭제하지 않고 업데이트할 수 있습니다. CI 앱과 정식 앱은 패키지가 달라 기록이 자동 이전되지는 않습니다.
