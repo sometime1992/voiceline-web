@@ -15,7 +15,7 @@
   {id:'nidcd',title:'NIH/NIDCD · Taking Care of Your Voice',url:'https://www.nidcd.nih.gov/health/taking-care-your-voice',principle:'휴식과 수분 섭취, 피로하거나 쉰 목소리일 때 무리하지 않기'}
  ]);
  const NOTE='단계는 연습 경험을 뜻하며 음역·성별 구분이 아닙니다. 편안한 시작음을 선택하세요. 통증·쉰 목소리·어지러움이 생기면 멈추고 쉬세요.';
- const BASIS='공개 교육 자료의 원칙을 참고해 VoiceLine용으로 구성한 예시입니다. 초·반복·허용 음정 수치는 기관의 공식 처방이나 개인 진단값이 아닙니다.';
+ const BASIS='공개 교육 자료의 원칙을 참고해 NaruPitch용으로 구성한 예시입니다. 초·반복·허용 음정 수치는 기관의 공식 처방이나 개인 진단값이 아닙니다.';
  const MODES=Object.freeze(['piano','practice','sustainVoice','earVoice','dynamicVoice','vibrato','warmupVoice','metronome']);
  const GUIDANCE=Object.freeze({
   piano:{rootKind:'keyboard',rootLabel:'건반 시작음',intro:'건반을 직접 눌러 소리를 듣는 연습입니다. 음 위치·반음·옥타브를 구별하는 방법을 단계별로 추천합니다.',

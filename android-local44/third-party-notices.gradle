@@ -136,7 +136,7 @@ tasks.register('generateThirdPartyNotices') {
         def script = "'use strict';\n(function(root){const notices=" + pretty(notices) +
                 ";if(typeof module==='object'&&module.exports)module.exports=notices;else root.VoiceLineThirdPartyNotices=notices;})(globalThis);\n"
         new File(web, 'third-party-notices.js').setText(script, 'UTF-8')
-        new File(web, 'THIRD-PARTY-NOTICES.txt').setText('VoiceLine — Third-party software and sound recordings\n\n' +
+        new File(web, 'THIRD-PARTY-NOTICES.txt').setText('NaruPitch — Third-party software and sound recordings\n\n' +
                 notices.collect { it.name + '\n' + it.license + '\n' + it.source + '\n\n' + it.text }.join('\n\n').stripTrailing() + '\n', 'UTF-8')
         new File(web, 'THIRD-PARTY-COMPONENTS.json').setText(pretty([
                 schemaVersion: 1, configurations: variants, components: components]) + '\n', 'UTF-8')

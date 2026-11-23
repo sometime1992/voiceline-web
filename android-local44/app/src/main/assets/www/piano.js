@@ -1,5 +1,5 @@
 'use strict';
-/* VoiceLine v2 — piano-first offline vocal trainer.
+/* NaruPitch v2 — piano-first offline vocal trainer.
    Native recordings stream to one private WAV; history and playback metadata stay in IndexedDB. */
 (() => {
 const $ = id => document.getElementById(id);
@@ -108,7 +108,7 @@ const dbPromise=new Promise((resolve,reject)=>{
     req.result.onversionchange=()=>req.result.close();
     resolve(req.result);
   };
-  req.onblocked=()=>notify('기록 저장소를 갱신하려면 다른 VoiceLine 창을 닫아 주세요.');
+  req.onblocked=()=>notify('기록 저장소를 갱신하려면 다른 NaruPitch 창을 닫아 주세요.');
   req.onerror=()=>reject(req.error||new Error('저장소 오류'));
 });
 dbPromise.catch(()=>notify('기기 저장 공간을 열 수 없습니다. 브라우저 설정을 확인해 주세요.'));
@@ -215,7 +215,7 @@ function id(){return Date.now()+'-'+Math.random().toString(36).slice(2,9);}
 function stamp(){return new Date().toLocaleString(window.VoiceLineI18n?.locale()||'ko-KR');}
 function name(m){m=Math.round(m);return NAMES[(m%12+12)%12]+(Math.floor(m/12)-1);}
 function koname(m){m=Math.round(m);return (Math.floor(m/12)-3)+'옥 '+KO[(m%12+12)%12];}
-// VoiceLine uses the established Korean vocal-range octave convention:
+// NaruPitch uses the established Korean vocal-range octave convention:
 // C4 = 2옥 도. Keep Western pitch name (C4) and Korean octave/solfege together.
 function noteLabel(m){return name(m)+' · '+koname(m);}
 function frequency(m){return 440*Math.pow(2,(m-69)/12);}
@@ -773,7 +773,7 @@ $('octaveUp').addEventListener('click',()=>{app.base=clamp(app.base+12,24,108-(a
 // notes and breathier voices could intermittently fail, although audio recorded.
 // YIN estimator core adapted from yinjs 0.1.0, Adriano Di Giovanni (MIT).
 // Pinned upstream source and full license: vendor/yinjs/UPSTREAM.json and LICENSE.
-// VoiceLine bounds the lag/window, computes CMND in one pass, validates confidence
+// NaruPitch bounds the lag/window, computes CMND in one pass, validates confidence
 // and interpolates the minimum. Input-level gates remain app-specific.
 function pitchYin(s,sr,recording=false,sensitivity='sensitive'){
  if(!s||s.length<1024||!Number.isFinite(sr)||sr<=0)return null;
@@ -3137,7 +3137,7 @@ function showHelp(){
   ['가로·세로 화면','휴대폰의 자동 회전 설정에 따라 가로·세로로 사용할 수 있습니다. 세로에서는 건반 1옥타브와 두 줄 설정을, 가로에서는 건반 2옥타브와 넓은 그래프를 표시합니다. 회전해도 녹음과 훈련 시간은 이어지고 누르고 있던 건반과 BPM 길게 누르기는 해제됩니다. 기록·긴 설명·키보드가 열린 작은 화면에서는 필요한 스크롤을 사용할 수 있습니다.'],
   ['측정 가능한 음역','음정 측정과 훈련 목표는 '+noteLabel(PITCH_RANGE.minMidi)+' ~ '+noteLabel(PITCH_RANGE.maxMidi)+' 범위를 사용합니다. 높은 시작음의 패턴과 슬라이드는 아래쪽으로 전환할 수 있습니다.'],
   ['나의 기록과 개인정보','녹음 파일과 모든 보컬 훈련·음정 측정 기록은 기기 내부에만 보관합니다. 나의 기록은 녹음·연습 탭으로 나뉩니다. 녹음 탭에서 전체 재생·구간 이동·삭제와 저장 실패한 녹음 다시 저장을 할 수 있습니다. 앱 중단으로 복구한 녹음은 마지막으로 저장된 구간까지 포함합니다. 앱 삭제나 데이터 초기화 시 함께 삭제됩니다.'],
-  ['피아노 음원 및 저작권','Salamander Grand Piano (Yamaha C5) 녹음 28개: Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 보이스라인은 원본 MP3를 포함하고 건반 재생 시 음높이·속도·음량·엔벨로프를 조정합니다. 원저작자는 VoiceLine을 보증·후원하지 않습니다. 피아노 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT).'],
+  ['피아노 음원 및 저작권','Salamander Grand Piano (Yamaha C5) 녹음 28개: Alexander Holm, CC BY 3.0. 원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio . 라이선스: https://creativecommons.org/licenses/by/3.0/ . 보이스라인은 원본 MP3를 포함하고 건반 재생 시 음높이·속도·음량·엔벨로프를 조정합니다. 원저작자는 NaruPitch를 보증·후원하지 않습니다. 피아노 엔진: @tonejs/piano, Tone.js (Yotam Mann, MIT).'],
   ['통화와 오디오 중단','통화·다른 앱의 오디오 사용·마이크 연결 장치 변경으로 입력이 중단되면 연습과 채점을 멈추고 진행 중인 녹음을 저장합니다. 사용자가 마이크 권한을 허용하는 창은 시작 과정으로 처리합니다. 중단 원인이 사라져도 자동으로 다시 시작하지 않으며 시작 버튼을 눌러 재개합니다.'],
   ['마이크와 피아노 소리','피아노와 메트로놈 소리가 마이크에 들어가면 음정·박자 판정에 영향을 줄 수 있습니다. 이어폰을 권장합니다. 마이크를 끄거나 앱을 벗어나면 활동을 종료하고 녹음을 저장합니다. 음정 측정에는 기기 입력 지연과 주변 소음의 영향이 있을 수 있습니다.'],
   ['녹음 공유와 저작권','직접 제작했거나 필요한 이용 허락을 받은 녹음만 공개 공유하세요. 녹음에 포함된 곡·가사·반주의 권리는 별도로 확인해야 합니다.'],
@@ -3162,7 +3162,7 @@ function showPianoCredits(){
  $('infoTitle').textContent='피아노 음원 출처·저작권';const b=$('infoBody');b.replaceChildren();
  plain(b,'h3','','Salamander Grand Piano (Yamaha C5)');
  plain(b,'p','','저작자: Alexander Holm · 라이선스: Creative Commons Attribution 3.0 Unported (CC BY 3.0)');
- plain(b,'p','','사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 VoiceLine 후원·보증은 없습니다.');
+ plain(b,'p','','사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 NaruPitch 후원·보증은 없습니다.');
  plain(b,'p','','원본: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio');
  plain(b,'p','','라이선스: https://creativecommons.org/licenses/by/3.0/');
  plain(b,'p','','피아노 엔진: @tonejs/piano 및 Tone.js (Yotam Mann), MIT');

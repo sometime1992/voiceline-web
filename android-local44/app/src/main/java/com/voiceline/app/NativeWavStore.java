@@ -29,7 +29,7 @@ public final class NativeWavStore {
     }
     private void save(String id, Properties p) throws IOException {
         File pending = file(id,".properties.tmp"), target = file(id,".saved").isFile()?file(id,".saved"):file(id,".properties");
-        try (FileOutputStream out = new FileOutputStream(pending)) { p.store(out,"VoiceLine local recording"); out.getFD().sync(); }
+        try (FileOutputStream out = new FileOutputStream(pending)) { p.store(out,"NaruPitch local recording"); out.getFD().sync(); }
         if (!pending.renameTo(target)) throw new IOException("녹음 정보 저장 실패");
     }
     public Writer begin(String id, int rate, long startFrame) throws IOException {

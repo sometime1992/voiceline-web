@@ -18,7 +18,7 @@ for name,dimensions in expected.items():
     facts.append({'name':name,'width':width,'height':height,'pngColorType':data[25],
                   'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
 listing=json.loads((root/'store-kit/listing-ko.json').read_text())
-assert listing['title']=='VoiceLine'
+assert listing['title']=='나루피치'
 assert len(listing['title'])<=30 and len(listing['shortDescription'])<=80 and len(listing['fullDescription'])<=4000
 (media/'VERIFIED_MEDIA.json').write_text(json.dumps(facts,indent=2)+'\n')
 print('Verified store icon, feature graphic and 5 Android16 emulator screenshots.')

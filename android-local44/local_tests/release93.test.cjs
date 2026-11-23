@@ -12,11 +12,11 @@ test('Credits and export warnings retain their legal meaning in English',()=>{
  for(const [ko,en]of expected)assert.equal(i18n.t(ko,'en'),en);
  for(const ko of [
   '저작자: Alexander Holm · 라이선스: Creative Commons Attribution 3.0 Unported (CC BY 3.0)',
-  '사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 VoiceLine 후원·보증은 없습니다.',
+  '사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 NaruPitch 후원·보증은 없습니다.',
   '외부 앱으로 녹음을 공유합니다. 노래·가사·연주·반주의 권리가 각각 다를 수 있으며, 녹음했다고 해서 배포 권리가 생기지는 않습니다.',
   '외부에 녹음 파일 사본을 만듭니다. 노래·가사·연주·반주의 권리가 각각 다를 수 있으며, 녹음했다고 해서 복제·배포 권리가 생기지는 않습니다.'
  ])assert.doesNotMatch(i18n.t(ko,'en'),/[가-힣]/);
- assert.match(i18n.t('사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 VoiceLine 후원·보증은 없습니다.','en'),/28 original MP3.*not been edited.*sponsor or endorse/);
+ assert.match(i18n.t('사용 방법: 원본 MP3 28개를 앱에 포함하고, 연주 시 음높이·재생 속도·음량·엔벨로프를 조정합니다. 원본 파일 자체는 편집·재인코딩하지 않았습니다. 저작자 또는 원 프로젝트의 NaruPitch 후원·보증은 없습니다.','en'),/28 original MP3.*not been edited.*sponsor or endorse/);
 });
 test('The attributed pitch estimator covers the selectable range at actual input rates',()=>{
  const source=fs.readFileSync(path.join(web,'piano.js'),'utf8'),a=source.indexOf('function pitchYin('),b=source.indexOf('function updateDetection(',a);

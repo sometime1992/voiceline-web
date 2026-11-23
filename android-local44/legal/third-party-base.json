@@ -39,7 +39,7 @@
     "name": "Salamander Grand Piano (Yamaha C5)",
     "license": "CC BY 3.0",
     "source": "https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio",
-    "text": "Creator: Alexander Holm\nTitle: Salamander Grand Piano (Yamaha C5)\nLicense: Creative Commons Attribution 3.0 Unported (CC BY 3.0)\nLicense text: https://creativecommons.org/licenses/by/3.0/\nOriginal piano recordings: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio\nVoiceLine includes 28 unmodified MP3 note recordings at velocity layer 8 for offline playback. During playback, pitch/speed, gain and release envelope are adjusted; the sample files themselves are not re-encoded. Alexander Holm and upstream publishers do not endorse or sponsor VoiceLine."
+    "text": "Creator: Alexander Holm\nTitle: Salamander Grand Piano (Yamaha C5)\nLicense: Creative Commons Attribution 3.0 Unported (CC BY 3.0)\nLicense text: https://creativecommons.org/licenses/by/3.0/\nOriginal piano recordings: https://github.com/tambien/Piano/tree/0cd2c034f820c53e83ab22f5c13bd490b9e4de85/audio\nVoiceLine includes 28 unmodified MP3 note recordings at velocity layer 8 for offline playback. During playback, pitch/speed, gain and release envelope are adjusted; the sample files themselves are not re-encoded. Alexander Holm and upstream publishers do not endorse or sponsor NaruPitch."
   },
   {
     "name": "yinjs",

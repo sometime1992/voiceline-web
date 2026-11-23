@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#100f1c">
-<meta name="description" content="피아노 건반과 실시간 그래프로 음정을 확인하고 연습하는 VoiceLine">
-<title>VoiceLine</title>
+<meta name="description" content="피아노 건반과 실시간 그래프로 음정을 확인하고 연습하는 NaruPitch">
+<title>NaruPitch</title>
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="piano.css">
@@ -35,7 +35,7 @@
 <body>
 <div id="app" class="app">
 <header class="toolbar">
-  <div class="brand" aria-label="VoiceLine"><img class="brand-logo" src="icon-192.png" alt="" aria-hidden="true"><span class="brand-word"><span class="brand-title">Voice<span>Line</span></span></span></div>
+  <div class="brand" aria-label="NaruPitch"><img class="brand-logo" src="icon-192.png" alt="" aria-hidden="true"><span class="brand-word"><span class="brand-title">Naru<span>Pitch</span></span></span></div>
   <aside id="micNotice" class="mic-notice" role="status" aria-live="polite" aria-atomic="true" hidden>
     <span class="mic-notice-symbol" id="micNoticeSymbol" aria-hidden="true">●</span>
     <div class="mic-notice-copy"><strong id="micNoticeTitle">마이크 상태</strong><p id="micNoticeBody"></p></div>
@@ -169,7 +169,7 @@
 </section>
 <div id="menuDialog" class="modal-backdrop" hidden>
  <section class="modal menu-modal" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
-  <div class="modal-heading"><div><span class="eyebrow">VoiceLine</span><h1 id="menuTitle">연습 메뉴</h1><p>원하는 기능을 선택하면 피아노 화면에 바로 적용됩니다.</p></div><button type="button" class="close-btn" id="menuClose" aria-label="메뉴 닫기">✕</button></div>
+  <div class="modal-heading"><div><span class="eyebrow">NaruPitch</span><h1 id="menuTitle">연습 메뉴</h1><p>원하는 기능을 선택하면 피아노 화면에 바로 적용됩니다.</p></div><button type="button" class="close-btn" id="menuClose" aria-label="메뉴 닫기">✕</button></div>
   <div class="language-setting"><label for="appLanguage">언어</label><select id="appLanguage" aria-label="언어 설정"><option value="ko" data-i18n-ignore lang="ko">한국어</option><option value="en" lang="en">English</option></select><span id="languageStatus" class="sr-only" role="status" aria-live="polite"></span></div>
   <p class="menu-scroll-tip">↕ 아래로 스크롤하여 다른 보컬 훈련을 볼 수 있습니다.</p>
   <div class="menu-grid">
@@ -208,7 +208,7 @@
 <!-- Confirm every outward export/share. In-app recordings require no rights declaration. -->
 <div id="recordRightsDialog" class="modal-backdrop record-rights-backdrop" hidden>
   <section class="modal record-rights-modal" role="dialog" aria-modal="true" aria-labelledby="recordRightsTitle" aria-describedby="recordRightsExplanation">
-    <div class="modal-heading"><div><span class="eyebrow">VoiceLine · 저작권 확인</span><h2 id="recordRightsTitle">녹음 외부 저장·공유 전 확인</h2></div></div>
+    <div class="modal-heading"><div><span class="eyebrow">NaruPitch · 저작권 확인</span><h2 id="recordRightsTitle">녹음 외부 저장·공유 전 확인</h2></div></div>
     <p id="recordRightsExplanation">녹음에 다른 사람의 노래·가사·반주·음원이 포함되어 있다면 외부 저장·공유에 필요한 권리가 있는지 확인해야 합니다. 앱에서 녹음했다고 해서 그 권리가 생기지는 않습니다.</p>
     <label for="recordRightsAgree" class="record-rights-check"><input type="checkbox" id="recordRightsAgree"><span>이 녹음에 포함된 모든 콘텐츠를 직접 제작했거나, 예정된 저장·공유에 필요한 권리·허락을 보유하고 있음을 확인합니다.</span></label>
     <p class="record-rights-hint">선택은 저장되지 않으며 매번 확인합니다. 권리가 불명확하다면 취소하고 앱 안에서만 녹음을 보관하세요.</p>
@@ -271,14 +271,14 @@
 </div>
 <div id="infoDialog" class="modal-backdrop" hidden>
  <section class="modal info-modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
-   <div class="modal-heading"><div><span class="eyebrow">VoiceLine</span><h2 id="infoTitle">나의 기록</h2></div><button type="button" class="close-btn" id="infoClose" aria-label="닫기">✕</button></div>
+   <div class="modal-heading"><div><span class="eyebrow">NaruPitch</span><h2 id="infoTitle">나의 기록</h2></div><button type="button" class="close-btn" id="infoClose" aria-label="닫기">✕</button></div>
    <div id="infoBody" class="info-body"></div>
  </section>
 </div>
 <!-- Custom app-owned confirmation: window.confirm() exposes an Android WebView URL. -->
 <div id="historyDeleteDialog" class="modal-backdrop history-delete-backdrop" hidden>
  <section class="modal history-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="historyDeleteTitle" aria-describedby="historyDeleteText historyDeleteWarning">
-  <span class="history-delete-eyebrow">VoiceLine · 나의 기록</span>
+  <span class="history-delete-eyebrow">NaruPitch · 나의 기록</span>
   <h2 id="historyDeleteTitle">기록 삭제</h2>
   <p id="historyDeleteText">선택한 기록을 삭제하시겠습니까?</p>
   <p id="historyDeleteWarning" class="history-delete-warning">삭제한 기록은 복구할 수 없습니다.</p>
@@ -290,7 +290,7 @@
 </div>
 <div id="trainingResultDialog" class="modal-backdrop training-result-backdrop" hidden>
  <section class="modal training-result-modal" role="dialog" aria-modal="true" aria-labelledby="trainingResultTitle">
-  <span class="eyebrow">VoiceLine · 훈련 결과</span>
+  <span class="eyebrow">NaruPitch · 훈련 결과</span>
   <strong id="trainingResultStatus" class="training-result-status">성공</strong>
   <h2 id="trainingResultTitle">훈련 결과</h2>
   <p id="trainingResultMetrics"></p>
