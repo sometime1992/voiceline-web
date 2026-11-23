@@ -22,7 +22,7 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - run: npm test --prefix android-local44
-      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - run: gradle --no-daemon :app:bundleRelease :app:lintRelease
         working-directory: android-local44
       - run: python3 ci/verify-third-party-notices.py android-local44/app/build/outputs/bundle/release/app-release.aab
