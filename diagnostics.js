@@ -35,7 +35,7 @@
       inputStatus = live || '마이크 연결됨';
     }
     return [
-      '보이스라인 버전: v' + VERSION,
+      'VocalRefit 버전: v' + VERSION,
       '앱 실행 환경: ' + (native ? 'Android 앱 WebView' : '웹 브라우저'),
       '보안 환경: ' + (window.isSecureContext ? '정상' : '보안 환경 아님'),
       '마이크 API: ' + (navigator.mediaDevices?.getUserMedia ? '지원' : '지원하지 않음'),
