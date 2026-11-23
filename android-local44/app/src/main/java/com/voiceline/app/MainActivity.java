@@ -33,8 +33,8 @@ import java.util.Map;
 public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
-    private static final String PUBLIC_PRIVACY_URL = "https://naruvium.com/apps/voiceline/privacy.html";
-    private static final String PUBLIC_SUPPORT_URL = "https://naruvium.com/support.html?app=voiceline#contact";
+    private static final String PUBLIC_PRIVACY_URL = "https://naruvium.com/apps/vocalrefit/privacy.html";
+    private static final String PUBLIC_SUPPORT_URL = "https://naruvium.com/support.html?app=vocalrefit#contact";
     private static final String PUBLIC_HOME_URL = "https://naruvium.com/";
     private WebView web;
     private PermissionRequest pendingAudioRequest;

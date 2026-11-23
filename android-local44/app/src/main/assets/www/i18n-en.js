@@ -1611,7 +1611,7 @@
  "개발자 문의는 나루비움 스튜디오 고객지원 웹페이지에서 VocalRefit을 선택한 뒤 이메일 앱으로 작성할 수 있습니다. 홈페이지에서 문의를 자동으로 전송하거나 접수하지 않으며, 사용자가 이메일 앱에서 직접 전송한 경우에만 문의 메일이 전달됩니다. 문의에 필요하지 않은 개인정보나 녹음 파일은 첨부하지 마세요.": "For developer support, select VocalRefit on the Naruvium Studio support webpage and compose a message in your email app. The website does not automatically send or submit inquiries. A message is delivered only when you send it yourself from your email app. Do not attach unnecessary personal information or recordings.",
  "9. 운영자와 문의": "9. Operator and contact",
  "운영자: 나루비움 스튜디오. 개인정보 관련 문의·열람·정정·삭제 요청은 grand4870@gmail.com으로 보내 주세요.": "Operator: Naruvium Studio. Send privacy inquiries or access, correction and deletion requests to grand4870@gmail.com.",
- "고객지원 웹페이지: https://naruvium.com/support.html?app=voiceline#contact. 개발자 홈페이지: https://naruvium.com/": "Support webpage: https://naruvium.com/support.html?app=voiceline#contact. Developer website: https://naruvium.com/",
+ "고객지원 웹페이지: https://naruvium.com/support.html?app=vocalrefit#contact. 개발자 홈페이지: https://naruvium.com/": "Support webpage: https://naruvium.com/support.html?app=vocalrefit#contact. Developer website: https://naruvium.com/",
  "10. 방침 변경": "10. Policy changes",
  "앱의 데이터 처리 방식이 바뀌면 이 방침과 시행일을 갱신합니다. 중요한 변경은 앱 또는 배포 안내를 통해 알립니다. 현재 앱의 처리 방식은 이 페이지의 적용 범위와 날짜를 기준으로 확인할 수 있습니다.": "If the app's data processing changes, this policy and its effective date will be updated. Material changes will be announced in the app or distribution information. Refer to the scope and dates on this page for the current practices.",
  "나루비움 스튜디오": "Naruvium Studio",

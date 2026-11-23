@@ -5,8 +5,8 @@ VocalRefit Local80의 공개 방침·개발자 문의·개발자 홈페이지 �
 | 용도 | 주소 |
 | --- | --- |
 | 홈페이지 | https://naruvium.com/ |
-| 개인정보처리방침 | https://naruvium.com/apps/voiceline/privacy.html |
-| 고객지원 | https://naruvium.com/support.html?app=voiceline#contact |
+| 개인정보처리방침 | https://naruvium.com/apps/vocalrefit/privacy.html |
+| 고객지원 | https://naruvium.com/support.html?app=vocalrefit#contact |
 | 지원 이메일 | grand4870@gmail.com |
 
 개발자 문의는 VocalRefit을 선택한 직접 문의하기 영역으로 이동합니다. 이메일 앱에서 제목과 문의 양식을 준비하고 사용자가 직접 전송합니다. 홈페이지에서 자동으로 문의를 보내거나 접수하지 않습니다. 앱 내부 음성 자료도 자동 첨부하지 않습니다.

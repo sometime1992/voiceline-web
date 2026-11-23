@@ -14,7 +14,7 @@ with zipfile.ZipFile(bundle) as archive:
     assert archive.testzip() is None
     dex=b''.join(archive.read(name) for name in archive.namelist()
                  if name.startswith('base/dex/') and name.endswith('.dex'))
-    for url in ['https://naruvium.com/','https://naruvium.com/apps/voiceline/privacy.html','https://naruvium.com/support.html?app=voiceline#contact']:
+    for url in ['https://naruvium.com/','https://naruvium.com/apps/vocalrefit/privacy.html','https://naruvium.com/support.html?app=vocalrefit#contact']:
         assert url.encode() in dex, 'Native public destination missing: '+url
     assert 'base/manifest/AndroidManifest.xml' in archive.namelist()
     assert 'BundleConfig.pb' in archive.namelist()

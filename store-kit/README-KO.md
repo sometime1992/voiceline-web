@@ -15,8 +15,8 @@
 | --- | --- |
 | 개발자 표시명 | 나루비움 스튜디오 |
 | 홈페이지 | https://naruvium.com/ |
-| VocalRefit 개인정보처리방침 | https://naruvium.com/apps/voiceline/privacy.html |
-| VocalRefit 고객지원 | https://naruvium.com/support.html?app=voiceline#contact |
+| VocalRefit 개인정보처리방침 | https://naruvium.com/apps/vocalrefit/privacy.html |
+| VocalRefit 고객지원 | https://naruvium.com/support.html?app=vocalrefit#contact |
 | 지원 이메일 | grand4870@gmail.com |
 
 설치 확인은 `VoiceLine-Local80-CI.apk`로 진행합니다. CI 버전은 `2.0.0-local80-ci (97)`이며 기존 CI 테스트 앱을 삭제하지 않고 업데이트할 수 있습니다. CI 앱과 정식 앱은 패키지가 달라 기록이 자동 이전되지는 않습니다.

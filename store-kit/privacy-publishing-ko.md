@@ -1,8 +1,8 @@
 # VocalRefit 개인정보처리방침 유지
 
-- 공개 URL: https://naruvium.com/apps/voiceline/privacy.html
+- 공개 URL: https://naruvium.com/apps/vocalrefit/privacy.html
 - 앱 내부 진입: 메뉴 → 개인정보처리방침, 또는 사용법 → 개인정보처리방침 보기
-- 고객지원: https://naruvium.com/support.html?app=voiceline#contact
+- 고객지원: https://naruvium.com/support.html?app=vocalrefit#contact
 - 문의 이메일: grand4870@gmail.com
 - 개발자 홈페이지: https://naruvium.com/
 
