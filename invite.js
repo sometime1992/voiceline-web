@@ -3,8 +3,8 @@
 // Fill in both links below. While either is empty the invite card stays hidden.
 (()=>{
  const INVITE={
-   groupUrl:'',   // 예: https://groups.google.com/g/vocalrefit-testers
-   optInUrl:''    // Play Console > 비공개 테스트 > 테스터 탭 > "웹에서 참여" 링크
+   groupUrl:'https://groups.google.com/g/vocalrefit-testers',   // 예: https://groups.google.com/g/vocalrefit-testers
+   optInUrl:'https://play.google.com/apps/testing/com.voiceline.app'    // Play Console > 비공개 테스트 > 테스터 탭 > "웹에서 참여" 링크
  };
  const card=document.getElementById('invitePanel');
  const button=document.getElementById('inviteButton');
