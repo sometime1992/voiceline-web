@@ -20,6 +20,7 @@
   <script src="vibrato-breath.js" defer></script>
   <script src="ui-v13.js" defer></script>
   <script src="ui-v14.js" defer></script>
+  <script src="invite.js" defer></script>
   <link rel="stylesheet" href="diagnostics.css">
 </head>
 <body>
@@ -96,6 +97,12 @@
           <div class="diagnostic-buttons"><button class="btn-secondary" id="diagnosticRefresh" type="button">다시 확인</button><button class="btn-secondary" id="diagnosticCopy" type="button">진단 내용 복사</button></div>
           <p class="diagnostic-foot" id="diagnosticHint">앱 설정 → 권한 → 마이크에서 허용되어 있는지도 확인해 주세요.</p>
         </details>
+      </section>
+      <section class="panel invite-panel" id="invitePanel" aria-label="테스터 초대" hidden>
+        <div class="section-title"><div><span class="mini-heading">함께 테스트해요</span><h2>친구를 테스터로 초대하기</h2></div><span class="section-icon">✉</span></div>
+        <p class="desc">VocalRefit은 정식 출시 전 비공개 테스트 중이에요. 버튼을 누르면 참여 방법과 링크를 카카오톡·문자로 바로 보낼 수 있어요.</p>
+        <button type="button" class="btn-outline" id="inviteButton">친구 초대하기</button>
+        <p class="invite-status" id="inviteStatus" role="status" hidden></p>
       </section>
       <section class="guide-section" id="userGuide" aria-label="VocalRefit 사용법과 연습 가이드">
         <div class="guide-header"><div><span class="mini-heading">사용 안내</span><h2>처음 쓰는 분을 위한 사용법</h2><p>연습 선택 → 시작 → 그래프 확인. 이 세 가지면 충분합니다.</p></div></div>

@@ -2,12 +2,14 @@ package com.voiceline.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.ConsoleMessage;
+import android.webkit.JavascriptInterface;
 import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -99,8 +101,25 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {if (pendingAudioRequest == request) pendingAudioRequest = null;});
             }
         });
+        // Tester invite: lets the page open Android's share sheet (KakaoTalk, SMS, ...).
+        web.addJavascriptInterface(new ShareBridge(), "VoiceLineShare");
         // Always load the packaged version, not a saved stale navigation state.
         web.loadUrl(APP_ORIGIN + "/assets/www/index.html");
+    }
+
+    /** Text-only share bridge. Only the packaged asset origin is ever loaded (see shouldOverrideUrlLoading). */
+    private class ShareBridge {
+        @JavascriptInterface public void share(final String text) {
+            if (text == null || text.isEmpty()) return;
+            final String body = text.length() > 2000 ? text.substring(0, 2000) : text;
+            runOnUiThread(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_SUBJECT, "VocalRefit 테스터 초대");
+                send.putExtra(Intent.EXTRA_TEXT, body);
+                startActivity(Intent.createChooser(send, "친구에게 초대 보내기"));
+            });
+        }
     }
 
     private void handleWebPermission(PermissionRequest request) {

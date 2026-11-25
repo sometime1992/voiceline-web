@@ -78,3 +78,7 @@ body {background:radial-gradient(ellipse at top,#211833 0,#11101c 450px);color:v
 }
 @media(max-width:360px){.shell{padding:0 11px}.hero h1{font-size:24px}.quick-path{padding:15px}.mode-tab{min-width:124px}.note-line strong{font-size:40px}}
 @media(prefers-reduced-motion:reduce){.quick-start{transition:none}}
+/* Tester invite card */
+.invite-panel {margin-top:18px}
+.invite-panel .btn-outline {width:100%;margin-top:6px}
+.invite-status {margin:12px 0 0;white-space:pre-wrap;color:var(--muted);font-size:.92rem;line-height:1.5}
