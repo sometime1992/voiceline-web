@@ -9,7 +9,7 @@ name: VocalRefit signed internal test bundle
 
 on:
   push:
-    branches: [build/vocalrefit-internal-116]
+    branches: [build/vocalrefit-internal-116, build/vocalrefit-internal-117]
   workflow_dispatch:
 
 permissions:
@@ -86,7 +86,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: VocalRefit-2.0.0-116-signed-upload
+          name: VocalRefit-2.0.0-117-signed-upload
           path: android-local44/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14

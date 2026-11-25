@@ -3892,5 +3892,11 @@ studioYouTube?.addEventListener('click',event=>{
   window.VoiceLinePublicLinks.openYouTubeChannel();
  }
 });
+const testerInvite=document.getElementById('testerInviteShare');
+if(testerInvite){
+ // Closed-test recruiting: the native app builds the fixed invite text and opens the share sheet.
+ if(!window.VoiceLinePublicLinks?.shareTesterInvite)testerInvite.hidden=true;
+ testerInvite.addEventListener('click',()=>{try{window.VoiceLinePublicLinks?.shareTesterInvite?.();}catch(_){}});
+}
 
 })();

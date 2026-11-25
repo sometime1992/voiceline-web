@@ -34,6 +34,8 @@ public class MainActivity extends Activity {
     private static final int AUDIO_PERMISSION_REQUEST = 131;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private static final String PUBLIC_PRIVACY_URL = "https://naruvium.com/apps/vocalrefit/privacy.html";
+    private static final String TESTER_GROUP_URL = "https://groups.google.com/g/vocalrefit-testers";
+    private static final String TESTER_OPT_IN_URL = "https://play.google.com/apps/testing/com.voiceline.app";
     private static final String PUBLIC_SUPPORT_URL = "https://naruvium.com/support.html?app=vocalrefit#contact";
     private static final String PUBLIC_HOME_URL = "https://naruvium.com/";
     private WebView web;
@@ -157,6 +159,28 @@ public class MainActivity extends Activity {
                 case "nidcd": openApprovedPage("https://www.nidcd.nih.gov/health/taking-care-your-voice"); break;
                 default: break;
             }
+        }
+        @android.webkit.JavascriptInterface public void shareTesterInvite() {
+            final String text = String.join("\n",
+                AppLanguage.pick("🎤 VocalRefit 비공개 테스트에 함께해 주세요!", "🎤 Help test VocalRefit before launch!"),
+                AppLanguage.pick("내 목소리 음정을 건반 위에서 바로 확인하는 보컬 연습 앱이에요.", "A vocal practice app that shows your pitch on a piano keyboard."),
+                "",
+                AppLanguage.pick("참여 방법 (1분)", "How to join (1 min)"),
+                AppLanguage.pick("1) 그룹 가입:", "1) Join the group:") + " " + TESTER_GROUP_URL,
+                AppLanguage.pick("2) 테스트 참여:", "2) Join the test:") + " " + TESTER_OPT_IN_URL,
+                AppLanguage.pick("3) Play 스토어에서 설치 후 14일 동안 가끔 열어 주세요 🙏", "3) Install from Google Play and open it now and then for 14 days 🙏"),
+                "",
+                AppLanguage.pick("※ 그룹에 가입한 구글 계정과 폰의 Play 스토어 계정이 같아야 해요.", "Use the same Google account for the group and the Play Store."));
+            runOnUiThread(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_SUBJECT, AppLanguage.pick("VocalRefit 테스터 초대", "VocalRefit tester invite"));
+                send.putExtra(Intent.EXTRA_TEXT, text);
+                try { startActivity(Intent.createChooser(send, AppLanguage.pick("친구에게 초대 보내기", "Send invite"))); }
+                catch (android.content.ActivityNotFoundException error) {
+                    android.widget.Toast.makeText(MainActivity.this, AppLanguage.pick("공유할 수 있는 앱이 없습니다.", "No app is available to share."), android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
         }
         @android.webkit.JavascriptInterface public String appVersion() {
             try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }

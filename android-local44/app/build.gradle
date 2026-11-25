@@ -8,7 +8,7 @@ android {
         applicationId 'com.voiceline.app'
         minSdk 26
         targetSdk 36
-        versionCode 116
+        versionCode 117
         versionName '2.0.0'
     }
 
@@ -60,10 +60,10 @@ android {
     }
 }
 
-// CI and production use separate package IDs; both candidates use code 116.
+// CI and production use separate package IDs; both candidates use code 117.
 androidComponents {
     onVariants(selector().withBuildType('ciDebug')) { variant ->
-        variant.outputs.each { output -> output.versionCode.set(116) }
+        variant.outputs.each { output -> output.versionCode.set(117) }
     }
 }
 
